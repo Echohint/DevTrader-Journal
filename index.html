@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DevTrader Trading Journal</title>
     
-    <!-- Cyberpunk Style Favicon --><link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3cdefs%3e%3cfilter id='glow' x='-50%25' y='-50%25' width='200%25' height='200%25'%3e%3cfeGaussianBlur stdDeviation='5' result='blur'/%3e%3cfeMerge%3e%3cfeMergeNode in='blur'/%3e%3cfeMergeNode in='SourceGraphic'/%3e%3c/feMerge%3e%3c/filter%3e%3c/defs%3e%3crect width='100' height='100' fill='%23000'/%3e%3ctext x='50' y='55' font-family='Orbitron, sans-serif' font-size='38' fill='%2300ffff' text-anchor='middle' dominant-baseline='middle' filter='url(%23glow)'%3eDTJ%3c/text%3e%3c/svg%3e">
+    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3cdefs%3e%3cfilter id='glow' x='-50%25' y='-50%25' width='200%25' height='200%25'%3e%3cfeGaussianBlur stdDeviation='5' result='blur'/%3e%3cfeMerge%3e%3cfeMergeNode in='blur'/%3e%3cfeMergeNode in='SourceGraphic'/%3e%3c/feMerge%3e%3c/filter%3e%3c/defs%3e%3crect width='100' height='100' fill='%23000'/%3e%3ctext x='50' y='55' font-family='Orbitron, sans-serif' font-size='38' fill='%2300ffff' text-anchor='middle' dominant-baseline='middle' filter='url(%23glow)'%3eDTJ%3c/text%3e%3c/svg%3e">
 
-    <!-- Tailwind CSS for styling --><script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts: Orbitron --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
     
-    <!-- React & Babel for running the component --><script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <!-- Three.js for 3D graphics --><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         /* Apply the Orbitron font family */
@@ -29,11 +29,11 @@
         /* Style for number input arrows */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
-          -webkit-appearance: none; 
-          margin: 0; 
+            -webkit-appearance: none; 
+            margin: 0; 
         }
         input[type=number] {
-          -moz-appearance: textfield;
+            -moz-appearance: textfield;
         }
         /* Ensure canvas is behind everything */
         #bg-canvas {
@@ -183,6 +183,22 @@
             </svg>
         );
 
+        // --- NEW: Placeholder Monthly Statement ---
+        const MonthlyStatement = ({ monthData, onClose }) => {
+            // Placeholder so the app doesn't crash
+            return (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
+                    <div className="bg-white/80 dark:bg-black/80 p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="text-xl font-bold mb-4">MONTHLY STATEMENT</h3>
+                        <p className="mb-4">Statement feature for {monthData.monthName} is not yet fully implemented.</p>
+                        <button onClick={onClose} className="px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
         // --- Main App Component (Now receives user and onLogout props) ---
         function App({ user, onLogout }) {
             const [data, setData] = useState(null);
@@ -229,29 +245,42 @@
                 return months;
             }, []);
             
+            // --- UPDATED: Recalculate Plan Function ---
             const recalculatePlan = useCallback((fullData) => {
                 const { initialCapital, finalTarget, tenure } = fullData;
                 const newMonths = JSON.parse(JSON.stringify(fullData.months));
                 const allDays = newMonths.flatMap(m => m.days);
-                const initialDailyRate = Math.pow(finalTarget / initialCapital, 1 / tenure) - 1;
-                let plannedCapital = initialCapital;
-                const plannedGoals = [];
-                for (let i = 0; i < tenure; i++) {
-                    const plannedTarget = plannedCapital * (1 + initialDailyRate);
-                    plannedGoals.push({ target: Math.round(plannedTarget), profit: Math.round(plannedTarget - plannedCapital) });
-                    plannedCapital = plannedTarget;
-                }
-                let actualCapital = initialCapital; let totalDaysElapsed = 0;
+                
+                let actualCapital = initialCapital;
+                let daysRemaining = tenure;
+
                 for (let day of allDays) {
-                    day.target = plannedGoals[totalDaysElapsed].target;
-                    day.profit = plannedGoals[totalDaysElapsed].profit;
                     day.capital = Math.round(actualCapital);
-                    if (actualCapital > 0 && day.target > actualCapital) day.dailyRate = (day.target / actualCapital) - 1; else day.dailyRate = 0;
+                    
+                    let requiredDailyRate = 0;
+                    // Only calculate a rate if we still have time, capital, and haven't hit the target
+                    if (actualCapital > 0 && daysRemaining > 0 && finalTarget > actualCapital) {
+                        requiredDailyRate = Math.pow(finalTarget / actualCapital, 1 / daysRemaining) - 1;
+                    } else if (actualCapital > 0 && daysRemaining > 0 && finalTarget <= actualCapital) {
+                        // We already met the target, so just aim for 0% gain (maintenance)
+                        requiredDailyRate = 0;
+                    }
+                    // If capital is 0 or negative, or days are 0, rate remains 0 ("plan busted")
+
+                    day.dailyRate = requiredDailyRate;
+                    day.profit = Math.round(actualCapital * requiredDailyRate);
+                    day.target = Math.round(actualCapital + day.profit);
+
                     if (day.actual !== "") {
+                        // If the day is filled, use the *actual* P&L to set the next day's capital
                         const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0);
                         actualCapital += signedProfit;
-                    } else actualCapital = day.target;
-                    totalDaysElapsed++;
+                    } else {
+                        // For future days, assume the *newly calculated target* is met for planning
+                        actualCapital = day.target; 
+                    }
+                    
+                    daysRemaining--;
                 }
                 return newMonths;
             }, []);
@@ -317,9 +346,14 @@
                     const newData = JSON.parse(JSON.stringify(prevData));
                     const day = newData.months[monthIndex].days[dayIndex];
                     day[field] = value;
+                    
+                    // Recalculate 'achieved' status
                     const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0);
                     day.achieved = signedProfit >= day.profit;
+                    
+                    // Recalculate the entire plan based on this new data
                     newData.months = recalculatePlan(newData);
+                    
                     localStorage.setItem(storageKey, JSON.stringify(newData));
                     return newData;
                 });
@@ -412,6 +446,11 @@
             }
             
             const currentMonthData = data.months[activeMonthIndex];
+
+            // --- UPDATED: Calculate total gain percentage ---
+            const totalGainPercent = data.initialCapital > 0
+                ? ((data.finalTarget / data.initialCapital) - 1) * 100
+                : 0;
             
             return (
                 <div className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center p-4 sm:p-6 transition-colors duration-500 ${theme === 'dark' ? 'bg-dark-cyber scanlines' : 'bg-white'}`}>
@@ -484,8 +523,10 @@
                             </span>
                             DevTrader Trading Journal
                         </h1>
-                        <p className="font-bold tracking-wider text-gray-700 dark:text-gray-300 mb-2 drop-shadow">
+                        {/* --- UPDATED: Header with % GAIN --- */}
+                        <p className="font-bold tracking-wider text-gray-700 dark:text-gray-300 mb-2 drop-shadow text-sm sm:text-base">
                             OBJECTIVE: ₹{formatNumber(data.initialCapital, false)} → ₹{formatNumber(data.finalTarget, false)} in {data.tenure} days
+                            <span className="text-cyan-600 dark:text-cyan-400 ml-2">({totalGainPercent.toFixed(2)}% GAIN)</span>
                         </p>
                     </header>
                     
@@ -600,7 +641,10 @@
                         </div>
                     </div>
                     
+                    {/* --- UPDATED: Added buttons for new features --- */}
                     <div className="w-full max-w-7xl mt-6 flex flex-wrap justify-center gap-4 z-10">
+                         <button onClick={handleAddNewMonth} className="bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-md transition-all">ADD 1 MONTH ({TRADING_DAYS_PER_MONTH} DAYS)</button>
+                        <button onClick={() => setStatementVisible(true)} className="bg-fuchsia-600/80 hover:bg-fuchsia-500/80 border border-fuchsia-400 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-md transition-all">MONTHLY STATEMENT</button>
                         <button onClick={openResetPopup} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-md transition-all">PURGE & RESET</button>
                     </div>
                 </div>
@@ -687,4 +731,3 @@
     </script>
 </body>
 </html>
-

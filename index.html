@@ -101,7 +101,8 @@
         }
     </script>
 </head>
-<body class="bg-gray-100 dark:bg-black">
+<!-- The body tag is now clean, React will handle the background -->
+<body>
     <div id="root"></div>
 
     <script type="text/babel">
@@ -466,6 +467,22 @@
                     window.location.reload();
                 }
             };
+            
+            const handleAddNewMonth = () => {
+                setData(prevData => {
+                    const newTenure = prevData.tenure + TRADING_DAYS_PER_MONTH;
+                    const newMonths = generatePlanStructure(newTenure, prevData.months);
+                    const updatedData = {
+                        ...prevData,
+                        tenure: newTenure,
+                        months: newMonths
+                    };
+                    updatedData.months = recalculatePlan(updatedData);
+                    localStorage.setItem("tradingChallengeData", JSON.stringify(updatedData));
+                    setInputTenure(newTenure.toString());
+                    return updatedData;
+                });
+            };
 
             const toggleTheme = () => setTheme(prev => prev === "dark" ? "light" : "dark");
             
@@ -525,7 +542,7 @@
             const currentMonthData = data.months[activeMonthIndex];
             
             return (
-                <div className="relative min-h-screen text-gray-800 dark:text-gray-200 flex flex-col items-center p-4 sm:p-6 scanlines transition-colors duration-500">
+                <div className="relative min-h-screen bg-gray-100 dark:bg-black text-gray-800 dark:text-gray-200 flex flex-col items-center p-4 sm:p-6 scanlines transition-colors duration-500">
                     <DynamicBackground theme={theme} />
 
                      <button onClick={toggleTheme} className="absolute top-4 right-4 sm:top-6 sm:right-6 px-4 py-2 rounded-lg bg-white/50 dark:bg-black/70 backdrop-blur-sm text-gray-800 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-cyan-400 z-10">
@@ -653,6 +670,7 @@
                     </div>
                     
                     <div className="w-full max-w-7xl mt-6 flex flex-wrap justify-center gap-4 z-10">
+                        <button onClick={handleAddNewMonth} className="bg-blue-600/80 hover:bg-blue-500/80 border border-blue-400 backdrop-blur-sm text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-all">ADD NEW MONTH</button>
                         <button onClick={handleResetChallenge} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all">PURGE & RESET CHALLENGE</button>
                     </div>
                 </div>

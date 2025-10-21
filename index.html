@@ -183,60 +183,7 @@
             </svg>
         );
 
-        const MonthlyStatement = ({ monthData, onClose }) => {
-            const calendarDays = useMemo(() => {
-                if (!monthData || !monthData.days.length) return [];
-                const days = [];
-                const firstDate = new Date(monthData.days[0].date);
-                const firstDayOfWeek = firstDate.getDay(); 
-                for (let i = 0; i < firstDayOfWeek; i++) {
-                    days.push({ empty: true });
-                }
-                monthData.days.forEach(day => {
-                    const pnlValue = Number(day.actual) || 0;
-                    const isProfit = day.pnlSign === '+' && pnlValue > 0;
-                    const isLoss = day.pnlSign === '-' && pnlValue > 0;
-                    const signedPnl = isProfit ? pnlValue : isLoss ? -pnlValue : 0;
-                    
-                    days.push({
-                        date: new Date(day.date).getDate(),
-                        isProfit,
-                        isLoss,
-                        pnl: signedPnl
-                    });
-                });
-                return days;
-            }, [monthData]);
-
-            return (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-lg z-50 flex items-center justify-center p-4" onClick={onClose}>
-                    <div className="w-full max-w-4xl bg-white/50 dark:bg-black/70 p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold text-cyan-600 dark:text-cyan-400">{monthData.monthName} Statement</h2>
-                            <button onClick={onClose} className="text-gray-500 dark:text-gray-300 hover:text-red-500 text-3xl">&times;</button>
-                        </div>
-                        <div className="grid grid-cols-7 gap-1 text-center text-xs sm:text-sm">
-                            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => <div key={day} className="font-bold py-2 text-gray-600 dark:text-gray-400">{day}</div>)}
-                            {calendarDays.map((day, index) => (
-                                <div
-                                    key={index}
-                                    title={day.pnl ? `P&L: ₹${day.pnl.toLocaleString('en-IN')}` : ''}
-                                    className={`relative h-16 sm:h-20 flex items-center justify-center font-bold border border-cyan-700/20 dark:border-cyan-500/30
-                                        ${day.empty ? 'bg-transparent border-transparent' : 'bg-gray-200/50 dark:bg-gray-800/50'}
-                                    `}
-                                >
-                                    {day.date}
-                                    {day.isProfit && <span className="absolute bottom-2 w-2 h-2 rounded-full bg-green-500"></span>}
-                                    {day.isLoss && <span className="absolute bottom-2 w-2 h-2 rounded-full bg-red-500"></span>}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )
-        };
-
-        // --- Main App Component ---
+        // --- Main App Component (Now receives user and onLogout props) ---
         function App({ user, onLogout }) {
             const [data, setData] = useState(null);
             const [activeMonthIndex, setActiveMonthIndex] = useState(0);
@@ -468,6 +415,12 @@
             
             return (
                 <div className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center p-4 sm:p-6 transition-colors duration-500 ${theme === 'dark' ? 'bg-dark-cyber scanlines' : 'bg-white'}`}>
+                    <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-10">
+                        <a href="https://cryptobubbles.net/" target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-lg bg-white/50 dark:bg-black/70 backdrop-blur-sm text-gray-800 dark:text-gray-200 hover:bg-white/80 dark:hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-cyan-400 font-bold text-sm">
+                            Market Bubbles
+                        </a>
+                    </div>
+                    
                     {isAccountPopupVisible && (
                         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setAccountPopupVisible(false)}>
                             <div className="bg-white/80 dark:bg-black/80 p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] text-center" onClick={(e) => e.stopPropagation()}>
@@ -713,7 +666,7 @@
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-4"
-                                placeholder="****"
+                                placeholder="••••"
                             />
                             {error && <p className="text-red-500 text-xs text-center mb-4">{error}</p>}
                             <button

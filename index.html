@@ -69,7 +69,6 @@
         tailwind.config = { darkMode: 'class' }
     </script>
 </head>
-{/* Body no longer needs dark:bg-* class directly */}
 <body>
     <div id="root"></div>
 
@@ -300,7 +299,6 @@
         root.render(<AuthWrapper />);
     </script>
 
-    {/* PWA Service Worker Script */}
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -313,3 +311,4 @@
 
 </body>
 </html>
+

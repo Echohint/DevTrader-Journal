@@ -35,7 +35,12 @@
             overscroll-behavior-y: none;
             cursor: default;
             padding-top: 64px; /* Space for fixed navbar */
-            transition: background-color 0.5s ease; /* Smooth theme transition */
+            /* Background will now primarily be controlled by the React components */
+            background-color: #f0f0f0; /* Default light */
+            transition: background-color 0.5s ease;
+        }
+        .dark body {
+             background-color: #0a0a14; /* Default dark */
         }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
@@ -55,7 +60,7 @@
 
         /* --- Simplified Background Styles --- */
         .bg-light-simple { background-color: #f0f0f0; }
-        .bg-dark-solid { background-color: #0a0a14; } /* Solid dark */
+        .bg-dark-solid { background-color: #0a0a14; }
         /* --- End Background Styles --- */
 
         .tradingview-widget-container { width: 100%; display: flex; justify-content: center; }
@@ -70,14 +75,15 @@
         tailwind.config = { darkMode: 'class' }
     </script>
 </head>
-<body class="bg-light-simple dark:bg-dark-solid">
+{/* Removed background classes from body - they are now set directly in React components */}
+<body>
     <div id="root"></div>
 
     {/* --- React Code --- */}
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // Constants...
+        // Constants... (keep as before)
         const DEFAULT_INITIAL_CAPITAL = 50000;
         const DEFAULT_FINAL_TARGET = 1000000;
         const DEFAULT_TENURE_DAYS = 66;
@@ -85,7 +91,7 @@
         const DAYS_PER_PAGE = 10;
         const DEFAULT_RULES = [ { text: "MAINTAIN DISCIPLINE: ADHERE TO THE PLAN", checked: false }, { text: "VALIDATE STRATEGY: CONFIRM ENTRY/EXIT CRITERIA", checked: false }, { text: "ASSESS MACRO TREND: CONSULT HIGHER TIMEFRAMES", checked: false }, { text: "RISK PROTOCOL: MAX 2% CAPITAL PER ENGAGEMENT", checked: false }, { text: "PROTECT CAPITAL: NEVER SHIFT STOP-LOSS MID-TRADE", checked: false }, { text: "DEFINE LOSS LIMITS: SET DAILY DRAWDOWN THRESHOLD", checked: false }, { text: "AVOID EMOTIONAL TRADING: NO REVENGE/OVER-TRADING", checked: false }, { text: "MAINTAIN OBJECTIVITY: LOGIC OVER FEAR/GREED", checked: false }, { text: "POST-TRADE ANALYSIS: LOG & REVIEW ALL EXECUTIONS", checked: false }, { text: "OPERATOR STATUS: CONFIRM PEAK MENTAL & PHYSICAL STATE", checked: false }, ];
 
-        // Helper functions...
+        // Helper functions... (keep as before)
         const getNextTradingDay = (date) => { const nextDay = new Date(date); nextDay.setDate(nextDay.getDate() + 1); while (nextDay.getDay() === 0 || nextDay.getDay() === 6) { nextDay.setDate(nextDay.getDate() + 1); } return nextDay; };
         const getTodayDateString = () => new Date().toISOString().split('T')[0];
         const getCurrentFormattedDate = () => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -117,47 +123,52 @@
             // --- Robust loadTradingViewWidget Function ---
             const loadTradingViewWidget = useCallback(() => {
                 if (!tvWidgetRef.current) { return; }
-                tvWidgetRef.current.innerHTML = ''; // Clear previous
+                tvWidgetRef.current.innerHTML = '';
 
-                // Function to inject the script
-                const injectScript = () => {
-                    const script = document.createElement('script');
-                    script.type = 'text/javascript';
-                    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
-                    script.async = true;
-                    script.innerHTML = JSON.stringify({
-                        "symbol": "BINANCE:BTCUSD",
-                        "width": "100%", "height": "100%", "locale": "in", "dateRange": "1D",
-                        "colorTheme": theme === 'dark' ? "dark" : "light",
-                        "isTransparent": true, "autosize": true, "largeChartUrl": ""
-                    });
-                     // Assign ID if missing for the script to target reliably
-                    if (!tvWidgetRef.current.id) {
-                         tvWidgetRef.current.id = "tv_chart_widget_container_" + Date.now(); // Unique ID
-                    }
-                     script.innerHTML = script.innerHTML.replace('"autosize": true', `"autosize": true, "container_id": "${tvWidgetRef.current.id}"`);
+                const script = document.createElement('script');
+                script.type = 'text/javascript';
+                script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
+                script.async = true;
 
-                    tvWidgetRef.current.appendChild(script);
-                    console.log("TradingView widget script injected for theme:", theme);
-                };
+                 // Ensure the container has an ID for the script to target reliably
+                if (!tvWidgetRef.current.id) {
+                     tvWidgetRef.current.id = "tv_chart_widget_container_" + Date.now(); // Unique ID needed
+                }
 
-                // Inject script slightly delayed to ensure DOM is ready
-                const timerId = setTimeout(injectScript, 50); // Short delay
-                return () => clearTimeout(timerId); // Cleanup
+                script.innerHTML = JSON.stringify({
+                    "symbol": "BINANCE:BTCUSD",
+                    "width": "100%", "height": "100%", "locale": "in", "dateRange": "1D",
+                    "colorTheme": theme === 'dark' ? "dark" : "light",
+                    "isTransparent": true, "autosize": true, "largeChartUrl": "",
+                    "container_id": tvWidgetRef.current.id // Explicitly set container ID
+                });
 
-            }, [theme]); // Re-run only when theme changes
+                tvWidgetRef.current.appendChild(script);
+                console.log("TradingView widget script injected for theme:", theme, "into", tvWidgetRef.current.id);
+
+            }, [theme]); // Depend only on theme
 
             // --- Effects for Theme and Widget Loading ---
             useEffect(() => {
+                console.log("Theme changed to:", theme);
                 document.documentElement.classList.toggle("dark", theme === "dark");
                 localStorage.setItem("theme", theme);
-                // No need to call loadTradingViewWidget here, it's triggered by the dependency change in the next useEffect
-            }, [theme]);
+                // Use a small delay to allow DOM update after theme change before reloading widget
+                const timerId = setTimeout(() => {
+                     console.log("Reloading widget due to theme change...");
+                    loadTradingViewWidget();
+                }, 150); // Slightly longer delay might help
+                 return () => clearTimeout(timerId); // Cleanup timer
+            }, [theme, loadTradingViewWidget]);
 
-             useEffect(() => { // This effect runs when theme changes, triggering the widget reload
-                loadTradingViewWidget();
-            }, [loadTradingViewWidget]); // loadTradingViewWidget depends on theme
-
+            useEffect(() => { // Initial widget load on mount
+                 console.log("Initial widget load effect running...");
+                 const timerId = setTimeout(() => {
+                     console.log("Initial widget load timeout executing...");
+                    loadTradingViewWidget();
+                }, 300); // Delay on initial mount
+                return () => clearTimeout(timerId);
+            }, [loadTradingViewWidget]); // Ensure loadTradingViewWidget is stable
 
             // Handlers...
             const handleUpdateTargets = /* ... */() => { const newInitialCapital = parseInt(inputCapital, 10) || DEFAULT_INITIAL_CAPITAL; const newFinalTarget = parseInt(inputTarget, 10) || DEFAULT_FINAL_TARGET; const newTenure = parseInt(inputTenure, 10) || DEFAULT_TENURE_DAYS; setData(prevData => { const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, initialCapital: newInitialCapital, finalTarget: newFinalTarget, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); localStorage.setItem(storageKey, JSON.stringify(updatedData)); setActiveMonthIndex(0); setCurrentPage(1); return updatedData; }); };
@@ -186,8 +197,8 @@
 
             // --- JSX Return ---
             return (
-                // Removed the misplaced comment
-                <div ref={topOfPageRef} className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center pb-4 px-2 sm:px-4 transition-colors duration-500 ${theme === 'dark' ? 'scanlines' : ''}`}>
+                // Apply background and scanlines directly here
+                <div ref={topOfPageRef} className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center pb-4 px-2 sm:px-4 transition-colors duration-500 ${theme === 'dark' ? 'bg-dark-solid scanlines' : 'bg-light-simple'}`}>
 
                     {/* Navbar */}
                     <div className="fixed top-0 left-0 right-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b-2 border-cyan-500/50 shadow-[0_5px_15px_-5px_rgba(0,255,255,0.4)]">
@@ -279,8 +290,8 @@
             );
         } // End App Component
 
-        // --- LoginScreen Component (Passcode Logic - minified) ---
-        function LoginScreen({ onLogin }) {const[p,sp]=useState("");const[sp1,ssp1]=useState("");const[cp,scp]=useState("");const[e,se]=useState('');const[t,st]=useState(()=>localStorage.getItem("theme")||"dark");const[m,sm]=useState('loading');useEffect(()=>{document.documentElement.className=t;},[t]);useEffect(()=>{try{const spc=localStorage.getItem('devTraderPasscode');sm(spc?'login':'setup');}catch(er){console.error(er);sm('setup');}},[]);const hls=(ev)=>{ev.preventDefault();se('');const spc=localStorage.getItem('devTraderPasscode');p===spc?onLogin('devtrader'):se("Incorrect.");};const hss=(ev)=>{ev.preventDefault();se('');if(!sp1||!cp){se("Fill both.");return;}if(sp1!==cp){se("No match.");return;}try{localStorage.setItem('devTraderPasscode',sp1);onLogin('devtrader');}catch(er){se("Could not save.");console.error(er);}};const hr=()=>{if(window.confirm('Reset ALL data?')){try{localStorage.removeItem('devTraderPasscode');localStorage.removeItem('tradingChallengeData_devtrader');sessionStorage.removeItem('devTraderUser');window.location.reload();}catch(er){alert("Error resetting.");console.error(er);}}};const cw=(title,children,rl=false)=>(<div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${t==='dark'?'bg-dark-solid':'bg-light-simple'}`}><div className="relative z-10 w-full max-w-sm p-6 bg-white/50 dark:bg-black/70 backdrop-blur-xl border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]"><div className="flex flex-col items-center mb-4"><Logo size="56"/><p className="font-bold text-base mt-2 text-cyan-600 dark:text-cyan-400">{title}</p></div>{children}{rl&&(<div className="text-center mt-3"><button onClick={hr} className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500">Forgot? (Reset All)</button></div>)}</div></div>);if(m==='loading')return(<div className={`min-h-screen flex items-center justify-center ${t==='dark'?'bg-dark-solid':'bg-light-simple'}`}><p className="text-cyan-400">Loading...</p></div>);if(m==='setup')return cw("Create Passcode",(<form onSubmit={hss}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Set</label><input type="password" value={sp1} onChange={(ev)=>ssp1(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-2" placeholder="••••"/><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Confirm</label><input type="password" value={cp} onChange={(ev)=>scp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Save & Enter</button></form>));if(m==='login')return cw("DevTrader Access",(<form onSubmit={hls}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Enter</label><input type="password" value={p} onChange={(ev)=>sp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Enter</button></form>),true);}
+        // --- LoginScreen Component ---
+        function LoginScreen({ onLogin }) {const[p,sp]=useState("");const[sp1,ssp1]=useState("");const[cp,scp]=useState("");const[e,se]=useState('');const[t,st]=useState(()=>localStorage.getItem("theme")||"dark");const[m,sm]=useState('loading');useEffect(()=>{document.documentElement.className=t;},[t]);useEffect(()=>{try{const spc=localStorage.getItem('devTraderPasscode');sm(spc?'login':'setup');}catch(er){console.error(er);sm('setup');}},[]);const hls=(ev)=>{ev.preventDefault();se('');const spc=localStorage.getItem('devTraderPasscode');p===spc?onLogin('devtrader'):se("Incorrect.");};const hss=(ev)=>{ev.preventDefault();se('');if(!sp1||!cp){se("Fill both.");return;}if(sp1!==cp){se("No match.");return;}try{localStorage.setItem('devTraderPasscode',sp1);onLogin('devtrader');}catch(er){se("Could not save.");console.error(er);}};const hr=()=>{if(window.confirm('Reset ALL data?')){try{localStorage.removeItem('devTraderPasscode');localStorage.removeItem('tradingChallengeData_devtrader');sessionStorage.removeItem('devTraderUser');window.location.reload();}catch(er){alert("Error resetting.");console.error(er);}}};const cw=(title,children,rl=false)=>(<div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${t==='dark'?'bg-dark-solid scanlines':'bg-light-simple'}`}><div className="relative z-10 w-full max-w-sm p-6 bg-white/50 dark:bg-black/70 backdrop-blur-xl border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]"><div className="flex flex-col items-center mb-4"><Logo size="56"/><p className="font-bold text-base mt-2 text-cyan-600 dark:text-cyan-400">{title}</p></div>{children}{rl&&(<div className="text-center mt-3"><button onClick={hr} className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500">Forgot? (Reset All)</button></div>)}</div></div>);if(m==='loading')return(<div className={`min-h-screen flex items-center justify-center ${t==='dark'?'bg-dark-solid scanlines':'bg-light-simple'}`}><p className="text-cyan-400">Loading...</p></div>);if(m==='setup')return cw("Create Passcode",(<form onSubmit={hss}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Set</label><input type="password" value={sp1} onChange={(ev)=>ssp1(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-2" placeholder="••••"/><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Confirm</label><input type="password" value={cp} onChange={(ev)=>scp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Save & Enter</button></form>));if(m==='login')return cw("DevTrader Access",(<form onSubmit={hls}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Enter</label><input type="password" value={p} onChange={(ev)=>sp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Enter</button></form>),true);}
 
         // --- AuthWrapper (handles login state) ---
         function AuthWrapper() { const [user, setUser] = useState(() => sessionStorage.getItem("devTraderUser")); const handleLogin = (username) => { if(username.trim()){ sessionStorage.setItem("devTraderUser", username.trim()); setUser(username.trim()); } }; const handleLogout = () => { sessionStorage.removeItem("devTraderUser"); setUser(null); }; if (!user) { return <LoginScreen onLogin={handleLogin} />; } return <App user={user} onLogout={handleLogout} />; }

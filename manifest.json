@@ -6,16 +6,18 @@
   "display": "standalone",
   "background_color": "#0a0a14",
   "theme_color": "#00ffff",
-  "icons": [
+ "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/340/340890.png",
+      "src": "dtj-new-icon.png",
+      "sizes": "512x512",
       "type": "image/png",
-      "sizes": "192x192"
+      "purpose": "any maskable"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/340/340890.png",
+      "src": "dtj-new-icon.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "512x512"
+      "purpose": "any maskable"
     }
   ]
 }

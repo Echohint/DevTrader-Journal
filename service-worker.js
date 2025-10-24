@@ -1,0 +1,6 @@
+const CACHE_NAME = 'devtrader-v1';
+const urlsToCache = [
+  '/',
+  ...
+];
+...

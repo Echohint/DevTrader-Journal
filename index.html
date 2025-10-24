@@ -7,7 +7,7 @@
 
     {/* --- PWA and iOS specific tags --- */}
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#00ffff"> {/* Theme color for Android */}
+    <meta name="theme-color" content="#00ffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="DevTrader">
@@ -16,17 +16,17 @@
 
     <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3cdefs%3e%3cfilter id='glow' x='-50%25' y='-50%25' width='200%25' height='200%25'%3e%3cfeGaussianBlur stdDeviation='5' result='blur'/%3e%3cfeMerge%3e%3cfeMergeNode in='blur'/%3e%3cfeMergeNode in='SourceGraphic'/%3e%3c/feMerge%3e%3c/filter%3e%3c/defs%3e%3crect width='100' height='100' fill='%23000'/%3e%3ctext x='50' y='55' font-family='Orbitron, sans-serif' font-size='38' fill='%2300ffff' text-anchor='middle' dominant-baseline='middle' filter='url(%23glow)'%3eDTJ%3c/text%3e%3c/svg%3e">
 
+    {/* --- External Scripts --- */}
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    {/* --- End External Scripts --- */}
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
-
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
         html { scroll-behavior: smooth; }
@@ -41,7 +41,7 @@
         #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
         .perspective-container { perspective: 1500px; }
         .transform-style-3d { transform-style: preserve-3d; }
-        @keyframes pulse-glow-cyber { 0%, 100% { box-shadow: 0 0 10px 3px rgba(128, 128, 128, 0.8), inset 0 0 5px 1px rgba(128, 128, 0.5); } 50% { box-shadow: 0 0 20px 6px rgba(128, 128, 128, 0.5), inset 0 0 10px 2px rgba(128, 128, 128, 0.3); } }
+        @keyframes pulse-glow-cyber { 0%, 100% { box-shadow: 0 0 10px 3px rgba(128, 128, 128, 0.8), inset 0 0 5px 1px rgba(128, 128, 128, 0.5); } 50% { box-shadow: 0 0 20px 6px rgba(128, 128, 128, 0.5), inset 0 0 10px 2px rgba(128, 128, 128, 0.3); } }
         .today-highlight { animation: pulse-glow-cyber 2.5s infinite; }
         .day-container { cursor: grab; }
         .is-dragging { animation: none !important; cursor: grabbing; }
@@ -49,9 +49,9 @@
         .dark .scanlines::before { opacity: 1; }
         @keyframes flicker { 0% { opacity: 0.8; } 50% { opacity: 0.9; } 100% { opacity: 0.8; } }
 
-        /* --- BACKGROUND STYLES --- */
+        /* Background Styles */
         .bg-light-cyber {
-             background-color: #e0e0e0; /* Light grey base */
+             background-color: #e0e0e0;
              background-image:
                 linear-gradient(45deg, rgba(0, 255, 255, 0.08) 25%, transparent 25%, transparent 75%, rgba(0, 255, 255, 0.08) 75%, rgba(0, 255, 255, 0.08)),
                 linear-gradient(-45deg, rgba(255, 0, 255, 0.05) 25%, transparent 25%, transparent 75%, rgba(255, 0, 255, 0.05) 75%, rgba(255, 0, 255, 0.05));
@@ -65,7 +65,7 @@
                 linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
             background-size: 100% 100%, 35px 35px, 35px 35px;
         }
-        /* --- END BACKGROUND STYLES --- */
+        /* End Background Styles */
 
         .tradingview-widget-container { width: 100%; display: flex; justify-content: center; }
         .tradingview-widget-copyright { display: none; }
@@ -74,10 +74,10 @@
         tailwind.config = { darkMode: 'class' }
     </script>
 </head>
-{/* --- Body class updated for light/dark backgrounds --- */}
 <body class="bg-light-cyber dark:bg-dark-cyber">
     <div id="root"></div>
 
+    {/* --- React Code --- */}
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
@@ -97,7 +97,7 @@
 
         const MonthlyStatement = ({ monthData, startCapital, onClose }) => { const stats = useMemo(() => { let pnl = 0, profitDays = 0, lossDays = 0, longestStreak = 0, currentStreak = 0, mostProfitable = 0, largestLoss = 0, completedDays = 0; for (const day of monthData.days) { if (day.actual === "" || day.actual === null) continue; completedDays++; const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); pnl += value; if (value > 0) { profitDays++; currentStreak++; mostProfitable = Math.max(mostProfitable, value); } else if (value < 0) { lossDays++; currentStreak = 0; largestLoss = Math.min(largestLoss, value); } else { currentStreak = 0; } longestStreak = Math.max(longestStreak, currentStreak); } const endCapital = startCapital + pnl; return { pnl, profitDays, lossDays, longestStreak, mostProfitable, largestLoss, endCapital, completedDays }; }, [monthData, startCapital]); const StatCard = ({ title, value, colorClass = "text-black dark:text-gray-200" }) => ( <div className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-3 border border-fuchsia-700/30 dark:border-fuchsia-500/50"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-lg sm:text-xl font-bold ${colorClass}`}>{value}</p></div> ); return ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}><div className="w-full max-w-2xl bg-white/80 dark:bg-black/80 p-4 sm:p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}><h3 className="text-xl sm:text-2xl font-bold mb-4 text-cyan-600 dark:text-cyan-400">STATEMENT: {monthData.monthName}</h3><div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 text-center"><StatCard title="START CAPITAL" value={`₹${formatNumber(startCapital)}`} /> <StatCard title="END CAPITAL" value={`₹${formatNumber(stats.endCapital)}`} /><StatCard title="NET P&L" value={`₹${formatNumber(stats.pnl, true)}`} colorClass={stats.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}/></div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">P&L CALENDAR</h4><div className="grid grid-cols-7 gap-1 sm:gap-2 mb-4 p-2 bg-white/30 dark:bg-black/50 border border-cyan-700/20 dark:border-cyan-500/30">{monthData.days.map((day) => { const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); let bgColor = "bg-gray-200 dark:bg-gray-700/80"; if (day.actual !== "" && value > 0) bgColor = "bg-green-500 dark:bg-green-600"; if (day.actual !== "" && value < 0) bgColor = "bg-red-500 dark:bg-red-600"; if (day.actual !== "" && value === 0) bgColor = "bg-gray-400 dark:bg-gray-500"; return (<div key={day.day} className={`w-full h-8 sm:h-12 ${bgColor} flex items-center justify-center text-white font-bold text-xs sm:text-sm`} title={`Day ${day.day}: ₹${formatNumber(value, true)}`}>{day.day}</div>); })}</div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">MONTHLY ANALYSIS</h4><div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 text-center"><StatCard title="PROFIT DAYS" value={stats.profitDays} colorClass="text-green-600 dark:text-green-400" /> <StatCard title="LOSS DAYS" value={stats.lossDays} colorClass="text-red-600 dark:text-red-400" /><StatCard title="LONGEST STREAK" value={`${stats.longestStreak} Days`} colorClass="text-cyan-600 dark:text-cyan-400" /> <StatCard title="MOST PROFITABLE" value={`₹${formatNumber(stats.mostProfitable, true)}`} colorClass="text-green-600 dark:text-green-400" /><StatCard title="LARGEST LOSS" value={`₹${formatNumber(stats.largestLoss, true)}`} colorClass="text-red-600 dark:text-red-400" /> <StatCard title="DAYS TRADED" value={stats.completedDays} /></div><button onClick={onClose} className="w-full px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">Close</button></div></div> ); };
 
-        // --- Analog Clock - REVERTED to absolute positioning ---
+        // --- Analog Clock - REVERTED to original, non-minified code ---
         const AnalogClock = ({ position, variant = 'cyber' }) => {
             const [time, setTime] = useState(new Date());
 
@@ -129,7 +129,6 @@
             const currentStyle = handStyles[variant];
 
             return (
-                // Added absolute positioning classes back
                 <div className={`absolute top-20 ${position} w-24 h-24 sm:w-32 sm:h-32 z-20 opacity-60 dark:opacity-80 hidden lg:block`}>
                     <svg viewBox="0 0 100 100" className="w-full h-full">
                         <defs><filter id="hand-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
@@ -144,56 +143,85 @@
                 </div>
             );
         };
-        {/* --- END CLOCK REVERT --- */}
+        // --- END CLOCK REVERT ---
 
-        const ScrollToTopButton = () => { const [isVisible, setIsVisible] = useState(false); const toggleVisibility = () => { if (window.pageYOffset > 300) { setIsVisible(true); } else { setIsVisible(false); } }; const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { window.addEventListener('scroll', toggleVisibility); return () => window.removeEventListener('scroll', toggleVisibility); }, []); return ( <button onClick={scrollToTop} className={`fixed bottom-6 left-6 z-40 p-3 bg-cyan-500/80 text-white rounded-full shadow-lg transition-opacity duration-300 hover:bg-cyan-400 ${isVisible ? 'opacity-100' : 'opacity-0'}`} title="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button> ); };
+        // --- ScrollToTopButton - REVERTED to original, non-minified code ---
+        const ScrollToTopButton = () => {
+            const [isVisible, setIsVisible] = useState(false);
+            const toggleVisibility = () => {
+                if (window.pageYOffset > 300) {
+                    setIsVisible(true);
+                } else {
+                    setIsVisible(false);
+                }
+            };
+            const scrollToTop = () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+            useEffect(() => {
+                window.addEventListener('scroll', toggleVisibility);
+                return () => window.removeEventListener('scroll', toggleVisibility);
+            }, []);
+            return (
+                <button onClick={scrollToTop} className={`fixed bottom-6 left-6 z-40 p-3 bg-cyan-500/80 text-white rounded-full shadow-lg transition-opacity duration-300 hover:bg-cyan-400 ${isVisible ? 'opacity-100' : 'opacity-0'}`} title="Scroll to Top">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                </button>
+            );
+        };
+        // --- END ScrollToTopButton REVERT ---
 
-        // --- APP FUNCTION with passcode logic (remains the same as previous) ---
+
         function App({ user, onLogout }) {
             const [data, setData] = useState(null); const [activeMonthIndex, setActiveMonthIndex] = useState(0); const [todayString, setTodayString] = useState(getTodayDateString()); const [currentDateString, setCurrentDateString] = useState(getCurrentFormattedDate()); const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString()); const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark"); const [isAccountPopupVisible, setAccountPopupVisible] = useState(false); const [isResetPopupVisible, setResetPopupVisible] = useState(false); const [resetPasswordInput, setResetPasswordInput] = useState(""); const [resetError, setResetError] = useState(""); const [isStatementVisible, setStatementVisible] = useState(false); const [currentPage, setCurrentPage] = useState(1); const [inputCapital, setInputCapital] = useState(DEFAULT_INITIAL_CAPITAL.toString()); const [inputTarget, setInputTarget] = useState(DEFAULT_FINAL_TARGET.toString()); const [inputTenure, setInputTenure] = useState(DEFAULT_TENURE_DAYS.toString());
             const journalContainerRef = useRef(null); const topOfPageRef = useRef(null); const dragInfo = useRef(null);
             const storageKey = `tradingChallengeData_${user}`;
-            const tvWidgetRef = useRef(null); // Ref for TradingView widget container
+            const tvWidgetRef = useRef(null);
 
             useEffect(() => { const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000); return () => clearInterval(timer); }, []);
             useEffect(() => { if (currentPage === 1 && activeMonthIndex === 0) return; journalContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [currentPage, activeMonthIndex]);
 
-            const generatePlanStructure = useCallback((tenure, oldMonths = []) => { const oldDaysMap = new Map(); oldMonths.forEach(month => month.days.forEach(day => oldDaysMap.set(day.date, day))); let months = []; let currentDate = new Date(); let dayCounter = 0; while (dayCounter < tenure) { const monthIndex = Math.floor(dayCounter / TRADING_DAYS_PER_MONTH); if (!months[monthIndex]) { months[monthIndex] = { id: monthIndex + 1, monthName: currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }), days: [] }; } const dateStr = currentDate.toISOString().split('T')[0]; const existingDayData = oldDaysMap.get(dateStr); months[monthIndex].days.push({ day: dayCounter + 1, date: dateStr, capital: 0, target: 0, profit: 0, dailyRate: 0, achieved: existingDayData?.achieved ?? false, pnlSign: existingDayData?.pnlSign ?? "+", actual: existingDayData?.actual ?? "", winningTrades: existingDayData?.winningTrades ?? "", losingTrades: existingDayData?.losingTrades ?? "", logic: existingDayData?.logic ?? "", rules: existingDayData?.rules ?? JSON.parse(JSON.stringify(DEFAULT_RULES)), }); currentDate = getNextTradingDay(currentDate); dayCounter++; } return months; }, []);
-            const recalculatePlan = useCallback((fullData) => { const { initialCapital, finalTarget, tenure } = fullData; const newMonths = JSON.parse(JSON.stringify(fullData.months)); const allDays = newMonths.flatMap(m => m.days); let actualCapital = initialCapital; let daysRemaining = tenure; for (let day of allDays) { day.capital = Math.round(actualCapital); let requiredDailyRate = 0; if (actualCapital > 0 && daysRemaining > 0 && finalTarget > actualCapital) { requiredDailyRate = Math.pow(finalTarget / actualCapital, 1 / daysRemaining) - 1; } else if (actualCapital > 0 && daysRemaining > 0 && finalTarget <= actualCapital) { requiredDailyRate = 0; } day.dailyRate = requiredDailyRate; day.profit = Math.round(actualCapital * requiredDailyRate); day.target = Math.round(actualCapital + day.profit); if (day.actual !== "") { const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); actualCapital += signedProfit; } else { actualCapital = day.target; } daysRemaining--; } return newMonths; }, []);
-            const initializeAndSetData = useCallback(() => { const months = generatePlanStructure(DEFAULT_TENURE_DAYS); let initialData = { initialCapital: DEFAULT_INITIAL_CAPITAL, finalTarget: DEFAULT_FINAL_TARGET, tenure: DEFAULT_TENURE_DAYS, months }; initialData.months = recalculatePlan(initialData); setData(initialData); localStorage.setItem(storageKey, JSON.stringify(initialData)); setInputCapital(DEFAULT_INITIAL_CAPITAL.toString()); setInputTarget(DEFAULT_FINAL_TARGET.toString()); setInputTenure(DEFAULT_TENURE_DAYS.toString()); setActiveMonthIndex(0); setCurrentPage(1); topOfPageRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [generatePlanStructure, recalculatePlan, storageKey]);
-            useEffect(() => { try { const savedData = localStorage.getItem(storageKey); if (savedData) { const parsedData = JSON.parse(savedData); setData(parsedData); setInputCapital(parsedData.initialCapital.toString()); setInputTarget(parsedData.finalTarget.toString()); setInputTenure(parsedData.tenure.toString()); } else { initializeAndSetData(); } } catch (error) { console.error("Failed to initialize data:", error); initializeAndSetData(); } }, [storageKey, initializeAndSetData]);
+            const generatePlanStructure = useCallback(/* ... same ... */(tenure, oldMonths = []) => { const oldDaysMap = new Map(); oldMonths.forEach(month => month.days.forEach(day => oldDaysMap.set(day.date, day))); let months = []; let currentDate = new Date(); let dayCounter = 0; while (dayCounter < tenure) { const monthIndex = Math.floor(dayCounter / TRADING_DAYS_PER_MONTH); if (!months[monthIndex]) { months[monthIndex] = { id: monthIndex + 1, monthName: currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }), days: [] }; } const dateStr = currentDate.toISOString().split('T')[0]; const existingDayData = oldDaysMap.get(dateStr); months[monthIndex].days.push({ day: dayCounter + 1, date: dateStr, capital: 0, target: 0, profit: 0, dailyRate: 0, achieved: existingDayData?.achieved ?? false, pnlSign: existingDayData?.pnlSign ?? "+", actual: existingDayData?.actual ?? "", winningTrades: existingDayData?.winningTrades ?? "", losingTrades: existingDayData?.losingTrades ?? "", logic: existingDayData?.logic ?? "", rules: existingDayData?.rules ?? JSON.parse(JSON.stringify(DEFAULT_RULES)), }); currentDate = getNextTradingDay(currentDate); dayCounter++; } return months; }, []);
+            const recalculatePlan = useCallback(/* ... same ... */(fullData) => { const { initialCapital, finalTarget, tenure } = fullData; const newMonths = JSON.parse(JSON.stringify(fullData.months)); const allDays = newMonths.flatMap(m => m.days); let actualCapital = initialCapital; let daysRemaining = tenure; for (let day of allDays) { day.capital = Math.round(actualCapital); let requiredDailyRate = 0; if (actualCapital > 0 && daysRemaining > 0 && finalTarget > actualCapital) { requiredDailyRate = Math.pow(finalTarget / actualCapital, 1 / daysRemaining) - 1; } else if (actualCapital > 0 && daysRemaining > 0 && finalTarget <= actualCapital) { requiredDailyRate = 0; } day.dailyRate = requiredDailyRate; day.profit = Math.round(actualCapital * requiredDailyRate); day.target = Math.round(actualCapital + day.profit); if (day.actual !== "") { const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); actualCapital += signedProfit; } else { actualCapital = day.target; } daysRemaining--; } return newMonths; }, []);
+            const initializeAndSetData = useCallback(/* ... same ... */() => { const months = generatePlanStructure(DEFAULT_TENURE_DAYS); let initialData = { initialCapital: DEFAULT_INITIAL_CAPITAL, finalTarget: DEFAULT_FINAL_TARGET, tenure: DEFAULT_TENURE_DAYS, months }; initialData.months = recalculatePlan(initialData); setData(initialData); localStorage.setItem(storageKey, JSON.stringify(initialData)); setInputCapital(DEFAULT_INITIAL_CAPITAL.toString()); setInputTarget(DEFAULT_FINAL_TARGET.toString()); setInputTenure(DEFAULT_TENURE_DAYS.toString()); setActiveMonthIndex(0); setCurrentPage(1); topOfPageRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [generatePlanStructure, recalculatePlan, storageKey]);
+            useEffect(/* ... same ... */() => { try { const savedData = localStorage.getItem(storageKey); if (savedData) { const parsedData = JSON.parse(savedData); setData(parsedData); setInputCapital(parsedData.initialCapital.toString()); setInputTarget(parsedData.finalTarget.toString()); setInputTenure(parsedData.tenure.toString()); } else { initializeAndSetData(); } } catch (error) { console.error("Failed to initialize data:", error); initializeAndSetData(); } }, [storageKey, initializeAndSetData]);
 
-            // Theme effect now also reloads the TradingView Widget
-            useEffect(() => {
+            const loadTradingViewWidget = useCallback(() => {
+                if (tvWidgetRef.current) {
+                    tvWidgetRef.current.innerHTML = '';
+                    const script = document.createElement('script');
+                    script.type = 'text/javascript';
+                    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
+                    script.async = true;
+                    script.innerHTML = JSON.stringify({
+                        "symbol": "NSE:NIFTY", "width": "100%", "height": "100%", "locale": "in", "dateRange": "1D",
+                        "colorTheme": theme === 'dark' ? "dark" : "light",
+                        "isTransparent": true, "autosize": true, "largeChartUrl": ""
+                    });
+                    tvWidgetRef.current.appendChild(script);
+                }
+            }, [theme]); // Dependency on theme
+
+             useEffect(() => {
                 document.documentElement.classList.toggle("dark", theme === "dark");
                 localStorage.setItem("theme", theme);
-                // Reload TradingView widget when theme changes
+                loadTradingViewWidget(); // Reload widget on theme change
+            }, [theme, loadTradingViewWidget]);
+
+             useEffect(() => { // Initial widget load
                 loadTradingViewWidget();
-            }, [theme]);
+            }, [loadTradingViewWidget]);
 
-            const handleUpdateTargets = () => { const newInitialCapital = parseInt(inputCapital, 10) || DEFAULT_INITIAL_CAPITAL; const newFinalTarget = parseInt(inputTarget, 10) || DEFAULT_FINAL_TARGET; const newTenure = parseInt(inputTenure, 10) || DEFAULT_TENURE_DAYS; setData(prevData => { const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, initialCapital: newInitialCapital, finalTarget: newFinalTarget, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); localStorage.setItem(storageKey, JSON.stringify(updatedData)); setActiveMonthIndex(0); setCurrentPage(1); return updatedData; }); };
-            const handleDataChange = (monthIndex, dayIndex, field, value) => { setData(prevData => { const newData = JSON.parse(JSON.stringify(prevData)); const day = newData.months[monthIndex].days[dayIndex]; day[field] = value; const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); day.achieved = signedProfit >= day.profit; newData.months = recalculatePlan(newData); localStorage.setItem(storageKey, JSON.stringify(newData)); return newData; }); };
-
-            const handleConfirmReset = () => {
-                const savedPasscode = localStorage.getItem('devTraderPasscode') || '';
-                if (resetPasswordInput === savedPasscode) {
-                    initializeAndSetData();
-                    localStorage.removeItem('devTraderPasscode');
-                    setResetPopupVisible(false);
-                    onLogout();
-                } else {
-                    setResetError("Incorrect Passcode. Reset Aborted.");
-                }
-            };
-
-            const handleAddNewMonth = () => { setData(prevData => { const newTenure = prevData.tenure + TRADING_DAYS_PER_MONTH; const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); localStorage.setItem(storageKey, JSON.stringify(updatedData)); setInputTenure(newTenure.toString()); return updatedData; }); };
-            const openResetPopup = () => { setResetPasswordInput(""); setResetError(""); setResetPopupVisible(true); };
-            const toggleTheme = () => { setTheme(prev => prev === "dark" ? "light" : "dark"); }; // Theme toggle function
-            const handleMouseMove = useCallback((e) => { if (!dragInfo.current) return; const { element, startX, startY } = dragInfo.current; const deltaX = e.clientX - startX; const deltaY = e.clientY - startY; element.style.transform = `rotateX(${-deltaY * 0.2}deg) rotateY(${deltaX * 0.2}deg) scale3d(1.05, 1.05, 1.05)`; }, []);
-            const handleMouseUp = useCallback(() => { if (!dragInfo.current) return; dragInfo.current.element.classList.remove('is-dragging'); dragInfo.current.element.style.transform = ''; window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); dragInfo.current = null; }, [handleMouseMove]);
-            const handleMouseDown = useCallback((e) => { if (e.button !== 0 || ['INPUT', 'TEXTAREA', 'LABEL', 'BUTTON'].includes(e.target.tagName) || e.target.closest('label')) return; e.currentTarget.classList.add('is-dragging'); dragInfo.current = { element: e.currentTarget, startX: e.clientX, startY: e.clientY }; window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); }, [handleMouseMove, handleMouseUp]);
-            const analysis = useMemo(() => { if (!data || !data.months[activeMonthIndex]) return { pnl: 0, profitDays: 0, lossDays: 0, winningTrades: 0, losingTrades: 0 }; const month = data.months[activeMonthIndex]; const completedDays = month.days.filter(d => d.actual !== ""); const pnl = completedDays.reduce((acc, d) => acc + (d.pnlSign === '+' ? 1 : -1) * (Number(d.actual) || 0), 0); const profitDays = completedDays.filter(d => (d.pnlSign === '+' && d.actual !== '0')).length; const lossDays = completedDays.filter(d => (d.pnlSign === '-' && d.actual !== '0')).length; const winningTrades = completedDays.reduce((acc, d) => acc + (Number(d.winningTrades) || 0), 0); const losingTrades = completedDays.reduce((acc, d) => acc + (Number(d.losingTrades) || 0), 0); return { pnl, profitDays, lossDays, winningTrades, losingTrades }; }, [data, activeMonthIndex]);
-            const startCapitalForMonth = useMemo(() => { if (!data || activeMonthIndex === 0) return data ? data.initialCapital : 0; const allDays = data.months.flatMap(m => m.days); const firstDayOfMonthIndex = activeMonthIndex * TRADING_DAYS_PER_MONTH; return allDays[firstDayOfMonthIndex]?.capital ?? 0; }, [data, activeMonthIndex]);
+            const handleUpdateTargets = /* ... same ... */() => { const newInitialCapital = parseInt(inputCapital, 10) || DEFAULT_INITIAL_CAPITAL; const newFinalTarget = parseInt(inputTarget, 10) || DEFAULT_FINAL_TARGET; const newTenure = parseInt(inputTenure, 10) || DEFAULT_TENURE_DAYS; setData(prevData => { const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, initialCapital: newInitialCapital, finalTarget: newFinalTarget, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); localStorage.setItem(storageKey, JSON.stringify(updatedData)); setActiveMonthIndex(0); setCurrentPage(1); return updatedData; }); };
+            const handleDataChange = /* ... same ... */(monthIndex, dayIndex, field, value) => { setData(prevData => { const newData = JSON.parse(JSON.stringify(prevData)); const day = newData.months[monthIndex].days[dayIndex]; day[field] = value; const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); day.achieved = signedProfit >= day.profit; newData.months = recalculatePlan(newData); localStorage.setItem(storageKey, JSON.stringify(newData)); return newData; }); };
+            const handleConfirmReset = /* ... same passcode check ... */() => { const savedPasscode = localStorage.getItem('devTraderPasscode') || ''; if (resetPasswordInput === savedPasscode) { initializeAndSetData(); localStorage.removeItem('devTraderPasscode'); setResetPopupVisible(false); onLogout(); } else { setResetError("Incorrect Passcode. Reset Aborted."); } };
+            const handleAddNewMonth = /* ... same ... */() => { setData(prevData => { const newTenure = prevData.tenure + TRADING_DAYS_PER_MONTH; const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); localStorage.setItem(storageKey, JSON.stringify(updatedData)); setInputTenure(newTenure.toString()); return updatedData; }); };
+            const openResetPopup = /* ... same ... */() => { setResetPasswordInput(""); setResetError(""); setResetPopupVisible(true); };
+            const toggleTheme = /* ... same ... */() => { setTheme(prev => prev === "dark" ? "light" : "dark"); };
+            const handleMouseMove = useCallback(/* ... same ... */(e) => { if (!dragInfo.current) return; const { element, startX, startY } = dragInfo.current; const deltaX = e.clientX - startX; const deltaY = e.clientY - startY; element.style.transform = `rotateX(${-deltaY * 0.2}deg) rotateY(${deltaX * 0.2}deg) scale3d(1.05, 1.05, 1.05)`; }, []);
+            const handleMouseUp = useCallback(/* ... same ... */() => { if (!dragInfo.current) return; dragInfo.current.element.classList.remove('is-dragging'); dragInfo.current.element.style.transform = ''; window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); dragInfo.current = null; }, [handleMouseMove]);
+            const handleMouseDown = useCallback(/* ... same ... */(e) => { if (e.button !== 0 || ['INPUT', 'TEXTAREA', 'LABEL', 'BUTTON'].includes(e.target.tagName) || e.target.closest('label')) return; e.currentTarget.classList.add('is-dragging'); dragInfo.current = { element: e.currentTarget, startX: e.clientX, startY: e.clientY }; window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); }, [handleMouseMove, handleMouseUp]);
+            const analysis = useMemo(/* ... same ... */() => { if (!data || !data.months[activeMonthIndex]) return { pnl: 0, profitDays: 0, lossDays: 0, winningTrades: 0, losingTrades: 0 }; const month = data.months[activeMonthIndex]; const completedDays = month.days.filter(d => d.actual !== ""); const pnl = completedDays.reduce((acc, d) => acc + (d.pnlSign === '+' ? 1 : -1) * (Number(d.actual) || 0), 0); const profitDays = completedDays.filter(d => (d.pnlSign === '+' && d.actual !== '0')).length; const lossDays = completedDays.filter(d => (d.pnlSign === '-' && d.actual !== '0')).length; const winningTrades = completedDays.reduce((acc, d) => acc + (Number(d.winningTrades) || 0), 0); const losingTrades = completedDays.reduce((acc, d) => acc + (Number(d.losingTrades) || 0), 0); return { pnl, profitDays, lossDays, winningTrades, losingTrades }; }, [data, activeMonthIndex]);
+            const startCapitalForMonth = useMemo(/* ... same ... */() => { if (!data || activeMonthIndex === 0) return data ? data.initialCapital : 0; const allDays = data.months.flatMap(m => m.days); const firstDayOfMonthIndex = activeMonthIndex * TRADING_DAYS_PER_MONTH; return allDays[firstDayOfMonthIndex]?.capital ?? 0; }, [data, activeMonthIndex]);
             const currentMonthDays = data ? data.months[activeMonthIndex]?.days || [] : [];
             const totalPages = Math.ceil(currentMonthDays.length / DAYS_PER_PAGE);
             const startIndex = (currentPage - 1) * DAYS_PER_PAGE;
@@ -202,48 +230,18 @@
             const goToPrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
             const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
 
-             // --- Function to load/reload TradingView Widget ---
-             const loadTradingViewWidget = useCallback(() => {
-                if (tvWidgetRef.current) {
-                    // Clear previous widget
-                    tvWidgetRef.current.innerHTML = '';
-
-                    // Create new script element
-                    const script = document.createElement('script');
-                    script.type = 'text/javascript';
-                    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
-                    script.async = true;
-                    script.innerHTML = JSON.stringify({
-                        "symbol": "NSE:NIFTY",
-                        "width": "100%",
-                        "height": "100%",
-                        "locale": "in",
-                        "dateRange": "1D",
-                        "colorTheme": theme === 'dark' ? "dark" : "light", // Use current theme
-                        "isTransparent": true,
-                        "autosize": true,
-                        "largeChartUrl": ""
-                    });
-                    tvWidgetRef.current.appendChild(script);
-                }
-            }, [theme]); // Reload depends on theme
-
-             // Load widget on initial mount
-             useEffect(() => {
-                loadTradingViewWidget();
-            }, [loadTradingViewWidget]); // Add dependency
-
-
             if (!data) { return <div className="min-h-screen flex items-center justify-center text-cyan-400"><p>LOADING NEURAL INTERFACE...</p></div>; }
             const currentMonthData = data.months[activeMonthIndex];
             const totalGainPercent = data.initialCapital > 0 ? ((data.finalTarget / data.initialCapital) - 1) * 100 : 0;
 
+            // --- JSX Return ---
             return (
-                <div ref={topOfPageRef} className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center pb-16 px-4 sm:px-6 transition-colors duration-500 ${theme === 'dark' ? 'scanlines' : ''}`}> {/* Background applied via body tag */}
+                <div ref={topOfPageRef} className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center pb-16 px-4 sm:px-6 transition-colors duration-500 ${theme === 'dark' ? 'scanlines' : ''}`}>
 
-                    {/* --- NAVBAR with Title --- */}
+                    {/* Navbar */}
                     <div className="fixed top-0 left-0 right-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b-2 border-cyan-500/50 shadow-[0_5px_15px_-5px_rgba(0,255,255,0.4)]">
-                        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-16 flex justify-between items-center">
+                        {/* ... Navbar content ... */}
+                         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-16 flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 <Logo size="36" />
                                 <h1 className="hidden sm:block text-lg md:text-xl font-black text-cyan-600 dark:text-cyan-400" style={{textShadow: '0 0 8px #00ffffaa'}}>
@@ -262,13 +260,14 @@
                         </div>
                     </div>
 
-                    {/* Clocks REVERTED to fixed position */}
+                    {/* Clocks */}
                     <AnalogClock position="left-4" variant="cyber" />
                     <AnalogClock position="right-4" variant="luxury" />
 
                     {/* Header Text */}
                     <div className="text-center w-full max-w-7xl z-10 pt-4 mb-4">
-                        <h1 className="sm:hidden text-2xl font-black text-cyan-600 dark:text-cyan-400" style={{textShadow: '0 0 10px #00ffffaa'}}>
+                        {/* ... Header content ... */}
+                         <h1 className="sm:hidden text-2xl font-black text-cyan-600 dark:text-cyan-400" style={{textShadow: '0 0 10px #00ffffaa'}}>
                             DevTrader Journal
                         </h1>
                         <p className="font-bold tracking-wider text-gray-700 dark:text-gray-300 mt-2 drop-shadow text-xs sm:text-base">
@@ -278,58 +277,62 @@
                         </p>
                     </div>
 
-                    {/* Popups (Account, Reset, Statement) */}
-                    {isAccountPopupVisible && ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setAccountPopupVisible(false)}><div className="bg-white/80 dark:bg-black/80 p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] text-center" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-4">ACCOUNT</h3><p className="mb-6">User: <span className="font-bold text-cyan-600 dark:text-cyan-400">{user}</span></p><div className="flex flex-col gap-4"><button onClick={() => { setStatementVisible(true); setAccountPopupVisible(false); }} className="px-6 py-2 rounded-lg bg-fuchsia-600/80 hover:bg-fuchsia-500/80 border border-fuchsia-400 backdrop-blur-sm text-white font-bold transition-all">Monthly Statement</button><button onClick={onLogout} className="px-6 py-2 rounded-lg bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all">LOGOUT</button><button onClick={() => setAccountPopupVisible(false)} className="px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">Back</button></div></div></div> )}
-                    {isResetPopupVisible && ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setResetPopupVisible(false)}><div className="bg-white/80 dark:bg-black/80 p-8 border border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.5)] text-center" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-4 text-red-500">CONFIRM DATA PURGE</h3><p className="text-xs text-gray-700 dark:text-gray-400 mb-6">This action will reset all journal data and log you out.</p><input type="password" value={resetPasswordInput} onChange={(e) => setResetPasswordInput(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-red-500 mb-4" placeholder="Enter your passcode to confirm"/>{resetError && <p className="text-red-500 text-xs text-center mb-4">{resetError}</p>}<div className="flex justify-center gap-4"><button onClick={() => { setResetPopupVisible(false); }} className="bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white px-6 py-2 font-bold transition-all">CANCEL</button><button onClick={handleConfirmReset} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all">CONFIRM PURGE</button></div></div></div> )}
+                    {/* Popups */}
+                    {isAccountPopupVisible && ( /* ... Account Popup JSX ... */ <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setAccountPopupVisible(false)}><div className="bg-white/80 dark:bg-black/80 p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] text-center" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-4">ACCOUNT</h3><p className="mb-6">User: <span className="font-bold text-cyan-600 dark:text-cyan-400">{user}</span></p><div className="flex flex-col gap-4"><button onClick={() => { setStatementVisible(true); setAccountPopupVisible(false); }} className="px-6 py-2 rounded-lg bg-fuchsia-600/80 hover:bg-fuchsia-500/80 border border-fuchsia-400 backdrop-blur-sm text-white font-bold transition-all">Monthly Statement</button><button onClick={onLogout} className="px-6 py-2 rounded-lg bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all">LOGOUT</button><button onClick={() => setAccountPopupVisible(false)} className="px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">Back</button></div></div></div> )}
+                    {isResetPopupVisible && ( /* ... Reset Popup JSX ... */ <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setResetPopupVisible(false)}><div className="bg-white/80 dark:bg-black/80 p-8 border border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.5)] text-center" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-4 text-red-500">CONFIRM DATA PURGE</h3><p className="text-xs text-gray-700 dark:text-gray-400 mb-6">This action will reset all journal data and log you out.</p><input type="password" value={resetPasswordInput} onChange={(e) => setResetPasswordInput(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-red-500 mb-4" placeholder="Enter your passcode to confirm"/>{resetError && <p className="text-red-500 text-xs text-center mb-4">{resetError}</p>}<div className="flex justify-center gap-4"><button onClick={() => { setResetPopupVisible(false); }} className="bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white px-6 py-2 font-bold transition-all">CANCEL</button><button onClick={handleConfirmReset} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all">CONFIRM PURGE</button></div></div></div> )}
                     {isStatementVisible && <MonthlyStatement monthData={currentMonthData} startCapital={startCapitalForMonth} onClose={() => setStatementVisible(false)} />}
-
                     <ScrollToTopButton />
 
                     {/* Target Setting Section */}
                     <div className="w-full max-w-5xl my-4 p-4 z-10 bg-white/50 dark:bg-black/70 backdrop-blur-sm border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]">
-                        <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-                            {/* Inputs ... */}
+                        {/* ... Target Inputs ... */}
+                         <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
                              <div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">START CAPITAL</label><div className="flex items-center bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-40"><span className="px-2 text-gray-600 dark:text-gray-500">₹</span><input type="number" value={inputCapital} onChange={e => setInputCapital(e.target.value)} className="bg-transparent text-center p-2 w-full focus:outline-none" /></div></div>
                              <div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">OVERALL TARGET</label><div className="flex items-center bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-40"><span className="px-2 text-gray-600 dark:text-gray-500">₹</span><input type="number" value={inputTarget} onChange={e => setInputTarget(e.target.value)} className="bg-transparent text-center p-2 w-full focus:outline-none" /></div></div>
                              <div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">TENURE (DAYS)</label><input type="number" value={inputTenure} onChange={e => setInputTenure(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-cyan-400" /></div>
                              <button onClick={handleUpdateTargets} className="w-full sm:w-auto bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-6 py-2 mt-2 sm:mt-5 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all">SET & RECALCULATE</button>
-                        </div>
+                         </div>
                     </div>
 
-                    {/* --- TradingView Widget Container --- */}
-                    <div ref={tvWidgetRef} className="w-full max-w-5xl my-4 z-10 tradingview-widget-container h-[100px] sm:h-[120px]"> {/* Added height */}
-                        {/* Widget script will inject content here */}
+                    {/* TradingView Widget */}
+                    <div ref={tvWidgetRef} className="w-full max-w-5xl my-4 z-10 tradingview-widget-container h-[100px] sm:h-[120px]">
                         <div className="tradingview-widget-copyright"></div>
                     </div>
-                    {/* --- END TRADINGVIEW WIDGET --- */}
 
                     {/* Month Tabs */}
-                    <div ref={journalContainerRef} className="w-full max-w-7xl mb-4 bg-white/50 dark:bg-black/70 backdrop-blur-sm rounded-t-lg z-10 border-t border-x border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]"> <div className="flex overflow-x-auto">{data.months.map((month, index) => (<button key={month.id} onClick={() => { setActiveMonthIndex(index); setCurrentPage(1); }} className={`px-4 py-2 text-xs sm:text-sm font-bold transition-all whitespace-nowrap border-b-2 ${activeMonthIndex === index ? 'border-cyan-500 text-cyan-600 dark:border-cyan-400 dark:text-cyan-400' : 'border-transparent text-gray-700 dark:text-gray-400 hover:text-cyan-700 dark:hover:text-cyan-400 hover:bg-cyan-900/20'}`}>&gt; {month.monthName || `Month ${month.id}`}</button>))}</div> </div>
+                    <div ref={journalContainerRef} className="w-full max-w-7xl mb-4 bg-white/50 dark:bg-black/70 backdrop-blur-sm rounded-t-lg z-10 border-t border-x border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]">
+                        {/* ... Month buttons ... */}
+                         <div className="flex overflow-x-auto">{data.months.map((month, index) => (<button key={month.id} onClick={() => { setActiveMonthIndex(index); setCurrentPage(1); }} className={`px-4 py-2 text-xs sm:text-sm font-bold transition-all whitespace-nowrap border-b-2 ${activeMonthIndex === index ? 'border-cyan-500 text-cyan-600 dark:border-cyan-400 dark:text-cyan-400' : 'border-transparent text-gray-700 dark:text-gray-400 hover:text-cyan-700 dark:hover:text-cyan-400 hover:bg-cyan-900/20'}`}>&gt; {month.monthName || `Month ${month.id}`}</button>))}</div>
+                    </div>
 
                     {/* Monthly Stats */}
-                    <div className="w-full max-w-7xl grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4 mb-4 text-center z-10"> {['MONTH P&L', 'PROFIT DAYS', 'LOSS DAYS', 'WINNING TRADES', 'LOSING TRADES', 'MONTH START'].map((title, i) => (<div key={title} className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-3 sm:p-4 border border-fuchsia-700/30 dark:border-fuchsia-500/50 shadow-[0_0_15px_rgba(255,0,255,0.3)]"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-base sm:text-xl font-bold ${i === 0 ? (analysis.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : i === 1 || i === 3 ? 'text-green-600 dark:text-green-400' : i === 2 || i === 4 ? 'text-red-600 dark:text-red-400' : 'text-black dark:text-gray-200'}`}>{i === 0 ? `₹${formatNumber(analysis.pnl, true)}` : i === 1 ? analysis.profitDays : i === 2 ? analysis.lossDays : i === 3 ? analysis.winningTrades : i === 4 ? analysis.losingTrades : '₹' + formatNumber(Math.round(startCapitalForMonth), false) }</p></div>))} </div>
+                    <div className="w-full max-w-7xl grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4 mb-4 text-center z-10">
+                        {/* ... Stat Cards ... */}
+                         {['MONTH P&L', 'PROFIT DAYS', 'LOSS DAYS', 'WINNING TRADES', 'LOSING TRADES', 'MONTH START'].map((title, i) => (<div key={title} className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-3 sm:p-4 border border-fuchsia-700/30 dark:border-fuchsia-500/50 shadow-[0_0_15px_rgba(255,0,255,0.3)]"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-base sm:text-xl font-bold ${i === 0 ? (analysis.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : i === 1 || i === 3 ? 'text-green-600 dark:text-green-400' : i === 2 || i === 4 ? 'text-red-600 dark:text-red-400' : 'text-black dark:text-gray-200'}`}>{i === 0 ? `₹${formatNumber(analysis.pnl, true)}` : i === 1 ? analysis.profitDays : i === 2 ? analysis.lossDays : i === 3 ? analysis.winningTrades : i === 4 ? analysis.losingTrades : '₹' + formatNumber(Math.round(startCapitalForMonth), false) }</p></div>))}
+                    </div>
 
                     {/* Daily Entries */}
                     <div className="w-full max-w-7xl perspective-container z-10">
-                        <div className="space-y-6">
+                        {/* ... Daily entry map ... */}
+                         <div className="space-y-6">
                             {displayedDays.map((row) => { const originalIndex = currentMonthDays.findIndex(day => day.date === row.date); const isToday = row.date === todayString; const pnlValue = Number(row.actual) || 0; const isProfit = row.pnlSign === '+' && pnlValue > 0; const isLoss = row.pnlSign === '-' && pnlValue > 0; return ( <div key={row.date} className={`day-container p-4 border transition-all duration-300 transform-style-3d hover:scale-[1.02] ${isProfit ? 'hover:!bg-green-400/20 dark:hover:!bg-green-900/50' : isLoss ? 'hover:!bg-red-400/20 dark:hover:!bg-red-900/50' : 'hover:!bg-gray-400/20 dark:hover:!bg-gray-800/40'} ${isToday ? 'today-highlight border-gray-500/80' : 'border-cyan-700/20 dark:border-cyan-500/30'} ${isProfit ? "bg-green-200/30 dark:bg-green-800/30 backdrop-blur-md" : isLoss ? "bg-red-200/30 dark:bg-red-800/30 backdrop-blur-md" : "bg-white/50 dark:bg-black/70 backdrop-blur-md" }`} onMouseDown={handleMouseDown}><div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-4 items-center text-center"><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">DAY</span><span className="font-black text-lg">{row.day}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">DATE</span><span className="font-bold text-xs sm:text-sm">{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span></div><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">CAPITAL</span><span className="font-mono font-bold text-sm">₹{formatNumber(row.capital, false)}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">TARGET %</span><span className={`font-mono font-bold text-sm ${row.dailyRate > 0 ? 'text-cyan-700 dark:text-cyan-400' : 'text-gray-500'}`}>{(row.dailyRate * 100).toFixed(2)}%</span></div><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">PROFIT GOAL</span><span className="font-mono text-yellow-600 dark:text-yellow-400 font-bold text-sm">₹{formatNumber(row.profit, false)}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">TARGET AMT</span><span className="font-mono font-bold text-sm">₹{formatNumber(row.target, false)}</span></div><div className="flex flex-col items-center"><span className="text-xs text-gray-600 dark:text-gray-400 mb-1">WIN</span><input type="number" placeholder="W" value={row.winningTrades} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'winningTrades', e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-1.5 w-16 sm:w-20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/></div><div className="flex flex-col items-center"><span className="text-xs text-gray-600 dark:text-gray-400 mb-1">LOSS</span><input type="number" placeholder="L" value={row.losingTrades} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'losingTrades', e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-1.5 w-16 sm:w-20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/></div><div className="flex flex-col items-center col-span-2 sm:col-span-4 lg:col-span-1"><span className="text-xs text-gray-600 dark:text-gray-400 mb-1">YOUR P&L</span><div className="flex items-center w-full max-w-xs"><button onClick={() => handleDataChange(activeMonthIndex, originalIndex, 'pnlSign', '+')} className={`px-2 py-1 border ${row.pnlSign === '+' ? 'bg-green-500 text-white border-green-500' : 'bg-transparent border-gray-500'}`}>+</button><input type="number" placeholder="₹" value={row.actual} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'actual', e.target.value)} className="bg-white/50 dark:bg-black/50 border-y border-cyan-700/30 dark:border-cyan-500/50 text-center p-1.5 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400" /><button onClick={() => handleDataChange(activeMonthIndex, originalIndex, 'pnlSign', '-')} className={`px-2 py-1 border ${row.pnlSign === '-' ? 'bg-red-500 text-white border-red-500' : 'bg-transparent border-gray-500'}`}>-</button></div></div></div><div className="mt-4 pt-4 border-t border-cyan-700/20 dark:border-cyan-500/30"><div className="flex flex-col md:flex-row gap-6"><div className="flex-1 md:w-1/2"><h3 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">DAILY PROTOCOLS</h3><div className="space-y-2 text-left">{row.rules.map((rule, ruleIndex) => (<label key={ruleIndex} className="flex items-center text-xs sm:text-sm cursor-pointer group"><input type="checkbox" checked={rule.checked} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'rules', row.rules.map((r,idx) => idx === ruleIndex ? {...r, checked: e.target.checked} : r))} className="h-4 w-4 rounded-none border-2 border-fuchsia-700/50 dark:border-fuchsia-500/50 text-fuchsia-500 focus:ring-fuchsia-500 bg-transparent" /><span className="ml-3 text-gray-700 dark:text-gray-300 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-colors">{rule.text}</span></label>))}</div></div><div className="flex-1 md:w-1/2"><h3 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">EXECUTION LOG</h3><textarea value={row.logic} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'logic', e.target.value)} placeholder={`// LOG FOR DAY ${row.day}...`} className="w-full h-48 md:h-full min-h-[200px] p-2 bg-white/30 dark:bg-black/50 border border-fuchsia-700/30 dark:border-fuchsia-500/50 text-green-700 dark:text-green-400 rounded-none focus:outline-none focus:ring-2 focus:ring-fuchsia-500"></textarea></div></div></div></div> ) })}
                         </div>
-
                         {/* Pagination */}
-                        {totalPages > 1 && ( <div className="mt-6 flex justify-between items-center w-full max-w-xl mx-auto z-10"> <button onClick={goToPrevPage} disabled={currentPage === 1} className="px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">&lt; Previous {DAYS_PER_PAGE} Days</button> <span className="font-bold text-sm text-gray-700 dark:text-gray-300">Days {startIndex + 1}-{Math.min(endIndex, currentMonthDays.length)}</span> <button onClick={goToNextPage} disabled={currentPage === totalPages} className="px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">Next {DAYS_PER_PAGE} Days &gt;</button> </div> )}
+                         {totalPages > 1 && ( <div className="mt-6 flex justify-between items-center w-full max-w-xl mx-auto z-10"> <button onClick={goToPrevPage} disabled={currentPage === 1} className="px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">&lt; Previous {DAYS_PER_PAGE} Days</button> <span className="font-bold text-sm text-gray-700 dark:text-gray-300">Days {startIndex + 1}-{Math.min(endIndex, currentMonthDays.length)}</span> <button onClick={goToNextPage} disabled={currentPage === totalPages} className="px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">Next {DAYS_PER_PAGE} Days &gt;</button> </div> )}
                     </div>
 
                     {/* Action Buttons */}
                     <div className="w-full max-w-7xl mt-6 flex flex-wrap justify-center gap-4 z-10">
-                        <button onClick={handleAddNewMonth} className="bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base">ADD 1 MONTH ({TRADING_DAYS_PER_MONTH} DAYS)</button>
+                        {/* ... Action buttons ... */}
+                         <button onClick={handleAddNewMonth} className="bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base">ADD 1 MONTH ({TRADING_DAYS_PER_MONTH} DAYS)</button>
                         <button onClick={openResetPopup} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base">PURGE & RESET</button>
                     </div>
 
                 </div>
             );
-        }
+        } // End App Component
 
-        // --- LOGINSCREEN FUNCTION (with passcode setup/login - remains same) ---
+        // --- LoginScreen Component (Passcode Logic) ---
         function LoginScreen({ onLogin }) {
             const [passcode, setPasscode] = useState("");
             const [setupPasscode, setSetupPasscode] = useState("");
@@ -341,157 +344,38 @@
             useEffect(() => { document.documentElement.className = theme; }, [theme]);
 
             useEffect(() => {
-                try {
-                    const savedPasscode = localStorage.getItem('devTraderPasscode');
-                    if (savedPasscode) {
-                        setMode('login');
-                    } else {
-                        setMode('setup');
-                    }
-                } catch (e) {
-                    console.error("Could not read from localStorage", e);
-                    setMode('setup'); // Fallback to setup
-                }
+                try { const savedPasscode = localStorage.getItem('devTraderPasscode'); setMode(savedPasscode ? 'login' : 'setup'); }
+                catch (e) { console.error("Could not read localStorage", e); setMode('setup'); }
             }, []);
 
-            const handleLoginSubmit = (e) => {
-                e.preventDefault();
-                setError('');
-                const savedPasscode = localStorage.getItem('devTraderPasscode');
-                if (passcode === savedPasscode) {
-                    onLogin('devtrader');
-                } else {
-                    setError("Incorrect Passcode. Access Denied.");
-                }
-            };
+            const handleLoginSubmit = (e) => { e.preventDefault(); setError(''); const sp = localStorage.getItem('devTraderPasscode'); passcode === sp ? onLogin('devtrader') : setError("Incorrect Passcode."); };
+            const handleSetupSubmit = (e) => { e.preventDefault(); setError(''); if (!setupPasscode || !confirmPasscode) { setError("Fill both fields."); return; } if (setupPasscode !== confirmPasscode) { setError("Passcodes don't match."); return; } try { localStorage.setItem('devTraderPasscode', setupPasscode); onLogin('devtrader'); } catch (e) { setError("Could not save."); console.error(e); } };
+            const handleReset = () => { if (window.confirm('Reset ALL data?')) { try { localStorage.removeItem('devTraderPasscode'); localStorage.removeItem('tradingChallengeData_devtrader'); sessionStorage.removeItem('devTraderUser'); window.location.reload(); } catch (e) { alert("Error resetting."); console.error(e); } } };
 
-            const handleSetupSubmit = (e) => {
-                e.preventDefault();
-                setError('');
-                if (!setupPasscode || !confirmPasscode) {
-                    setError("Please fill out both fields.");
-                    return;
-                }
-                if (setupPasscode !== confirmPasscode) {
-                    setError("Passcodes do not match.");
-                    return;
-                }
-                try {
-                    localStorage.setItem('devTraderPasscode', setupPasscode);
-                    onLogin('devtrader');
-                } catch (e) {
-                    console.error("Could not save to localStorage", e);
-                    setError("Could not save passcode. Please try again.");
-                }
-            };
+            const commonWrapper = (title, children, resetLink = false) => ( <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-dark-cyber scanlines' : 'bg-light-cyber'}`}><div className="relative z-10 w-full max-w-sm p-8 bg-white/50 dark:bg-black/70 backdrop-blur-xl border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]"><div className="flex flex-col items-center mb-6"><Logo size="64" /><p className="font-bold text-lg mt-2 text-cyan-600 dark:text-cyan-400">{title}</p></div>{children}{resetLink && (<div className="text-center mt-4"><button onClick={handleReset} className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors">Forgot? (Reset All)</button></div>)}</div></div> );
 
-             const handleReset = () => {
-                if (window.confirm('Are you sure you want to reset? This will erase ALL your journal data and you will have to set a new passcode.')) {
-                    try {
-                        localStorage.removeItem('devTraderPasscode');
-                        localStorage.removeItem('tradingChallengeData_devtrader'); // Key used by App
-                        sessionStorage.removeItem('devTraderUser');
-                        window.location.reload();
-                    } catch (e) {
-                        console.error("Could not reset data", e);
-                        alert("Error resetting data.");
-                    }
-                }
-            };
+            if (mode === 'loading') return ( <div className={`min-h-screen flex items-center justify-center ${theme === 'dark' ? 'bg-dark-cyber scanlines' : 'bg-light-cyber'}`}><p className="text-cyan-400">Loading...</p></div> );
+            if (mode === 'setup') return commonWrapper("Create Passcode", (<form onSubmit={handleSetupSubmit}><label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Set Passcode</label><input type="password" value={setupPasscode} onChange={(e)=>setSetupPasscode(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-2" placeholder="••••"/><label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Confirm</label><input type="password" value={confirmPasscode} onChange={(e)=>setConfirmPasscode(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-4" placeholder="••••"/>{error && <p className="text-red-500 text-xs text-center mb-4">{error}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all">Save & Enter</button></form>));
+            if (mode === 'login') return commonWrapper("DevTrader Access", (<form onSubmit={handleLoginSubmit}><label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Enter Passcode</label><input type="password" value={passcode} onChange={(e)=>setPasscode(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-4" placeholder="••••"/>{error && <p className="text-red-500 text-xs text-center mb-4">{error}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all">Enter</button></form>), true);
+        } // End LoginScreen Component
 
-            const commonWrapper = (title, children, resetLink = false) => (
-                <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-dark-cyber scanlines' : 'bg-light-cyber'}`}> {/* Updated light mode class */}
-                    <div className="relative z-10 w-full max-w-sm p-8 bg-white/50 dark:bg-black/70 backdrop-blur-xl border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]">
-                        <div className="flex flex-col items-center mb-6">
-                            <Logo size="64" />
-                            <p className="font-bold text-lg mt-2 text-cyan-600 dark:text-cyan-400">{title}</p>
-                        </div>
-                        {children}
-                        {resetLink && (
-                            <div className="text-center mt-4">
-                                <button onClick={handleReset} className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors">
-                                    Forgot Passcode? (Reset All Data)
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-
-            if (mode === 'loading') {
-                return (
-                    <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-dark-cyber scanlines' : 'bg-light-cyber'}`}>
-                        <p className="text-cyan-400">Loading...</p>
-                    </div>
-                );
-            }
-
-            if (mode === 'setup') {
-                return commonWrapper("Create Your Passcode", (
-                    <form onSubmit={handleSetupSubmit}>
-                        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Set a New Passcode</label>
-                        <input
-                            type="password"
-                            value={setupPasscode}
-                            onChange={(e) => setSetupPasscode(e.target.value)}
-                            className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-2"
-                            placeholder="••••"
-                        />
-                        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Confirm Passcode</label>
-                        <input
-                            type="password"
-                            value={confirmPasscode}
-                            onChange={(e) => setConfirmPasscode(e.target.value)}
-                            className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-4"
-                            placeholder="••••"
-                        />
-                        {error && <p className="text-red-500 text-xs text-center mb-4">{error}</p>}
-                        <button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all">
-                            Save & Enter
-                        </button>
-                    </form>
-                ));
-            }
-
-            if (mode === 'login') {
-                return commonWrapper("DevTrader Access", (
-                    <form onSubmit={handleLoginSubmit}>
-                        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Enter Passcode</label>
-                        <input
-                            type="password"
-                            value={passcode}
-                            onChange={(e) => setPasscode(e.target.value)}
-                            className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-4"
-                            placeholder="••••"
-                        />
-                        {error && <p className="text-red-500 text-xs text-center mb-4">{error}</p>}
-                        <button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all">
-                            Enter
-                        </button>
-                    </form>
-                ), true); // Show reset link
-            }
-        }
-
-        // --- AuthWrapper (remains same) ---
+        // --- AuthWrapper (handles login state) ---
         function AuthWrapper() { const [user, setUser] = useState(() => sessionStorage.getItem("devTraderUser")); const handleLogin = (username) => { if(username.trim()){ sessionStorage.setItem("devTraderUser", username.trim()); setUser(username.trim()); } }; const handleLogout = () => { sessionStorage.removeItem("devTraderUser"); setUser(null); }; if (!user) { return <LoginScreen onLogin={handleLogin} />; } return <App user={user} onLogout={handleLogout} />; }
 
+        // --- Render the App ---
         const container = document.getElementById('root');
         const root = ReactDOM.createRoot(container);
         root.render(<AuthWrapper />);
     </script>
+    {/* --- End React Code --- */}
 
     {/* --- PWA Service Worker Script --- */}
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js') // Make sure this path is correct
-            .then(registration => {
-              console.log('ServiceWorker registered: ', registration);
-            })
-            .catch(registrationError => {
-              console.log('ServiceWorker registration failed: ', registrationError);
-            });
+          navigator.serviceWorker.register('/service-worker.js') // Path relative to root
+            .then(registration => { console.log('SW registered: ', registration); })
+            .catch(registrationError => { console.log('SW registration failed: ', registrationError); });
         });
       }
     </script>

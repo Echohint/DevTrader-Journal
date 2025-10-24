@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DevTrader Trading Journal</title>
 
-    {/* --- PWA and iOS specific tags --- */}
+    {/* --- PWA tags --- */}
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00ffff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="DevTrader">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/340/340890.png">
-    {/* --- END PWA / iOS --- */}
+    {/* iOS specific tags removed */}
+    {/* --- END PWA --- */}
 
     <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3cdefs%3e%3cfilter id='glow' x='-50%25' y='-50%25' width='200%25' height='200%25'%3e%3cfeGaussianBlur stdDeviation='5' result='blur'/%3e%3cfeMerge%3e%3cfeMergeNode in='blur'/%3e%3cfeMergeNode in='SourceGraphic'/%3e%3c/feMerge%3e%3c/filter%3e%3c/defs%3e%3crect width='100' height='100' fill='%23000'/%3e%3ctext x='50' y='55' font-family='Orbitron, sans-serif' font-size='38' fill='%2300ffff' text-anchor='middle' dominant-baseline='middle' filter='url(%23glow)'%3eDTJ%3c/text%3e%3c/svg%3e">
 
@@ -41,24 +38,31 @@
         #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
         .perspective-container { perspective: 1500px; }
         .transform-style-3d { transform-style: preserve-3d; }
-        @keyframes pulse-glow-cyber { 0%, 100% { box-shadow: 0 0 10px 3px rgba(128, 128, 128, 0.8), inset 0 0 5px 1px rgba(128, 128, 128, 0.5); } 50% { box-shadow: 0 0 20px 6px rgba(128, 128, 128, 0.5), inset 0 0 10px 2px rgba(128, 128, 128, 0.3); } }
+        @keyframes pulse-glow-cyber { 0%, 100% { box-shadow: 0 0 10px 3px rgba(128, 128, 128, 0.8), inset 0 0 5px 1px rgba(128, 128, 0.5); } 50% { box-shadow: 0 0 20px 6px rgba(128, 128, 128, 0.5), inset 0 0 10px 2px rgba(128, 128, 128, 0.3); } }
         .today-highlight { animation: pulse-glow-cyber 2.5s infinite; }
         .day-container { cursor: grab; }
         .is-dragging { animation: none !important; cursor: grabbing; }
+
+        /* --- Scanlines and Flicker (Restored) --- */
         .scanlines::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: -1; background-size: 100% 3px, 4px 100%; pointer-events: none; animation: flicker 0.15s infinite; opacity: 0; }
         .dark .scanlines::before { opacity: 1; }
         @keyframes flicker { 0% { opacity: 0.8; } 50% { opacity: 0.9; } 100% { opacity: 0.8; } }
+        /* --- End Scanlines --- */
 
-        /* Simplified Background Styles */
-        .bg-light-simple {
-             background-color: #f0f0f0; /* Simple light gray */
+        /* --- Original Background Styles (Restored) --- */
+        .bg-light-original {
+             background-color: white; /* Original Light mode was plain white */
              background-image: none;
         }
-        .bg-dark-simple {
-            background-color: #1a1a1a; /* Simple dark gray */
-            background-image: none;
+        .bg-dark-cyber { /* Kept the name for dark mode */
+            background-color: #0a0a14;
+            background-image:
+                radial-gradient(ellipse at center, rgba(0, 50, 100, 0.3) 0%, transparent 70%),
+                linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 100% 100%, 35px 35px, 35px 35px;
         }
-        /* End Simplified Background Styles */
+        /* --- End Original Background Styles --- */
 
         .tradingview-widget-container { width: 100%; display: flex; justify-content: center; }
         .tradingview-widget-copyright { display: none; }
@@ -67,7 +71,8 @@
         tailwind.config = { darkMode: 'class' }
     </script>
 </head>
-<body class="bg-light-simple dark:bg-dark-simple"> {/* Updated body classes */}
+{/* Updated body classes to use original styles */}
+<body class="bg-light-original dark:bg-dark-cyber">
     <div id="root"></div>
 
     {/* --- React Code --- */}
@@ -103,7 +108,7 @@
             const storageKey = `tradingChallengeData_${user}`;
             const tvWidgetRef = useRef(null);
 
-            // Effects and Callbacks... (keep as before, including generatePlanStructure, recalculatePlan, initializeAndSetData, etc.)
+            // Effects and Callbacks... (keep as before)
             useEffect(() => { const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000); return () => clearInterval(timer); }, []);
             useEffect(() => { if (currentPage === 1 && activeMonthIndex === 0) return; journalContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [currentPage, activeMonthIndex]);
             const generatePlanStructure = useCallback(/* ... */(tenure, oldMonths = []) => { const oldDaysMap = new Map(); oldMonths.forEach(month => month.days.forEach(day => oldDaysMap.set(day.date, day))); let months = []; let currentDate = new Date(); let dayCounter = 0; while (dayCounter < tenure) { const monthIndex = Math.floor(dayCounter / TRADING_DAYS_PER_MONTH); if (!months[monthIndex]) { months[monthIndex] = { id: monthIndex + 1, monthName: currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }), days: [] }; } const dateStr = currentDate.toISOString().split('T')[0]; const existingDayData = oldDaysMap.get(dateStr); months[monthIndex].days.push({ day: dayCounter + 1, date: dateStr, capital: 0, target: 0, profit: 0, dailyRate: 0, achieved: existingDayData?.achieved ?? false, pnlSign: existingDayData?.pnlSign ?? "+", actual: existingDayData?.actual ?? "", winningTrades: existingDayData?.winningTrades ?? "", losingTrades: existingDayData?.losingTrades ?? "", logic: existingDayData?.logic ?? "", rules: existingDayData?.rules ?? JSON.parse(JSON.stringify(DEFAULT_RULES)), }); currentDate = getNextTradingDay(currentDate); dayCounter++; } return months; }, []);
@@ -127,7 +132,7 @@
                     });
                     tvWidgetRef.current.appendChild(script);
                 }
-            }, [theme]); // Dependency on theme
+            }, [theme]);
 
             // --- Effects for Theme and Widget Loading ---
             useEffect(() => {
@@ -136,11 +141,11 @@
                 loadTradingViewWidget(); // Reload widget on theme change
             }, [theme, loadTradingViewWidget]);
 
-            useEffect(() => { // Initial widget load
+             useEffect(() => { // Initial widget load
                 loadTradingViewWidget();
             }, [loadTradingViewWidget]);
 
-            // Handlers (keep as before, including handleUpdateTargets, handleDataChange, handleConfirmReset, etc.)
+            // Handlers (keep as before)
             const handleUpdateTargets = /* ... */() => { const newInitialCapital = parseInt(inputCapital, 10) || DEFAULT_INITIAL_CAPITAL; const newFinalTarget = parseInt(inputTarget, 10) || DEFAULT_FINAL_TARGET; const newTenure = parseInt(inputTenure, 10) || DEFAULT_TENURE_DAYS; setData(prevData => { const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, initialCapital: newInitialCapital, finalTarget: newFinalTarget, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); localStorage.setItem(storageKey, JSON.stringify(updatedData)); setActiveMonthIndex(0); setCurrentPage(1); return updatedData; }); };
             const handleDataChange = /* ... */(monthIndex, dayIndex, field, value) => { setData(prevData => { const newData = JSON.parse(JSON.stringify(prevData)); const day = newData.months[monthIndex].days[dayIndex]; day[field] = value; const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); day.achieved = signedProfit >= day.profit; newData.months = recalculatePlan(newData); localStorage.setItem(storageKey, JSON.stringify(newData)); return newData; }); };
             const handleConfirmReset = /* ... passcode check ... */() => { const savedPasscode = localStorage.getItem('devTraderPasscode') || ''; if (resetPasswordInput === savedPasscode) { initializeAndSetData(); localStorage.removeItem('devTraderPasscode'); setResetPopupVisible(false); onLogout(); } else { setResetError("Incorrect Passcode. Reset Aborted."); } };
@@ -165,12 +170,13 @@
             const currentMonthData = data.months[activeMonthIndex];
             const totalGainPercent = data.initialCapital > 0 ? ((data.finalTarget / data.initialCapital) - 1) * 100 : 0;
 
-            // --- JSX Return (with reduced spacing) ---
+            // --- JSX Return (with original theme class + reduced spacing) ---
             return (
-                <div ref={topOfPageRef} className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center pb-4 px-2 sm:px-4 transition-colors duration-500 ${theme === 'dark' ? 'scanlines' : ''}`}>
+                <div ref={topOfPageRef} className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center pb-4 px-2 sm:px-4 transition-colors duration-500 ${theme === 'dark' ? 'scanlines' : ''}`}> {/* Keep scanlines for dark */}
 
                     {/* Navbar */}
                     <div className="fixed top-0 left-0 right-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b-2 border-cyan-500/50 shadow-[0_5px_15px_-5px_rgba(0,255,255,0.4)]">
+                        {/* ... Navbar content ... */}
                         <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 h-16 flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 <Logo size="36" />
@@ -196,6 +202,7 @@
 
                     {/* Header Text */}
                     <div className="text-center w-full max-w-7xl z-10 pt-2 mb-2">
+                        {/* ... Header content ... */}
                          <h1 className="sm:hidden text-xl font-black text-cyan-600 dark:text-cyan-400" style={{textShadow: '0 0 8px #00ffffaa'}}>
                             DevTrader Journal
                         </h1>
@@ -214,6 +221,7 @@
 
                     {/* Target Setting Section */}
                     <div className="w-full max-w-5xl my-2 p-3 z-10 bg-white/50 dark:bg-black/70 backdrop-blur-sm border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]">
+                        {/* ... Target Inputs ... */}
                          <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
                              <div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">START CAPITAL</label><div className="flex items-center bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-40"><span className="px-2 text-gray-600 dark:text-gray-500">₹</span><input type="number" value={inputCapital} onChange={e => setInputCapital(e.target.value)} className="bg-transparent text-center p-2 w-full focus:outline-none" /></div></div>
                              <div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">OVERALL TARGET</label><div className="flex items-center bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-40"><span className="px-2 text-gray-600 dark:text-gray-500">₹</span><input type="number" value={inputTarget} onChange={e => setInputTarget(e.target.value)} className="bg-transparent text-center p-2 w-full focus:outline-none" /></div></div>
@@ -256,8 +264,8 @@
             );
         } // End App Component
 
-        // --- LoginScreen Component (Passcode Logic - minified for brevity) ---
-        function LoginScreen({ onLogin }) {const[p,sp]=useState("");const[sp1,ssp1]=useState("");const[cp,scp]=useState("");const[e,se]=useState('');const[t,st]=useState(()=>localStorage.getItem("theme")||"dark");const[m,sm]=useState('loading');useEffect(()=>{document.documentElement.className=t;},[t]);useEffect(()=>{try{const spc=localStorage.getItem('devTraderPasscode');sm(spc?'login':'setup');}catch(er){console.error(er);sm('setup');}},[]);const hls=(ev)=>{ev.preventDefault();se('');const spc=localStorage.getItem('devTraderPasscode');p===spc?onLogin('devtrader'):se("Incorrect.");};const hss=(ev)=>{ev.preventDefault();se('');if(!sp1||!cp){se("Fill both.");return;}if(sp1!==cp){se("No match.");return;}try{localStorage.setItem('devTraderPasscode',sp1);onLogin('devtrader');}catch(er){se("Could not save.");console.error(er);}};const hr=()=>{if(window.confirm('Reset ALL data?')){try{localStorage.removeItem('devTraderPasscode');localStorage.removeItem('tradingChallengeData_devtrader');sessionStorage.removeItem('devTraderUser');window.location.reload();}catch(er){alert("Error resetting.");console.error(er);}}};const cw=(title,children,rl=false)=>(<div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${t==='dark'?'bg-dark-simple scanlines':'bg-light-simple'}`}><div className="relative z-10 w-full max-w-sm p-6 bg-white/50 dark:bg-black/70 backdrop-blur-xl border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]"><div className="flex flex-col items-center mb-4"><Logo size="56"/><p className="font-bold text-base mt-2 text-cyan-600 dark:text-cyan-400">{title}</p></div>{children}{rl&&(<div className="text-center mt-3"><button onClick={hr} className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500">Forgot? (Reset All)</button></div>)}</div></div>);if(m==='loading')return(<div className={`min-h-screen flex items-center justify-center ${t==='dark'?'bg-dark-simple scanlines':'bg-light-simple'}`}><p className="text-cyan-400">Loading...</p></div>);if(m==='setup')return cw("Create Passcode",(<form onSubmit={hss}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Set</label><input type="password" value={sp1} onChange={(ev)=>ssp1(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-2" placeholder="••••"/><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Confirm</label><input type="password" value={cp} onChange={(ev)=>scp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Save & Enter</button></form>));if(m==='login')return cw("DevTrader Access",(<form onSubmit={hls}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Enter</label><input type="password" value={p} onChange={(ev)=>sp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Enter</button></form>),true);}
+        // --- LoginScreen Component (Passcode Logic - minified) ---
+        function LoginScreen({ onLogin }) {const[p,sp]=useState("");const[sp1,ssp1]=useState("");const[cp,scp]=useState("");const[e,se]=useState('');const[t,st]=useState(()=>localStorage.getItem("theme")||"dark");const[m,sm]=useState('loading');useEffect(()=>{document.documentElement.className=t;},[t]);useEffect(()=>{try{const spc=localStorage.getItem('devTraderPasscode');sm(spc?'login':'setup');}catch(er){console.error(er);sm('setup');}},[]);const hls=(ev)=>{ev.preventDefault();se('');const spc=localStorage.getItem('devTraderPasscode');p===spc?onLogin('devtrader'):se("Incorrect.");};const hss=(ev)=>{ev.preventDefault();se('');if(!sp1||!cp){se("Fill both.");return;}if(sp1!==cp){se("No match.");return;}try{localStorage.setItem('devTraderPasscode',sp1);onLogin('devtrader');}catch(er){se("Could not save.");console.error(er);}};const hr=()=>{if(window.confirm('Reset ALL data?')){try{localStorage.removeItem('devTraderPasscode');localStorage.removeItem('tradingChallengeData_devtrader');sessionStorage.removeItem('devTraderUser');window.location.reload();}catch(er){alert("Error resetting.");console.error(er);}}};const cw=(title,children,rl=false)=>(<div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${t==='dark'?'bg-dark-cyber scanlines':'bg-light-original'}`}><div className="relative z-10 w-full max-w-sm p-6 bg-white/50 dark:bg-black/70 backdrop-blur-xl border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]"><div className="flex flex-col items-center mb-4"><Logo size="56"/><p className="font-bold text-base mt-2 text-cyan-600 dark:text-cyan-400">{title}</p></div>{children}{rl&&(<div className="text-center mt-3"><button onClick={hr} className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500">Forgot? (Reset All)</button></div>)}</div></div>);if(m==='loading')return(<div className={`min-h-screen flex items-center justify-center ${t==='dark'?'bg-dark-cyber scanlines':'bg-light-original'}`}><p className="text-cyan-400">Loading...</p></div>);if(m==='setup')return cw("Create Passcode",(<form onSubmit={hss}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Set</label><input type="password" value={sp1} onChange={(ev)=>ssp1(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-2" placeholder="••••"/><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Confirm</label><input type="password" value={cp} onChange={(ev)=>scp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Save & Enter</button></form>));if(m==='login')return cw("DevTrader Access",(<form onSubmit={hls}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Enter</label><input type="password" value={p} onChange={(ev)=>sp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Enter</button></form>),true);}
 
         // --- AuthWrapper (handles login state) ---
         function AuthWrapper() { const [user, setUser] = useState(() => sessionStorage.getItem("devTraderUser")); const handleLogin = (username) => { if(username.trim()){ sessionStorage.setItem("devTraderUser", username.trim()); setUser(username.trim()); } }; const handleLogout = () => { sessionStorage.removeItem("devTraderUser"); setUser(null); }; if (!user) { return <LoginScreen onLogin={handleLogin} />; } return <App user={user} onLogout={handleLogout} />; }

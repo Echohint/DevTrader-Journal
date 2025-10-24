@@ -8,10 +8,9 @@
     {/* --- PWA tags --- */}
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00ffff">
-    {/* iOS specific tags removed */}
     {/* --- END PWA --- */}
 
-    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3cdefs%3e%3cfilter id='glow' x='-50%25' y='-50%25' width='200%25' height='200%25'%3e%3cfeGaussianBlur stdDeviation='5' result='blur'/%3e%3cfeMerge%3e%3cfeMergeNode in='blur'/%3e%3cfeMergeNode in='SourceGraphic'/%3e%3c/feMerge%3e%3c/filter%3e%3c/defs%3e%3crect width='100' height='100' fill='%23000'/%3e%3ctext x='50' y='55' font-family='Orbitron, sans-serif' font-size='38' fill='%2300ffff' text-anchor='middle' dominant-baseline='middle' filter='url(%23glow)'%3eDTJ%3c/text%3e%3c/svg%3e">
+    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3cdefs%3e%3cfilter id='glow' x='-50%25' y='-50%25' width='200%25' height='200%25'%3e%3cfeGaussianBlur stdDeviation='5' result='blur'/%3e%3cfeMerge%3e%3cfeMergeNode in='blur'/%3e%3cfeMergeNode in='SourceGraphic'/%3e%3c/feMerge%3e%3c/filter%3e%3crect width='100' height='100' fill='%23000'/%3e%3ctext x='50' y='55' font-family='Orbitron, sans-serif' font-size='38' fill='%2300ffff' text-anchor='middle' dominant-baseline='middle' filter='url(%23glow)'%3eDTJ%3c/text%3e%3c/svg%3e">
 
     {/* --- External Scripts --- */}
     <script src="https://cdn.tailwindcss.com"></script>
@@ -43,36 +42,36 @@
         .day-container { cursor: grab; }
         .is-dragging { animation: none !important; cursor: grabbing; }
 
-        /* --- Scanlines and Flicker (Restored) --- */
+        /* --- Scanlines and Flicker (Restored for dark mode visual effect) --- */
         .scanlines::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: -1; background-size: 100% 3px, 4px 100%; pointer-events: none; animation: flicker 0.15s infinite; opacity: 0; }
         .dark .scanlines::before { opacity: 1; }
         @keyframes flicker { 0% { opacity: 0.8; } 50% { opacity: 0.9; } 100% { opacity: 0.8; } }
         /* --- End Scanlines --- */
 
-        /* --- Original Background Styles (Restored) --- */
+        /* --- Original Background Styles (Modified for solid dark mode) --- */
         .bg-light-original {
              background-color: white; /* Original Light mode was plain white */
              background-image: none;
         }
-        .bg-dark-cyber { /* Kept the name for dark mode */
-            background-color: #0a0a14;
-            background-image:
-                radial-gradient(ellipse at center, rgba(0, 50, 100, 0.3) 0%, transparent 70%),
-                linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
-            background-size: 100% 100%, 35px 35px, 35px 35px;
+        .bg-dark-solid { /* NEW: Solid dark background */
+            background-color: #0a0a14; /* Very dark blue/black */
         }
         /* --- End Original Background Styles --- */
 
         .tradingview-widget-container { width: 100%; display: flex; justify-content: center; }
         .tradingview-widget-copyright { display: none; }
+
+        /* Custom glow for challenge text */
+        .challenge-text-glow {
+            text-shadow: 0 0 5px rgba(0, 255, 255, 0.6), 0 0 10px rgba(0, 255, 255, 0.4), 0 0 15px rgba(0, 255, 255, 0.2);
+        }
     </style>
     <script>
         tailwind.config = { darkMode: 'class' }
     </script>
 </head>
-{/* Updated body classes to use original styles */}
-<body class="bg-light-original dark:bg-dark-cyber">
+{/* Updated body classes to use original light and NEW solid dark styles */}
+<body class="bg-light-original dark:bg-dark-solid">
     <div id="root"></div>
 
     {/* --- React Code --- */}
@@ -97,7 +96,70 @@
         // Components (Logo, MonthlyStatement, AnalogClock, ScrollToTopButton)... (keep as before)
         const Logo = ({ size = "36" }) => ( <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 100 100" className="opacity-80 flex-shrink-0"><defs><filter id="text-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="blur"></feGaussianBlur><feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter></defs><text x="50" y="55" fontFamily="Orbitron, sans-serif" fontSize="38" fill="#00ffff" textAnchor="middle" dominantBaseline="middle" filter="url(#text-glow)">DTJ</text></svg> );
         const MonthlyStatement = ({ monthData, startCapital, onClose }) => { const stats = useMemo(() => { let pnl = 0, profitDays = 0, lossDays = 0, longestStreak = 0, currentStreak = 0, mostProfitable = 0, largestLoss = 0, completedDays = 0; for (const day of monthData.days) { if (day.actual === "" || day.actual === null) continue; completedDays++; const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); pnl += value; if (value > 0) { profitDays++; currentStreak++; mostProfitable = Math.max(mostProfitable, value); } else if (value < 0) { lossDays++; currentStreak = 0; largestLoss = Math.min(largestLoss, value); } else { currentStreak = 0; } longestStreak = Math.max(longestStreak, currentStreak); } const endCapital = startCapital + pnl; return { pnl, profitDays, lossDays, longestStreak, mostProfitable, largestLoss, endCapital, completedDays }; }, [monthData, startCapital]); const StatCard = ({ title, value, colorClass = "text-black dark:text-gray-200" }) => ( <div className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-3 border border-fuchsia-700/30 dark:border-fuchsia-500/50"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-lg sm:text-xl font-bold ${colorClass}`}>{value}</p></div> ); return ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}><div className="w-full max-w-2xl bg-white/80 dark:bg-black/80 p-4 sm:p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}><h3 className="text-xl sm:text-2xl font-bold mb-4 text-cyan-600 dark:text-cyan-400">STATEMENT: {monthData.monthName}</h3><div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 text-center"><StatCard title="START CAPITAL" value={`₹${formatNumber(startCapital)}`} /> <StatCard title="END CAPITAL" value={`₹${formatNumber(stats.endCapital)}`} /><StatCard title="NET P&L" value={`₹${formatNumber(stats.pnl, true)}`} colorClass={stats.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}/></div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">P&L CALENDAR</h4><div className="grid grid-cols-7 gap-1 sm:gap-2 mb-4 p-2 bg-white/30 dark:bg-black/50 border border-cyan-700/20 dark:border-cyan-500/30">{monthData.days.map((day) => { const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); let bgColor = "bg-gray-200 dark:bg-gray-700/80"; if (day.actual !== "" && value > 0) bgColor = "bg-green-500 dark:bg-green-600"; if (day.actual !== "" && value < 0) bgColor = "bg-red-500 dark:bg-red-600"; if (day.actual !== "" && value === 0) bgColor = "bg-gray-400 dark:bg-gray-500"; return (<div key={day.day} className={`w-full h-8 sm:h-12 ${bgColor} flex items-center justify-center text-white font-bold text-xs sm:text-sm`} title={`Day ${day.day}: ₹${formatNumber(value, true)}`}>{day.day}</div>); })}</div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">MONTHLY ANALYSIS</h4><div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 text-center"><StatCard title="PROFIT DAYS" value={stats.profitDays} colorClass="text-green-600 dark:text-green-400" /> <StatCard title="LOSS DAYS" value={stats.lossDays} colorClass="text-red-600 dark:text-red-400" /><StatCard title="LONGEST STREAK" value={`${stats.longestStreak} Days`} colorClass="text-cyan-600 dark:text-cyan-400" /> <StatCard title="MOST PROFITABLE" value={`₹${formatNumber(stats.mostProfitable, true)}`} colorClass="text-green-600 dark:text-green-400" /><StatCard title="LARGEST LOSS" value={`₹${formatNumber(stats.largestLoss, true)}`} colorClass="text-red-600 dark:text-red-400" /> <StatCard title="DAYS TRADED" value={stats.completedDays} /></div><button onClick={onClose} className="w-full px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">Close</button></div></div> ); };
-        const AnalogClock = ({ position, variant = 'cyber' }) => { const [time, setTime] = useState(new Date()); useEffect(() => { const timerId = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(timerId); }, []); const seconds = time.getSeconds(); const minutes = time.getMinutes(); const hours = time.getHours(); const secondDeg = (seconds / 60) * 360; const minuteDeg = (minutes / 60) * 360 + (seconds / 60) * 6; const hourDeg = (hours / 12) * 360 + (minutes / 60) * 30; const ticks = Array.from({ length: 60 }).map((_, i) => { const isHourMark = (i + 1) % 5 === 0; let tickStyle = {}; if (variant === 'cyber') { tickStyle = { stroke: isHourMark ? 'rgba(0, 255, 255, 0.7)' : 'rgba(0, 255, 255, 0.3)', strokeWidth: isHourMark ? 1.5 : 0.5, y1: isHourMark ? 2 : 3, y2: 6 }; } else { tickStyle = { stroke: isHourMark ? 'rgba(255, 0, 255, 0.8)' : 'rgba(255, 0, 255, 0.4)', strokeWidth: isHourMark ? 1 : 0.5, y1: 2, y2: isHourMark ? 7 : 5 }; } return <line key={i} x1="50" y1={tickStyle.y1} x2="50" y2={tickStyle.y2} stroke={tickStyle.stroke} strokeWidth={tickStyle.strokeWidth} style={{ transform: `rotate(${(i + 1) * 6}deg)`, transformOrigin: '50% 50%' }} />; }); const handStyles = { cyber: { hour: { stroke: '#00ffff', strokeWidth: 3 }, minute: { stroke: '#00ffff', strokeWidth: 2 }, second: { stroke: '#f0f', strokeWidth: 1 } }, luxury: { hour: { stroke: '#f0f', strokeWidth: 2.5 }, minute: { stroke: '#f0f', strokeWidth: 1.5 }, second: { stroke: '#00ffff', strokeWidth: 0.8 } } }; const currentStyle = handStyles[variant]; return ( <div className={`absolute top-20 ${position} w-24 h-24 sm:w-32 sm:h-32 z-20 opacity-60 dark:opacity-80 hidden lg:block`}><svg viewBox="0 0 100 100" className="w-full h-full"><defs><filter id="hand-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs><circle cx="50" cy="50" r="48" fill="none" stroke={variant === 'cyber' ? "rgba(0, 255, 255, 0.3)" : "rgba(255, 0, 255, 0.3)"} strokeWidth="1" />{variant === 'luxury' && <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255, 0, 255, 0.2)" strokeWidth="2" />}{ticks}<line x1="50" y1="50" x2="50" y2="30" {...currentStyle.hour} strokeLinecap="round" style={{ transform: `rotate(${hourDeg}deg)`, transformOrigin: '50% 50%' }} filter="url(#hand-glow)" /><line x1="50" y1="50" x2="50" y2="20" {...currentStyle.minute} strokeLinecap="round" style={{ transform: `rotate(${minuteDeg}deg)`, transformOrigin: '50% 50%' }} filter="url(#hand-glow)" /><line x1="50" y1="50" x2="50" y2="15" {...currentStyle.second} style={{ transform: `rotate(${secondDeg}deg)`, transformOrigin: '50% 50%' }} /><circle cx="50" cy="50" r="2" fill={variant === 'cyber' ? '#00ffff' : '#f0f'} /></svg></div> ); };
+        
+        // MODIFIED AnalogClock component for inverse theming and margins
+        const AnalogClock = ({ position, appTheme }) => {
+            const [time, setTime] = useState(new Date());
+            useEffect(() => { const timerId = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(timerId); }, []);
+
+            const seconds = time.getSeconds();
+            const minutes = time.getMinutes();
+            const hours = time.getHours();
+
+            const secondDeg = (seconds / 60) * 360;
+            const minuteDeg = (minutes / 60) * 360 + (seconds / 60) * 6;
+            const hourDeg = (hours / 12) * 360 + (minutes / 60) * 30;
+
+            // Determine clock variant based on appTheme
+            const variant = appTheme === 'dark' ? 'light' : 'dark'; // Inverse theme
+
+            const ticks = Array.from({ length: 60 }).map((_, i) => {
+                const isHourMark = (i + 1) % 5 === 0;
+                let tickStyle = {};
+                if (variant === 'dark') { // Dark clock for light app theme
+                    tickStyle = { stroke: isHourMark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)', strokeWidth: isHourMark ? 1.5 : 0.5, y1: isHourMark ? 2 : 3, y2: 6 };
+                } else { // Light clock for dark app theme
+                    tickStyle = { stroke: isHourMark ? 'rgba(0, 255, 255, 0.7)' : 'rgba(0, 255, 255, 0.3)', strokeWidth: isHourMark ? 1.5 : 0.5, y1: isHourMark ? 2 : 3, y2: 6 };
+                }
+                return <line key={i} x1="50" y1={tickStyle.y1} x2="50" y2={tickStyle.y2} stroke={tickStyle.stroke} strokeWidth={tickStyle.strokeWidth} style={{ transform: `rotate(${(i + 1) * 6}deg)`, transformOrigin: '50% 50%' }} />;
+            });
+
+            const handStyles = {
+                dark: { // Dark clock variant (for light app theme)
+                    hour: { stroke: '#333', strokeWidth: 3 },
+                    minute: { stroke: '#555', strokeWidth: 2 },
+                    second: { stroke: '#999', strokeWidth: 1 }
+                },
+                light: { // Light clock variant (for dark app theme)
+                    hour: { stroke: '#00ffff', strokeWidth: 3 },
+                    minute: { stroke: '#00ffff', strokeWidth: 2 },
+                    second: { stroke: '#f0f', strokeWidth: 1 }
+                }
+            };
+            const currentStyle = handStyles[variant];
+
+            const glowColor = variant === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(0,255,255,0.5)';
+
+            return (
+                <div className={`absolute top-20 w-24 h-24 sm:w-32 sm:h-32 z-20 opacity-60 dark:opacity-80 hidden lg:block ${position === 'left' ? 'left-4' : 'right-4'}`}> {/* Added left-4/right-4 margins */}
+                    <svg viewBox="0 0 100 100" className="w-full h-full">
+                        <defs>
+                            <filter id={`hand-glow-${variant}`} x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="1.5" result="blur" />
+                                <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                            </filter>
+                        </defs>
+                        <circle cx="50" cy="50" r="48" fill="none" stroke={variant === 'dark' ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 255, 255, 0.3)"} strokeWidth="1" />
+                        {ticks}
+                        <line x1="50" y1="50" x2="50" y2="30" {...currentStyle.hour} strokeLinecap="round" style={{ transform: `rotate(${hourDeg}deg)`, transformOrigin: '50% 50%' }} filter={`url(#hand-glow-${variant})`} />
+                        <line x1="50" y1="50" x2="50" y2="20" {...currentStyle.minute} strokeLinecap="round" style={{ transform: `rotate(${minuteDeg}deg)`, transformOrigin: '50% 50%' }} filter={`url(#hand-glow-${variant})`} />
+                        <line x1="50" y1="50" x2="50" y2="15" {...currentStyle.second} style={{ transform: `rotate(${secondDeg}deg)`, transformOrigin: '50% 50%' }} />
+                        <circle cx="50" cy="50" r="2" fill={variant === 'dark' ? '#333' : '#00ffff'} />
+                    </svg>
+                </div>
+            );
+        };
+
         const ScrollToTopButton = () => { const [isVisible, setIsVisible] = useState(false); const toggleVisibility = () => { if (window.pageYOffset > 300) { setIsVisible(true); } else { setIsVisible(false); } }; const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { window.addEventListener('scroll', toggleVisibility); return () => window.removeEventListener('scroll', toggleVisibility); }, []); return ( <button onClick={scrollToTop} className={`fixed bottom-4 left-4 z-40 p-2 bg-cyan-500/80 text-white rounded-full shadow-lg transition-opacity duration-300 hover:bg-cyan-400 ${isVisible ? 'opacity-100' : 'opacity-0'}`} title="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button> ); };
 
 
@@ -180,8 +242,10 @@
                         <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 h-16 flex justify-between items-center">
                             <div className="flex items-center gap-2">
                                 <Logo size="36" />
-                                <h1 className="hidden sm:block text-lg md:text-xl font-black text-cyan-600 dark:text-cyan-400" style={{textShadow: '0 0 8px #00ffffaa'}}>
+                                <h1 className="hidden sm:block text-lg md:text-xl font-black text-cyan-600 dark:text-cyan-400 flex items-center" style={{textShadow: '0 0 8px #00ffffaa'}}>
                                     DevTrader Journal
+                                    {/* Small bubble added */}
+                                    <span className="w-2 h-2 bg-fuchsia-500 rounded-full ml-2 animate-pulse"></span>
                                 </h1>
                             </div>
                             <div className="flex items-center gap-2 sm:gap-4">
@@ -196,20 +260,19 @@
                         </div>
                     </div>
 
-                    {/* Clocks */}
-                    <AnalogClock position="left-2" variant="cyber" />
-                    <AnalogClock position="right-2" variant="luxury" />
+                    {/* Clocks (with inverse theme and margins) */}
+                    <AnalogClock position="left" appTheme={theme} />
+                    <AnalogClock position="right" appTheme={theme} />
 
-                    {/* Header Text */}
-                    <div className="text-center w-full max-w-7xl z-10 pt-2 mb-2">
-                        {/* ... Header content ... */}
-                         <h1 className="sm:hidden text-xl font-black text-cyan-600 dark:text-cyan-400" style={{textShadow: '0 0 8px #00ffffaa'}}>
+                    {/* Header Text - CHALLENGE (more vibrant, aesthetic, bigger font) */}
+                    <div className="text-center w-full max-w-7xl z-10 pt-4 mb-3"> {/* Increased pt- and mb- for more spacing */}
+                        <h1 className="sm:hidden text-xl font-black text-cyan-600 dark:text-cyan-400" style={{textShadow: '0 0 8px #00ffffaa'}}>
                             DevTrader Journal
                         </h1>
-                        <p className="font-bold tracking-wider text-gray-700 dark:text-gray-300 mt-1 drop-shadow text-xs sm:text-base">
+                        <p className="font-bold tracking-wider text-gray-700 dark:text-gray-300 mt-2 challenge-text-glow text-lg sm:text-2xl lg:text-3xl"> {/* Enhanced styling */}
                             CHALLENGE: ₹{formatNumber(data.initialCapital, false)} → ₹{formatNumber(data.finalTarget, false)} in {data.tenure} days
                             <br className="sm:hidden" />
-                            <span className="text-cyan-600 dark:text-cyan-400 sm:ml-2">({totalGainPercent.toFixed(2)}% GAIN)</span>
+                            <span className="text-fuchsia-600 dark:text-fuchsia-400 sm:ml-2">({totalGainPercent.toFixed(2)}% GAIN)</span> {/* Changed color to fuchsia for contrast */}
                         </p>
                     </div>
 
@@ -220,7 +283,7 @@
                     <ScrollToTopButton />
 
                     {/* Target Setting Section */}
-                    <div className="w-full max-w-5xl my-2 p-3 z-10 bg-white/50 dark:bg-black/70 backdrop-blur-sm border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]">
+                    <div className="w-full max-w-5xl my-3 p-3 z-10 bg-white/50 dark:bg-black/70 backdrop-blur-sm border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]">
                         {/* ... Target Inputs ... */}
                          <div className="flex flex-col sm:flex-row justify-center items-center gap-3">
                              <div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">START CAPITAL</label><div className="flex items-center bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-40"><span className="px-2 text-gray-600 dark:text-gray-500">₹</span><input type="number" value={inputCapital} onChange={e => setInputCapital(e.target.value)} className="bg-transparent text-center p-2 w-full focus:outline-none" /></div></div>
@@ -231,17 +294,17 @@
                     </div>
 
                     {/* TradingView Widget */}
-                    <div ref={tvWidgetRef} className="w-full max-w-5xl my-2 z-10 tradingview-widget-container h-[90px] sm:h-[110px]">
+                    <div ref={tvWidgetRef} className="w-full max-w-5xl my-3 z-10 tradingview-widget-container h-[90px] sm:h-[110px]"> {/* Adjusted my- for spacing */}
                         <div className="tradingview-widget-copyright"></div>
                     </div>
 
                     {/* Month Tabs */}
-                    <div ref={journalContainerRef} className="w-full max-w-7xl mb-2 bg-white/50 dark:bg-black/70 backdrop-blur-sm rounded-t-lg z-10 border-t border-x border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]">
+                    <div ref={journalContainerRef} className="w-full max-w-7xl mb-3 bg-white/50 dark:bg-black/70 backdrop-blur-sm rounded-t-lg z-10 border-t border-x border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]"> {/* Adjusted mb- for spacing */}
                          <div className="flex overflow-x-auto">{data.months.map((month, index) => (<button key={month.id} onClick={() => { setActiveMonthIndex(index); setCurrentPage(1); }} className={`px-3 py-1.5 text-xs sm:text-sm font-bold transition-all whitespace-nowrap border-b-2 ${activeMonthIndex === index ? 'border-cyan-500 text-cyan-600 dark:border-cyan-400 dark:text-cyan-400' : 'border-transparent text-gray-700 dark:text-gray-400 hover:text-cyan-700 dark:hover:text-cyan-400 hover:bg-cyan-900/20'}`}>&gt; {month.monthName || `Month ${month.id}`}</button>))}</div>
                     </div>
 
                     {/* Monthly Stats */}
-                    <div className="w-full max-w-7xl grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-2 text-center z-10">
+                    <div className="w-full max-w-7xl grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-3 text-center z-10"> {/* Adjusted mb- for spacing */}
                          {['MONTH P&L', 'PROFIT DAYS', 'LOSS DAYS', 'WINNING TRADES', 'LOSING TRADES', 'MONTH START'].map((title, i) => (<div key={title} className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-2 sm:p-3 border border-fuchsia-700/30 dark:border-fuchsia-500/50 shadow-[0_0_15px_rgba(255,0,255,0.3)]"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-sm sm:text-lg font-bold ${i === 0 ? (analysis.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : i === 1 || i === 3 ? 'text-green-600 dark:text-green-400' : i === 2 || i === 4 ? 'text-red-600 dark:text-red-400' : 'text-black dark:text-gray-200'}`}>{i === 0 ? `₹${formatNumber(analysis.pnl, true)}` : i === 1 ? analysis.profitDays : i === 2 ? analysis.lossDays : i === 3 ? analysis.winningTrades : i === 4 ? analysis.losingTrades : '₹' + formatNumber(Math.round(startCapitalForMonth), false) }</p></div>))}
                     </div>
 
@@ -265,7 +328,7 @@
         } // End App Component
 
         // --- LoginScreen Component (Passcode Logic - minified) ---
-        function LoginScreen({ onLogin }) {const[p,sp]=useState("");const[sp1,ssp1]=useState("");const[cp,scp]=useState("");const[e,se]=useState('');const[t,st]=useState(()=>localStorage.getItem("theme")||"dark");const[m,sm]=useState('loading');useEffect(()=>{document.documentElement.className=t;},[t]);useEffect(()=>{try{const spc=localStorage.getItem('devTraderPasscode');sm(spc?'login':'setup');}catch(er){console.error(er);sm('setup');}},[]);const hls=(ev)=>{ev.preventDefault();se('');const spc=localStorage.getItem('devTraderPasscode');p===spc?onLogin('devtrader'):se("Incorrect.");};const hss=(ev)=>{ev.preventDefault();se('');if(!sp1||!cp){se("Fill both.");return;}if(sp1!==cp){se("No match.");return;}try{localStorage.setItem('devTraderPasscode',sp1);onLogin('devtrader');}catch(er){se("Could not save.");console.error(er);}};const hr=()=>{if(window.confirm('Reset ALL data?')){try{localStorage.removeItem('devTraderPasscode');localStorage.removeItem('tradingChallengeData_devtrader');sessionStorage.removeItem('devTraderUser');window.location.reload();}catch(er){alert("Error resetting.");console.error(er);}}};const cw=(title,children,rl=false)=>(<div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${t==='dark'?'bg-dark-cyber scanlines':'bg-light-original'}`}><div className="relative z-10 w-full max-w-sm p-6 bg-white/50 dark:bg-black/70 backdrop-blur-xl border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]"><div className="flex flex-col items-center mb-4"><Logo size="56"/><p className="font-bold text-base mt-2 text-cyan-600 dark:text-cyan-400">{title}</p></div>{children}{rl&&(<div className="text-center mt-3"><button onClick={hr} className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500">Forgot? (Reset All)</button></div>)}</div></div>);if(m==='loading')return(<div className={`min-h-screen flex items-center justify-center ${t==='dark'?'bg-dark-cyber scanlines':'bg-light-original'}`}><p className="text-cyan-400">Loading...</p></div>);if(m==='setup')return cw("Create Passcode",(<form onSubmit={hss}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Set</label><input type="password" value={sp1} onChange={(ev)=>ssp1(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-2" placeholder="••••"/><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Confirm</label><input type="password" value={cp} onChange={(ev)=>scp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Save & Enter</button></form>));if(m==='login')return cw("DevTrader Access",(<form onSubmit={hls}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Enter</label><input type="password" value={p} onChange={(ev)=>sp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Enter</button></form>),true);}
+        function LoginScreen({ onLogin }) {const[p,sp]=useState("");const[sp1,ssp1]=useState("");const[cp,scp]=useState("");const[e,se]=useState('');const[t,st]=useState(()=>localStorage.getItem("theme")||"dark");const[m,sm]=useState('loading');useEffect(()=>{document.documentElement.className=t;},[t]);useEffect(()=>{try{const spc=localStorage.getItem('devTraderPasscode');sm(spc?'login':'setup');}catch(er){console.error(er);sm('setup');}},[]);const hls=(ev)=>{ev.preventDefault();se('');const spc=localStorage.getItem('devTraderPasscode');p===spc?onLogin('devtrader'):se("Incorrect.");};const hss=(ev)=>{ev.preventDefault();se('');if(!sp1||!cp){se("Fill both.");return;}if(sp1!==cp){se("No match.");return;}try{localStorage.setItem('devTraderPasscode',sp1);onLogin('devtrader');}catch(er){se("Could not save.");console.error(er);}};const hr=()=>{if(window.confirm('Reset ALL data?')){try{localStorage.removeItem('devTraderPasscode');localStorage.removeItem('tradingChallengeData_devtrader');sessionStorage.removeItem('devTraderUser');window.location.reload();}catch(er){alert("Error resetting.");console.error(er);}}};const cw=(title,children,rl=false)=>(<div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${t==='dark'?'bg-dark-solid scanlines':'bg-light-original'}`}><div className="relative z-10 w-full max-w-sm p-6 bg-white/50 dark:bg-black/70 backdrop-blur-xl border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]"><div className="flex flex-col items-center mb-4"><Logo size="56"/><p className="font-bold text-base mt-2 text-cyan-600 dark:text-cyan-400">{title}</p></div>{children}{rl&&(<div className="text-center mt-3"><button onClick={hr} className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500">Forgot? (Reset All)</button></div>)}</div></div>);if(m==='loading')return(<div className={`min-h-screen flex items-center justify-center ${t==='dark'?'bg-dark-solid scanlines':'bg-light-original'}`}><p className="text-cyan-400">Loading...</p></div>);if(m==='setup')return cw("Create Passcode",(<form onSubmit={hss}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Set</label><input type="password" value={sp1} onChange={(ev)=>ssp1(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-2" placeholder="••••"/><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Confirm</label><input type="password" value={cp} onChange={(ev)=>scp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Save & Enter</button></form>));if(m==='login')return cw("DevTrader Access",(<form onSubmit={hls}><label className="text-xs text-gray-500 dark:text-gray-400 mb-0.5 block">Enter</label><input type="password" value={p} onChange={(ev)=>sp(ev.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Enter</button></form>),true);}
 
         // --- AuthWrapper (handles login state) ---
         function AuthWrapper() { const [user, setUser] = useState(() => sessionStorage.getItem("devTraderUser")); const handleLogin = (username) => { if(username.trim()){ sessionStorage.setItem("devTraderUser", username.trim()); setUser(username.trim()); } }; const handleLogout = () => { sessionStorage.removeItem("devTraderUser"); setUser(null); }; if (!user) { return <LoginScreen onLogin={handleLogin} />; } return <App user={user} onLogout={handleLogout} />; }

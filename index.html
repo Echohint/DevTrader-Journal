@@ -5,20 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DevTrader Trading Journal</title>
 
+    {/* --- PWA tags --- */}
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00ffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="DevTrader">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/340/340890.png">
+    {/* --- END PWA tags --- */}
 
     <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3cdefs%3e%3cfilter id='glow' x='-50%25' y='-50%25' width='200%25' height='200%25'%3e%3cfeGaussianBlur stdDeviation='5' result='blur'/%3e%3cfeMerge%3e%3cfeMergeNode in='blur'/%3e%3cfeMergeNode in='SourceGraphic'/%3e%3c/feMerge%3e%3c/filter%3e%3c/defs%3e%3crect width='100' height='100' fill='%23000'/%3e%3ctext x='50' y='55' font-family='Orbitron, sans-serif' font-size='38' fill='%2300ffff' text-anchor='middle' dominant-baseline='middle' filter='url(%23glow)'%3eDTJ%3c/text%3e%3c/svg%3e">
 
+    {/* --- External Scripts --- */}
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    {/* --- End External Scripts --- */}
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,7 +42,7 @@
         #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
         .perspective-container { perspective: 1500px; }
         .transform-style-3d { transform-style: preserve-3d; }
-        @keyframes pulse-glow-cyber { 0%, 100% { box-shadow: 0 0 10px 3px rgba(128, 128, 128, 0.8), inset 0 0 5px 1px rgba(128, 128, 0.5); } 50% { box-shadow: 0 0 20px 6px rgba(128, 128, 128, 0.5), inset 0 0 10px 2px rgba(128, 128, 0.3); } }
+        @keyframes pulse-glow-cyber { 0%, 100% { box-shadow: 0 0 10px 3px rgba(128, 128, 128, 0.8), inset 0 0 5px 1px rgba(128, 128, 0.5); } 50% { box-shadow: 0 0 20px 6px rgba(128, 128, 128, 0.5), inset 0 0 10px 2px rgba(128, 128, 128, 0.3); } }
         .today-highlight { animation: pulse-glow-cyber 2.5s infinite; }
         .day-container { cursor: grab; }
         .is-dragging { animation: none !important; cursor: grabbing; }
@@ -73,7 +77,7 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // Constants... (keep as before)
+        // Constants...
         const DEFAULT_INITIAL_CAPITAL = 50000;
         const DEFAULT_FINAL_TARGET = 1000000;
         const DEFAULT_TENURE_DAYS = 66;
@@ -81,14 +85,14 @@
         const DAYS_PER_PAGE = 10;
         const DEFAULT_RULES = [ { text: "MAINTAIN DISCIPLINE: ADHERE TO THE PLAN", checked: false }, { text: "VALIDATE STRATEGY: CONFIRM ENTRY/EXIT CRITERIA", checked: false }, { text: "ASSESS MACRO TREND: CONSULT HIGHER TIMEFRAMES", checked: false }, { text: "RISK PROTOCOL: MAX 2% CAPITAL PER ENGAGEMENT", checked: false }, { text: "PROTECT CAPITAL: NEVER SHIFT STOP-LOSS MID-TRADE", checked: false }, { text: "DEFINE LOSS LIMITS: SET DAILY DRAWDOWN THRESHOLD", checked: false }, { text: "AVOID EMOTIONAL TRADING: NO REVENGE/OVER-TRADING", checked: false }, { text: "MAINTAIN OBJECTIVITY: LOGIC OVER FEAR/GREED", checked: false }, { text: "POST-TRADE ANALYSIS: LOG & REVIEW ALL EXECUTIONS", checked: false }, { text: "OPERATOR STATUS: CONFIRM PEAK MENTAL & PHYSICAL STATE", checked: false }, ];
 
-        // Helper functions... (keep as before)
+        // Helper functions...
         const getNextTradingDay = (date) => { const nextDay = new Date(date); nextDay.setDate(nextDay.getDate() + 1); while (nextDay.getDay() === 0 || nextDay.getDay() === 6) { nextDay.setDate(nextDay.getDate() + 1); } return nextDay; };
         const getTodayDateString = () => new Date().toISOString().split('T')[0];
         const getCurrentFormattedDate = () => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         const formatNumber = (num, showSign = false) => { const number = Number(num); if (isNaN(number)) return '0'; let prefix = ''; if (showSign) { if (number > 0) prefix = '+'; if (number < 0) prefix = '-'; } const absNum = Math.abs(number); let formattedValue; if (absNum >= 10000000) { formattedValue = (absNum / 10000000).toFixed(2).replace(/\.00$/, '') + ' CR'; } else if (absNum >= 100000) { formattedValue = (absNum / 100000).toFixed(2).replace(/\.00$/, '') + ' L'; } else if (absNum >= 1000) { formattedValue = (absNum / 1000).toFixed(2).replace(/\.00$/, '') + ' K'; } else { formattedValue = absNum.toLocaleString('en-IN'); } return prefix + (number < 0 ? '-' : '') + formattedValue; };
 
 
-        // Components (Logo, MonthlyStatement, AnalogClock, ScrollToTopButton)... (keep as before)
+        // Components...
         const Logo = ({ size = "36" }) => ( <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 100 100" className="opacity-80 flex-shrink-0"><defs><filter id="text-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="blur"></feGaussianBlur><feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter></defs><text x="50" y="55" fontFamily="Orbitron, sans-serif" fontSize="38" fill="#00ffff" textAnchor="middle" dominantBaseline="middle" filter="url(#text-glow)">DTJ</text></svg> );
         const MonthlyStatement = ({ monthData, startCapital, onClose }) => { const stats = useMemo(() => { let pnl = 0, profitDays = 0, lossDays = 0, longestStreak = 0, currentStreak = 0, mostProfitable = 0, largestLoss = 0, completedDays = 0; for (const day of monthData.days) { if (day.actual === "" || day.actual === null) continue; completedDays++; const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); pnl += value; if (value > 0) { profitDays++; currentStreak++; mostProfitable = Math.max(mostProfitable, value); } else if (value < 0) { lossDays++; currentStreak = 0; largestLoss = Math.min(largestLoss, value); } else { currentStreak = 0; } longestStreak = Math.max(longestStreak, currentStreak); } const endCapital = startCapital + pnl; return { pnl, profitDays, lossDays, longestStreak, mostProfitable, largestLoss, endCapital, completedDays }; }, [monthData, startCapital]); const StatCard = ({ title, value, colorClass = "text-black dark:text-gray-200" }) => ( <div className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-3 border border-fuchsia-700/30 dark:border-fuchsia-500/50"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-lg sm:text-xl font-bold ${colorClass}`}>{value}</p></div> ); return ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}><div className="w-full max-w-2xl bg-white/80 dark:bg-black/80 p-4 sm:p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}><h3 className="text-xl sm:text-2xl font-bold mb-4 text-cyan-600 dark:text-cyan-400">STATEMENT: {monthData.monthName}</h3><div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 text-center"><StatCard title="START CAPITAL" value={`₹${formatNumber(startCapital)}`} /> <StatCard title="END CAPITAL" value={`₹${formatNumber(stats.endCapital)}`} /><StatCard title="NET P&L" value={`₹${formatNumber(stats.pnl, true)}`} colorClass={stats.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}/></div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">P&L CALENDAR</h4><div className="grid grid-cols-7 gap-1 sm:gap-2 mb-4 p-2 bg-white/30 dark:bg-black/50 border border-cyan-700/20 dark:border-cyan-500/30">{monthData.days.map((day) => { const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); let bgColor = "bg-gray-200 dark:bg-gray-700/80"; if (day.actual !== "" && value > 0) bgColor = "bg-green-500 dark:bg-green-600"; if (day.actual !== "" && value < 0) bgColor = "bg-red-500 dark:bg-red-600"; if (day.actual !== "" && value === 0) bgColor = "bg-gray-400 dark:bg-gray-500"; return (<div key={day.day} className={`w-full h-8 sm:h-12 ${bgColor} flex items-center justify-center text-white font-bold text-xs sm:text-sm`} title={`Day ${day.day}: ₹${formatNumber(value, true)}`}>{day.day}</div>); })}</div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">MONTHLY ANALYSIS</h4><div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 text-center"><StatCard title="PROFIT DAYS" value={stats.profitDays} colorClass="text-green-600 dark:text-green-400" /> <StatCard title="LOSS DAYS" value={stats.lossDays} colorClass="text-red-600 dark:text-red-400" /><StatCard title="LONGEST STREAK" value={`${stats.longestStreak} Days`} colorClass="text-cyan-600 dark:text-cyan-400" /> <StatCard title="MOST PROFITABLE" value={`₹${formatNumber(stats.mostProfitable, true)}`} colorClass="text-green-600 dark:text-green-400" /><StatCard title="LARGEST LOSS" value={`₹${formatNumber(stats.largestLoss, true)}`} colorClass="text-red-600 dark:text-red-400" /> <StatCard title="DAYS TRADED" value={stats.completedDays} /></div><button onClick={onClose} className="w-full px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">Close</button></div></div> ); };
         const AnalogClock = ({ position, appTheme }) => { const [time, setTime] = useState(new Date()); useEffect(() => { const timerId = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(timerId); }, []); const seconds = time.getSeconds(); const minutes = time.getMinutes(); const hours = time.getHours(); const secondDeg = (seconds / 60) * 360; const minuteDeg = (minutes / 60) * 360 + (seconds / 60) * 6; const hourDeg = (hours / 12) * 360 + (minutes / 60) * 30; const variant = appTheme === 'dark' ? 'light' : 'dark'; const ticks = Array.from({ length: 60 }).map((_, i) => { const isHourMark = (i + 1) % 5 === 0; let tickStyle = {}; if (variant === 'dark') { tickStyle = { stroke: isHourMark ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)', strokeWidth: isHourMark ? 1.5 : 0.5, y1: isHourMark ? 2 : 3, y2: 6 }; } else { tickStyle = { stroke: isHourMark ? 'rgba(0, 255, 255, 0.7)' : 'rgba(0, 255, 255, 0.3)', strokeWidth: isHourMark ? 1.5 : 0.5, y1: isHourMark ? 2 : 3, y2: 6 }; } return <line key={i} x1="50" y1={tickStyle.y1} x2="50" y2={tickStyle.y2} stroke={tickStyle.stroke} strokeWidth={tickStyle.strokeWidth} style={{ transform: `rotate(${(i + 1) * 6}deg)`, transformOrigin: '50% 50%' }} />; }); const handStyles = { dark: { hour: { stroke: '#333', strokeWidth: 3 }, minute: { stroke: '#555', strokeWidth: 2 }, second: { stroke: '#999', strokeWidth: 1 } }, light: { hour: { stroke: '#00ffff', strokeWidth: 3 }, minute: { stroke: '#00ffff', strokeWidth: 2 }, second: { stroke: '#f0f', strokeWidth: 1 } } }; const currentStyle = handStyles[variant]; const glowColor = variant === 'dark' ? 'rgba(0,0,0,0.5)' : 'rgba(0,255,255,0.5)'; return ( <div className={`absolute top-20 w-24 h-24 sm:w-32 sm:h-32 z-20 opacity-60 dark:opacity-80 hidden lg:block ${position === 'left' ? 'left-4' : 'right-4'}`}><svg viewBox="0 0 100 100" className="w-full h-full"><defs><filter id={`hand-glow-${variant}`} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs><circle cx="50" cy="50" r="48" fill="none" stroke={variant === 'dark' ? "rgba(0, 0, 0, 0.3)" : "rgba(0, 255, 255, 0.3)"} strokeWidth="1" />{ticks}<line x1="50" y1="50" x2="50" y2="30" {...currentStyle.hour} strokeLinecap="round" style={{ transform: `rotate(${hourDeg}deg)`, transformOrigin: '50% 50%' }} filter={`url(#hand-glow-${variant})`} /><line x1="50" y1="50" x2="50" y2="20" {...currentStyle.minute} strokeLinecap="round" style={{ transform: `rotate(${minuteDeg}deg)`, transformOrigin: '50% 50%' }} filter={`url(#hand-glow-${variant})`} /><line x1="50" y1="50" x2="50" y2="15" {...currentStyle.second} style={{ transform: `rotate(${secondDeg}deg)`, transformOrigin: '50% 50%' }} /><circle cx="50" cy="50" r="2" fill={variant === 'dark' ? '#333' : '#00ffff'} /></svg></div> ); };
@@ -102,7 +106,7 @@
             const storageKey = `tradingChallengeData_${user}`;
             const tvWidgetRef = useRef(null); // Ref for TradingView widget container
 
-            // Effects and Callbacks... (keep as before)
+            // Effects and Callbacks...
             useEffect(() => { const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000); return () => clearInterval(timer); }, []);
             useEffect(() => { if (currentPage === 1 && activeMonthIndex === 0) return; journalContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [currentPage, activeMonthIndex]);
             const generatePlanStructure = useCallback(/* ... */(tenure, oldMonths = []) => { const oldDaysMap = new Map(); oldMonths.forEach(month => month.days.forEach(day => oldDaysMap.set(day.date, day))); let months = []; let currentDate = new Date(); let dayCounter = 0; while (dayCounter < tenure) { const monthIndex = Math.floor(dayCounter / TRADING_DAYS_PER_MONTH); if (!months[monthIndex]) { months[monthIndex] = { id: monthIndex + 1, monthName: currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }), days: [] }; } const dateStr = currentDate.toISOString().split('T')[0]; const existingDayData = oldDaysMap.get(dateStr); months[monthIndex].days.push({ day: dayCounter + 1, date: dateStr, capital: 0, target: 0, profit: 0, dailyRate: 0, achieved: existingDayData?.achieved ?? false, pnlSign: existingDayData?.pnlSign ?? "+", actual: existingDayData?.actual ?? "", winningTrades: existingDayData?.winningTrades ?? "", losingTrades: existingDayData?.losingTrades ?? "", logic: existingDayData?.logic ?? "", rules: existingDayData?.rules ?? JSON.parse(JSON.stringify(DEFAULT_RULES)), }); currentDate = getNextTradingDay(currentDate); dayCounter++; } return months; }, []);
@@ -112,37 +116,11 @@
 
             // --- Robust loadTradingViewWidget Function ---
             const loadTradingViewWidget = useCallback(() => {
-                // Ensure the container exists
-                if (!tvWidgetRef.current) {
-                    console.log("TradingView container ref not ready yet.");
-                    return;
-                }
+                if (!tvWidgetRef.current) { return; }
+                tvWidgetRef.current.innerHTML = ''; // Clear previous
 
-                // Clear previous widget content to prevent duplicates
-                tvWidgetRef.current.innerHTML = '';
-
-                // Check if TradingView script object exists
-                if (typeof TradingView !== 'undefined' && TradingView.widget) {
-                     console.log("Creating TradingView widget...");
-                     try {
-                         new TradingView.widget({
-                            "symbol": "BINANCE:BTCUSD",
-                            "container_id": tvWidgetRef.current.id, // Use ID if available, or target ref directly
-                            "width": "100%",
-                            "height": "100%",
-                            "locale": "in",
-                            "dateRange": "1D",
-                            "colorTheme": theme === 'dark' ? "dark" : "light",
-                            "isTransparent": true,
-                            "autosize": true,
-                            "largeChartUrl": ""
-                        });
-                    } catch (error) {
-                        console.error("Error creating TradingView widget:", error);
-                    }
-                } else {
-                     console.log("TradingView script not fully loaded, trying dynamic script injection...");
-                    // Fallback: Dynamically inject script if TradingView object is missing
+                // Function to inject the script
+                const injectScript = () => {
                     const script = document.createElement('script');
                     script.type = 'text/javascript';
                     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js';
@@ -152,44 +130,36 @@
                         "width": "100%", "height": "100%", "locale": "in", "dateRange": "1D",
                         "colorTheme": theme === 'dark' ? "dark" : "light",
                         "isTransparent": true, "autosize": true, "largeChartUrl": ""
-                        // It's better to target an ID, add one to the container div
-                        // "container_id": "tv_chart_widget_container"
                     });
-                     // Ensure the container has an ID for the script to target
-                     if (!tvWidgetRef.current.id) {
-                         tvWidgetRef.current.id = "tv_chart_widget_container";
-                     }
+                     // Assign ID if missing for the script to target reliably
+                    if (!tvWidgetRef.current.id) {
+                         tvWidgetRef.current.id = "tv_chart_widget_container_" + Date.now(); // Unique ID
+                    }
                      script.innerHTML = script.innerHTML.replace('"autosize": true', `"autosize": true, "container_id": "${tvWidgetRef.current.id}"`);
 
-                    // Append only if it hasn't been added already to avoid race conditions
-                    if (!document.querySelector(`script[src="${script.src}"]`)) {
-                        tvWidgetRef.current.appendChild(script);
-                    } else {
-                        console.log("Dynamic script already exists or is loading.");
-                        // Attempt to re-init maybe? Less reliable.
-                    }
-                }
-            }, [theme]); // Depend only on theme, load function itself is stable
+                    tvWidgetRef.current.appendChild(script);
+                    console.log("TradingView widget script injected for theme:", theme);
+                };
+
+                // Inject script slightly delayed to ensure DOM is ready
+                const timerId = setTimeout(injectScript, 50); // Short delay
+                return () => clearTimeout(timerId); // Cleanup
+
+            }, [theme]); // Re-run only when theme changes
 
             // --- Effects for Theme and Widget Loading ---
             useEffect(() => {
                 document.documentElement.classList.toggle("dark", theme === "dark");
                 localStorage.setItem("theme", theme);
-                // Use a small delay to allow DOM update after theme change before reloading widget
-                const timerId = setTimeout(() => {
-                    loadTradingViewWidget();
-                }, 100); // 100ms delay
-                 return () => clearTimeout(timerId); // Cleanup timer on unmount or theme change
-            }, [theme, loadTradingViewWidget]);
+                // No need to call loadTradingViewWidget here, it's triggered by the dependency change in the next useEffect
+            }, [theme]);
 
-            useEffect(() => { // Initial widget load on mount
-                 const timerId = setTimeout(() => {
-                    loadTradingViewWidget();
-                }, 300); // Slightly longer delay on initial mount
-                return () => clearTimeout(timerId);
-            }, [loadTradingViewWidget]); // Ensure loadTradingViewWidget is stable
+             useEffect(() => { // This effect runs when theme changes, triggering the widget reload
+                loadTradingViewWidget();
+            }, [loadTradingViewWidget]); // loadTradingViewWidget depends on theme
 
-            // Handlers (keep as before)
+
+            // Handlers...
             const handleUpdateTargets = /* ... */() => { const newInitialCapital = parseInt(inputCapital, 10) || DEFAULT_INITIAL_CAPITAL; const newFinalTarget = parseInt(inputTarget, 10) || DEFAULT_FINAL_TARGET; const newTenure = parseInt(inputTenure, 10) || DEFAULT_TENURE_DAYS; setData(prevData => { const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, initialCapital: newInitialCapital, finalTarget: newFinalTarget, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); localStorage.setItem(storageKey, JSON.stringify(updatedData)); setActiveMonthIndex(0); setCurrentPage(1); return updatedData; }); };
             const handleDataChange = /* ... */(monthIndex, dayIndex, field, value) => { setData(prevData => { const newData = JSON.parse(JSON.stringify(prevData)); const day = newData.months[monthIndex].days[dayIndex]; day[field] = value; const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); day.achieved = signedProfit >= day.profit; newData.months = recalculatePlan(newData); localStorage.setItem(storageKey, JSON.stringify(newData)); return newData; }); };
             const handleConfirmReset = /* ... passcode check ... */() => { const savedPasscode = localStorage.getItem('devTraderPasscode') || ''; if (resetPasswordInput === savedPasscode) { initializeAndSetData(); localStorage.removeItem('devTraderPasscode'); setResetPopupVisible(false); onLogout(); } else { setResetError("Incorrect Passcode. Reset Aborted."); } };
@@ -216,8 +186,8 @@
 
             // --- JSX Return ---
             return (
-                // Removed the comment line from here
-                <div ref={topOfPageRef} className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center pb-4 px-2 sm:px-4 transition-colors duration-500 ${theme === 'dark' ? 'scanlines' : ''}`}> {/* Added scanlines back for dark mode */}
+                // Removed the misplaced comment
+                <div ref={topOfPageRef} className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center pb-4 px-2 sm:px-4 transition-colors duration-500 ${theme === 'dark' ? 'scanlines' : ''}`}>
 
                     {/* Navbar */}
                     <div className="fixed top-0 left-0 right-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b-2 border-cyan-500/50 shadow-[0_5px_15px_-5px_rgba(0,255,255,0.4)]">
@@ -294,7 +264,7 @@
                     <div className="w-full max-w-7xl perspective-container z-10">
                          <div className="space-y-4">
                             {displayedDays.map((row) => { const originalIndex = currentMonthDays.findIndex(day => day.date === row.date); const isToday = row.date === todayString; const pnlValue = Number(row.actual) || 0; const isProfit = row.pnlSign === '+' && pnlValue > 0; const isLoss = row.pnlSign === '-' && pnlValue > 0; return ( <div key={row.date} className={`day-container p-3 border transition-all duration-300 transform-style-3d hover:scale-[1.01] ${isProfit ? 'hover:!bg-green-400/20 dark:hover:!bg-green-900/50' : isLoss ? 'hover:!bg-red-400/20 dark:hover:!bg-red-900/50' : 'hover:!bg-gray-400/20 dark:hover:!bg-gray-800/40'} ${isToday ? 'today-highlight border-gray-500/80' : 'border-cyan-700/20 dark:border-cyan-500/30'} ${isProfit ? "bg-green-200/30 dark:bg-green-800/30 backdrop-blur-md" : isLoss ? "bg-red-200/30 dark:bg-red-800/30 backdrop-blur-md" : "bg-white/50 dark:bg-black/70 backdrop-blur-md" }`} onMouseDown={handleMouseDown}><div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-2 items-center text-center"><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">DAY</span><span className="font-black text-base">{row.day}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">DATE</span><span className="font-bold text-xs">{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span></div><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">CAPITAL</span><span className="font-mono font-bold text-sm">₹{formatNumber(row.capital, false)}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">TARGET %</span><span className={`font-mono font-bold text-sm ${row.dailyRate > 0 ? 'text-cyan-700 dark:text-cyan-400' : 'text-gray-500'}`}>{(row.dailyRate * 100).toFixed(2)}%</span></div><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">PROFIT GOAL</span><span className="font-mono text-yellow-600 dark:text-yellow-400 font-bold text-sm">₹{formatNumber(row.profit, false)}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">TARGET AMT</span><span className="font-mono font-bold text-sm">₹{formatNumber(row.target, false)}</span></div><div className="flex flex-col items-center"><span className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">WIN</span><input type="number" placeholder="W" value={row.winningTrades} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'winningTrades', e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-1 w-14 sm:w-16 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm"/></div><div className="flex flex-col items-center"><span className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">LOSS</span><input type="number" placeholder="L" value={row.losingTrades} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'losingTrades', e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-1 w-14 sm:w-16 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm"/></div><div className="flex flex-col items-center col-span-2 sm:col-span-4 lg:col-span-1"><span className="text-xs text-gray-600 dark:text-gray-400 mb-0.5">YOUR P&L</span><div className="flex items-center w-full max-w-xs"><button onClick={() => handleDataChange(activeMonthIndex, originalIndex, 'pnlSign', '+')} className={`px-1.5 py-0.5 border text-xs ${row.pnlSign === '+' ? 'bg-green-500 text-white border-green-500' : 'bg-transparent border-gray-500'}`}>+</button><input type="number" placeholder="₹" value={row.actual} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'actual', e.target.value)} className="bg-white/50 dark:bg-black/50 border-y border-cyan-700/30 dark:border-cyan-500/50 text-center p-1 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm" /><button onClick={() => handleDataChange(activeMonthIndex, originalIndex, 'pnlSign', '-')} className={`px-1.5 py-0.5 border text-xs ${row.pnlSign === '-' ? 'bg-red-500 text-white border-red-500' : 'bg-transparent border-gray-500'}`}>-</button></div></div></div><div className="mt-3 pt-3 border-t border-cyan-700/20 dark:border-cyan-500/30"><div className="flex flex-col md:flex-row gap-4"><div className="flex-1 md:w-1/2"><h3 className="font-bold mb-1.5 text-left text-fuchsia-600 dark:text-fuchsia-400 text-sm">DAILY PROTOCOLS</h3><div className="space-y-1 text-left">{row.rules.map((rule, ruleIndex) => (<label key={ruleIndex} className="flex items-center text-xs cursor-pointer group"><input type="checkbox" checked={rule.checked} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'rules', row.rules.map((r,idx) => idx === ruleIndex ? {...r, checked: e.target.checked} : r))} className="h-3.5 w-3.5 rounded-none border-2 border-fuchsia-700/50 dark:border-fuchsia-500/50 text-fuchsia-500 focus:ring-fuchsia-500 bg-transparent" /><span className="ml-2 text-gray-700 dark:text-gray-300 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-colors">{rule.text}</span></label>))}</div></div><div className="flex-1 md:w-1/2"><h3 className="font-bold mb-1.5 text-left text-fuchsia-600 dark:text-fuchsia-400 text-sm">EXECUTION LOG</h3><textarea value={row.logic} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'logic', e.target.value)} placeholder={`// LOG FOR DAY ${row.day}...`} className="w-full h-20 min-h-[5rem] p-2 bg-white/30 dark:bg-black/50 border border-fuchsia-700/30 dark:border-fuchsia-500/50 text-green-700 dark:text-green-400 rounded-none focus:outline-none focus:ring-2 focus:ring-fuchsia-500 text-sm"></textarea></div></div></div></div> ) })}
-                        </div>
+                         </div>
                         {/* Pagination */}
                          {totalPages > 1 && ( <div className="mt-4 flex justify-between items-center w-full max-w-xl mx-auto z-10"> <button onClick={goToPrevPage} disabled={currentPage === 1} className="px-3 py-1.5 font-semibold shadow-md transition-all text-sm bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">&lt; Previous</button> <span className="font-bold text-sm text-gray-700 dark:text-gray-300">Days {startIndex + 1}-{Math.min(endIndex, currentMonthDays.length)}</span> <button onClick={goToNextPage} disabled={currentPage === totalPages} className="px-3 py-1.5 font-semibold shadow-md transition-all text-sm bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">Next &gt;</button> </div> )}
                     </div>
@@ -336,5 +306,3 @@
 
 </body>
 </html>
-
-

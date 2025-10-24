@@ -1,5 +1,21 @@
 {
   "name": "DevTrader Journal",
   "short_name": "DevTrader",
-  ...
+  "description": "A personal trading journal to track your challenge.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0a0a14",
+  "theme_color": "#00ffff",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/340/340890.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/340/340890.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
 }

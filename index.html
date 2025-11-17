@@ -3,24 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevTrader Pro: AI Terminal</title>
+    <title>DevTrader Pro: AI Terminal & Journal</title>
+
+    <!-- PWA & Icons -->
+    <meta name="theme-color" content="#00ffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DevTrader">
     
+    <!-- Scripts -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-    
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
     <style>
-        body { font-family: 'Rajdhani', sans-serif; overscroll-behavior-y: none; }
+        body { font-family: 'Rajdhani', sans-serif; overscroll-behavior-y: none; padding-top: 60px; }
         h1, h2, h3, .orbitron { font-family: 'Orbitron', sans-serif; }
         
         /* Custom Scrollbar */
@@ -40,7 +46,6 @@
             box-shadow: 0 0 15px rgba(6, 182, 212, 0.1);
         }
         
-        .neon-text { text-shadow: 0 0 5px rgba(6, 182, 212, 0.8); }
         .neon-border { box-shadow: 0 0 10px rgba(6, 182, 212, 0.4); }
         
         /* AI Typing Animation */
@@ -51,6 +56,14 @@
 
         .markdown-body p { margin-bottom: 0.5em; }
         .markdown-body ul { list-style-type: disc; margin-left: 1.5em; }
+
+        /* Journal Specific */
+        .perspective-container { perspective: 1500px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        @keyframes pulse-glow-cyber { 0%, 100% { box-shadow: 0 0 8px 2px rgba(128, 128, 128, 0.7), inset 0 0 4px 1px rgba(128, 128, 128, 0.4); } 50% { box-shadow: 0 0 15px 4px rgba(128, 128, 128, 0.4), inset 0 0 8px 2px rgba(128, 128, 128, 0.2); } }
+        .today-highlight { animation: pulse-glow-cyber 2.5s infinite; }
+        .day-container { cursor: grab; }
+        .is-dragging { animation: none !important; cursor: grabbing; }
     </style>
     <script>
         tailwind.config = { darkMode: 'class' }
@@ -59,17 +72,26 @@
 <body class="bg-gray-900 text-gray-100 overflow-x-hidden">
     <div id="root"></div>
 
-    <script type="text/babel">
+    <script type_ ="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
         // --- Constants ---
-        const DEFAULT_INITIAL_CAPITAL = 100000;
+        const DEFAULT_TERMINAL_CAPITAL = 100000;
+        const DEFAULT_JOURNAL_CAPITAL = 50000;
+        const DEFAULT_JOURNAL_TARGET = 1000000;
+        const DEFAULT_TENURE_DAYS = 66;
+        const TRADING_DAYS_PER_MONTH = 22;
+        const DAYS_PER_PAGE = 10;
         const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+        const DEFAULT_RULES = [ { text: "MAINTAIN DISCIPLINE: ADHERE TO THE PLAN", checked: false }, { text: "VALIDATE STRATEGY: CONFIRM ENTRY/EXIT CRITERIA", checked: false }, { text: "ASSESS MACRO TREND: CONSULT HIGHER TIMEFRAMES", checked: false }, { text: "RISK PROTOCOL: MAX 2% CAPITAL PER ENGAGEMENT", checked: false }, { text: "PROTECT CAPITAL: NEVER SHIFT STOP-LOSS MID-TRADE", checked: false }, { text: "DEFINE LOSS LIMITS: SET DAILY DRAWDOWN THRESHOLD", checked: false }, { text: "AVOID EMOTIONAL TRADING: NO REVENGE/OVER-TRADING", checked: false }, { text: "MAINTAIN OBJECTIVITY: LOGIC OVER FEAR/GREED", checked: false }, { text: "POST-TRADE ANALYSIS: LOG & REVIEW ALL EXECUTIONS", checked: false }, { text: "OPERATOR STATUS: CONFIRM PEAK MENTAL & PHYSICAL STATE", checked: false }, ];
 
         // --- Helper Functions ---
         const formatCurrency = (num) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(num);
+        const formatNumber = (num, showSign = false) => { const number = Number(num); if (isNaN(number)) return '0'; let prefix = ''; if (showSign) { if (number > 0) prefix = '+'; } const absNum = Math.abs(number); let formattedValue; if (absNum >= 10000000) { formattedValue = (absNum / 10000000).toFixed(2).replace(/\.00$/, '') + ' CR'; } else if (absNum >= 100000) { formattedValue = (absNum / 100000).toFixed(2).replace(/\.00$/, '') + ' L'; } else if (absNum >= 1000) { formattedValue = (absNum / 1000).toFixed(2).replace(/\.00$/, '') + ' K'; } else { formattedValue = absNum.toLocaleString('en-IN'); } return prefix + (number < 0 ? '-' : '') + formattedValue; };
         const generateId = () => Math.random().toString(36).substr(2, 9);
         const getToday = () => new Date().toISOString().split('T')[0];
+        const getNextTradingDay = (date) => { const nextDay = new Date(date); nextDay.setDate(nextDay.getDate() + 1); while (nextDay.getDay() === 0 || nextDay.getDay() === 6) { nextDay.setDate(nextDay.getDate() + 1); } return nextDay; };
+        const getCurrentFormattedDate = () => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
         // --- Components ---
 
@@ -121,6 +143,8 @@
             const containerId = useRef(`tv_chart_${generateId()}`);
             
             useEffect(() => {
+                const container = document.getElementById(containerId.current);
+                if (container) container.innerHTML = ''; // Clear previous widget
                 if (window.TradingView) {
                     new window.TradingView.widget({
                         "width": "100%",
@@ -144,10 +168,10 @@
         };
 
         // 3. AI Assistant Component
-        const AIAssistant = ({ logs, trades, capital, apiKey, setApiKey }) => {
+        const AIAssistant = ({ trades, capital, apiKey, setApiKey }) => {
             const [isOpen, setIsOpen] = useState(false);
             const [input, setInput] = useState("");
-            const [messages, setMessages] = useState([{ role: "ai", content: "Greetings, Operator. I am connected to your trading journal. How can I assist your analysis today?" }]);
+            const [messages, setMessages] = useState([{ role: "ai", content: "Greetings, Operator. I am connected to your trading terminal. How can I assist your analysis today?" }]);
             const [loading, setLoading] = useState(false);
             const chatEndRef = useRef(null);
 
@@ -163,20 +187,11 @@
                 setMessages(prev => [...prev, userMsg]);
                 setInput("");
 
-                // Prepare Context
                 const recentTrades = trades.slice(-5);
                 const pnl = trades.reduce((acc, t) => acc + t.pnl, 0);
                 const winRate = trades.length > 0 ? ((trades.filter(t => t.pnl > 0).length / trades.length) * 100).toFixed(1) : 0;
                 
-                const contextPrompt = `
-                    You are a professional trading coach AI. 
-                    Current Capital: ${formatCurrency(capital)}. 
-                    Total P&L: ${formatCurrency(pnl)}. 
-                    Win Rate: ${winRate}%.
-                    Recent Trades: ${JSON.stringify(recentTrades)}.
-                    User Query: ${input}
-                    Provide a concise, strategic analysis formatted in Markdown. Focus on risk management and psychology.
-                `;
+                const contextPrompt = `You are a professional trading coach AI. Current Capital: ${formatCurrency(capital)}. Total P&L: ${formatCurrency(pnl)}. Win Rate: ${winRate}%. Recent Trades: ${JSON.stringify(recentTrades)}. User Query: ${input}. Provide a concise, strategic analysis formatted in Markdown. Focus on risk management and psychology.`;
 
                 try {
                     const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
@@ -185,11 +200,7 @@
                         body: JSON.stringify({ contents: [{ parts: [{ text: contextPrompt }] }] })
                     });
                     const data = await response.json();
-                    
-                    if (data.error) {
-                        throw new Error(data.error.message || "API Error");
-                    }
-
+                    if (data.error) throw new Error(data.error.message || "API Error");
                     const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Error parsing response.";
                     setMessages(prev => [...prev, { role: "ai", content: aiText }]);
                 } catch (err) {
@@ -200,24 +211,15 @@
 
             return (
                 <>
-                    {/* Toggle Button */}
                     <button onClick={() => setIsOpen(!isOpen)} className="fixed bottom-6 right-6 z-50 bg-cyan-600 hover:bg-cyan-500 text-white p-4 rounded-full shadow-[0_0_20px_rgba(6,182,212,0.6)] transition-all hover:scale-110">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                     </button>
-
-                    {/* Main Panel */}
                     {isOpen && (
                         <div className="fixed bottom-24 right-6 w-96 h-[500px] glass-panel rounded-xl flex flex-col z-50 animate-fade-in-up">
-                            {/* Header */}
                             <div className="p-4 border-b border-gray-700 flex justify-between items-center bg-gray-900/80 rounded-t-xl">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                    <h3 className="font-bold text-cyan-400">GEMINI ANALYST</h3>
-                                </div>
+                                <div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div><h3 className="font-bold text-cyan-400">GEMINI ANALYST</h3></div>
                                 <button onClick={() => { const k = prompt("Enter Gemini API Key:", apiKey); if(k) setApiKey(k); }} className="text-gray-400 hover:text-white" title="Set API Key">🔑</button>
                             </div>
-
-                            {/* Chat Area */}
                             <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
                                 {messages.map((m, i) => (
                                     <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -229,17 +231,8 @@
                                 {loading && <div className="flex gap-1 p-2"><div className="w-2 h-2 bg-cyan-500 rounded-full typing-dot"></div><div className="w-2 h-2 bg-cyan-500 rounded-full typing-dot"></div><div className="w-2 h-2 bg-cyan-500 rounded-full typing-dot"></div></div>}
                                 <div ref={chatEndRef} />
                             </div>
-
-                            {/* Input */}
                             <div className="p-3 border-t border-gray-700 bg-gray-900/50 rounded-b-xl flex gap-2">
-                                <input 
-                                    type="text" 
-                                    value={input} 
-                                    onChange={(e) => setInput(e.target.value)} 
-                                    onKeyDown={(e) => e.key === 'Enter' && analyzeData()}
-                                    placeholder="Ask for analysis..." 
-                                    className="flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-cyan-500 text-white"
-                                />
+                                <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && analyzeData()} placeholder="Ask for analysis..." className="flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:border-cyan-500 text-white" />
                                 <button onClick={analyzeData} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded text-white font-bold">→</button>
                             </div>
                         </div>
@@ -248,86 +241,198 @@
             );
         };
 
-        // 4. Main Application
-        function App() {
-            // --- State ---
-            const [activeView, setActiveView] = useState("terminal"); // 'journal' or 'terminal'
-            const [capital, setCapital] = useState(() => parseFloat(localStorage.getItem("devtrader_capital")) || DEFAULT_INITIAL_CAPITAL);
-            const [trades, setTrades] = useState(() => JSON.parse(localStorage.getItem("devtrader_trades")) || []);
-            
-            // UPDATED: API KEY HARDCODED HERE
-            const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem("devtrader_gemini_key") || "AIzaSyDcQXcWOBe3_FeDF6waV-mvIQjtszZyTtk");
-            
-            const [journalData, setJournalData] = useState(() => JSON.parse(localStorage.getItem("tradingChallengeData")) || null);
+        // 4. Journal Components
+        const Logo = ({ size = "36" }) => ( <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 100 100" className="opacity-80 flex-shrink-0"><defs><filter id="text-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="blur"></feGaussianBlur><feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter></defs><text x="50" y="55" fontFamily="Orbitron, sans-serif" fontSize="38" fill="#00ffff" textAnchor="middle" dominantBaseline="middle" filter="url(#text-glow)">DTJ</text></svg> );
+        const MonthlyStatement = ({ monthData, startCapital, onClose }) => { const stats = useMemo(() => { let pnl = 0, profitDays = 0, lossDays = 0, longestStreak = 0, currentStreak = 0, mostProfitable = 0, largestLoss = 0, completedDays = 0; for (const day of monthData.days) { if (day.actual === "" || day.actual === null) continue; completedDays++; const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); pnl += value; if (value > 0) { profitDays++; currentStreak++; mostProfitable = Math.max(mostProfitable, value); } else if (value < 0) { lossDays++; currentStreak = 0; largestLoss = Math.min(largestLoss, value); } else { currentStreak = 0; } longestStreak = Math.max(longestStreak, currentStreak); } const endCapital = startCapital + pnl; return { pnl, profitDays, lossDays, longestStreak, mostProfitable, largestLoss, endCapital, completedDays }; }, [monthData, startCapital]); const StatCard = ({ title, value, colorClass = "text-black dark:text-gray-200" }) => ( <div className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-3 border border-fuchsia-700/30 dark:border-fuchsia-500/50"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-lg sm:text-xl font-bold ${colorClass}`}>{value}</p></div> ); return ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}><div className="w-full max-w-2xl bg-white/80 dark:bg-black/80 p-4 sm:p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}><h3 className="text-xl sm:text-2xl font-bold mb-4 text-cyan-600 dark:text-cyan-400">STATEMENT: {monthData.monthName}</h3><div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 text-center"><StatCard title="START CAPITAL" value={`₹${formatNumber(startCapital)}`} /> <StatCard title="END CAPITAL" value={`₹${formatNumber(stats.endCapital)}`} /><StatCard title="NET P&L" value={`₹${formatNumber(stats.pnl, true)}`} colorClass={stats.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}/></div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">P&L CALENDAR</h4><div className="grid grid-cols-7 gap-1 sm:gap-2 mb-4 p-2 bg-white/30 dark:bg-black/50 border border-cyan-700/20 dark:border-cyan-500/30">{monthData.days.map((day) => { const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); let bgColor = "bg-gray-200 dark:bg-gray-700/80"; if (day.actual !== "" && value > 0) bgColor = "bg-green-500 dark:bg-green-600"; if (day.actual !== "" && value < 0) bgColor = "bg-red-500 dark:bg-red-600"; if (day.actual !== "" && value === 0) bgColor = "bg-gray-400 dark:bg-gray-500"; return (<div key={day.day} className={`w-full h-8 sm:h-12 ${bgColor} flex items-center justify-center text-white font-bold text-xs sm:text-sm`} title={`Day ${day.day}: ₹${formatNumber(value, true)}`}>{day.day}</div>); })}</div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">MONTHLY ANALYSIS</h4><div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 text-center"><StatCard title="PROFIT DAYS" value={stats.profitDays} colorClass="text-green-600 dark:text-green-400" /> <StatCard title="LOSS DAYS" value={stats.lossDays} colorClass="text-red-600 dark:text-red-400" /><StatCard title="LONGEST STREAK" value={`${stats.longestStreak} Days`} colorClass="text-cyan-600 dark:text-cyan-400" /> <StatCard title="MOST PROFITABLE" value={`₹${formatNumber(stats.mostProfitable, true)}`} colorClass="text-green-600 dark:text-green-400" /><StatCard title="LARGEST LOSS" value={`₹${formatNumber(stats.largestLoss, true)}`} colorClass="text-red-600 dark:text-red-400" /> <StatCard title="DAYS TRADED" value={stats.completedDays} /></div><button onClick={onClose} className="w-full px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">Close</button></div></div> ); };
+        const ScrollToTopButton = () => { const [isVisible, setIsVisible] = useState(false); const toggleVisibility = () => { if (window.pageYOffset > 300) { setIsVisible(true); } else { setIsVisible(false); } }; const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { window.addEventListener('scroll', toggleVisibility); return () => window.removeEventListener('scroll', toggleVisibility); }, []); return ( <button onClick={scrollToTop} className={`fixed bottom-4 left-4 z-40 p-2 bg-cyan-500/80 text-white rounded-full shadow-lg transition-opacity duration-300 hover:bg-cyan-400 ${isVisible ? 'opacity-100' : 'opacity-0'}`} title="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button> ); };
 
-            // Paper Trading State
+
+        // 5. Main Application
+        function App({ user, onLogout }) {
+            const [activeView, setActiveView] = useState("terminal"); // 'journal' or 'terminal'
+            const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark");
+            
+            // --- Storage Keys ---
+            const storageKeyJournal = `tradingChallengeData_${user}`;
+            const storageKeyCapital = `devtrader_capital_${user}`;
+            const storageKeyTrades = `devtrader_trades_${user}`;
+            const storageKeyPositions = `devtrader_positions_${user}`;
+            const storageKeyApiKey = `devtrader_gemini_key_${user}`;
+
+            // --- Terminal State ---
+            const [capital, setCapital] = useState(() => parseFloat(localStorage.getItem(storageKeyCapital)) || DEFAULT_TERMINAL_CAPITAL);
+            const [trades, setTrades] = useState(() => JSON.parse(localStorage.getItem(storageKeyTrades)) || []);
+            const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem(storageKeyApiKey) || "AIzaSyDcQXcWOBe3_FeDF6waV-mvIQjtszZyTtk");
             const [symbol, setSymbol] = useState("BTCUSD");
             const [orderType, setOrderType] = useState("BUY");
             const [entryPrice, setEntryPrice] = useState("");
             const [quantity, setQuantity] = useState(1);
-            const [openPositions, setOpenPositions] = useState(() => JSON.parse(localStorage.getItem("devtrader_positions")) || []);
+            const [openPositions, setOpenPositions] = useState(() => JSON.parse(localStorage.getItem(storageKeyPositions)) || []);
+            
+            // --- Journal State ---
+            const [journalData, setJournalData] = useState(null);
+            const [activeMonthIndex, setActiveMonthIndex] = useState(0);
+            const [todayString, setTodayString] = useState(getToday());
+            const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+            const [currentDateString, setCurrentDateString] = useState(getCurrentFormattedDate());
+            const [isAccountPopupVisible, setAccountPopupVisible] = useState(false);
+            const [isResetPopupVisible, setResetPopupVisible] = useState(false);
+            const [resetPasswordInput, setResetPasswordInput] = useState("");
+            const [resetError, setResetError] = useState("");
+            const [isStatementVisible, setStatementVisible] = useState(false);
+            const [currentPage, setCurrentPage] = useState(1);
+            const [inputCapital, setInputCapital] = useState(DEFAULT_JOURNAL_CAPITAL.toString());
+            const [inputTarget, setInputTarget] = useState(DEFAULT_JOURNAL_TARGET.toString());
+            const [inputTenure, setInputTenure] = useState(DEFAULT_TENURE_DAYS.toString());
+            const journalContainerRef = useRef(null);
+            const topOfPageRef = useRef(null);
+            const dragInfo = useRef(null);
 
-            // --- Effects ---
-            useEffect(() => { localStorage.setItem("devtrader_capital", capital); }, [capital]);
-            useEffect(() => { localStorage.setItem("devtrader_trades", JSON.stringify(trades)); }, [trades]);
-            useEffect(() => { localStorage.setItem("devtrader_positions", JSON.stringify(openPositions)); }, [openPositions]);
-            useEffect(() => { localStorage.setItem("devtrader_gemini_key", geminiKey); }, [geminiKey]);
+            // --- Journal Logic (Ported) ---
+            const generatePlanStructure = useCallback((tenure, oldMonths = []) => { const oldDaysMap = new Map(); oldMonths.forEach(month => month.days.forEach(day => oldDaysMap.set(day.date, day))); let months = []; let currentDate = new Date(); let dayCounter = 0; while (dayCounter < tenure) { const monthIndex = Math.floor(dayCounter / TRADING_DAYS_PER_MONTH); if (!months[monthIndex]) { months[monthIndex] = { id: monthIndex + 1, monthName: currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }), days: [] }; } const dateStr = currentDate.toISOString().split('T')[0]; const existingDayData = oldDaysMap.get(dateStr); months[monthIndex].days.push({ day: dayCounter + 1, date: dateStr, capital: 0, target: 0, profit: 0, dailyRate: 0, achieved: existingDayData?.achieved ?? false, pnlSign: existingDayData?.pnlSign ?? "+", actual: existingDayData?.actual ?? "", winningTrades: existingDayData?.winningTrades ?? "", losingTrades: existingDayData?.losingTrades ?? "", logic: existingDayData?.logic ?? "", rules: existingDayData?.rules ?? JSON.parse(JSON.stringify(DEFAULT_RULES)), }); currentDate = getNextTradingDay(currentDate); dayCounter++; } return months; }, []);
+            const recalculatePlan = useCallback((fullData) => { const { initialCapital, finalTarget, tenure } = fullData; const newMonths = JSON.parse(JSON.stringify(fullData.months)); const allDays = newMonths.flatMap(m => m.days); let actualCapital = initialCapital; let daysRemaining = tenure; for (let day of allDays) { day.capital = Math.round(actualCapital); let requiredDailyRate = 0; if (actualCapital > 0 && daysRemaining > 0 && finalTarget > actualCapital) { requiredDailyRate = Math.pow(finalTarget / actualCapital, 1 / daysRemaining) - 1; } else if (actualCapital > 0 && daysRemaining > 0 && finalTarget <= actualCapital) { requiredDailyRate = 0; } day.dailyRate = requiredDailyRate; day.profit = Math.round(actualCapital * requiredDailyRate); day.target = Math.round(actualCapital + day.profit); if (day.actual !== "") { const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); actualCapital += signedProfit; } else { actualCapital = day.target; } daysRemaining--; } return newMonths; }, []);
+            const initializeAndSetJournalData = useCallback(() => { const months = generatePlanStructure(DEFAULT_TENURE_DAYS); let initialData = { initialCapital: DEFAULT_JOURNAL_CAPITAL, finalTarget: DEFAULT_JOURNAL_TARGET, tenure: DEFAULT_TENURE_DAYS, months }; initialData.months = recalculatePlan(initialData); setJournalData(initialData); setInputCapital(DEFAULT_JOURNAL_CAPITAL.toString()); setInputTarget(DEFAULT_JOURNAL_TARGET.toString()); setInputTenure(DEFAULT_TENURE_DAYS.toString()); setActiveMonthIndex(0); setCurrentPage(1); }, [generatePlanStructure, recalculatePlan]);
 
-            // --- Actions ---
+            // --- Effects (Load & Save) ---
+            
+            // Load Journal Data
+            useEffect(() => {
+                try {
+                    const savedData = localStorage.getItem(storageKeyJournal);
+                    if (savedData) {
+                        const parsedData = JSON.parse(savedData);
+                        setJournalData(parsedData);
+                        setInputCapital(parsedData.initialCapital.toString());
+                        setInputTarget(parsedData.finalTarget.toString());
+                        setInputTenure(parsedData.tenure.toString());
+                    } else {
+                        initializeAndSetJournalData();
+                    }
+                } catch (error) {
+                    console.error("Failed to initialize journal data:", error);
+                    initializeAndSetJournalData();
+                }
+            }, [storageKeyJournal, initializeAndSetJournalData]);
+
+            // Save Terminal Data
+            useEffect(() => { localStorage.setItem(storageKeyCapital, capital); }, [capital, storageKeyCapital]);
+            useEffect(() => { localStorage.setItem(storageKeyTrades, JSON.stringify(trades)); }, [trades, storageKeyTrades]);
+            useEffect(() => { localStorage.setItem(storageKeyPositions, JSON.stringify(openPositions)); }, [openPositions, storageKeyPositions]);
+            useEffect(() => { localStorage.setItem(storageKeyApiKey, geminiKey); }, [geminiKey, storageKeyApiKey]);
+
+            // Save Journal Data
+            useEffect(() => {
+                if (journalData) {
+                    localStorage.setItem(storageKeyJournal, JSON.stringify(journalData));
+                }
+            }, [journalData, storageKeyJournal]);
+
+            // Theme Effect
+            useEffect(() => {
+                document.documentElement.classList.toggle("dark", theme === "dark");
+                localStorage.setItem("theme", theme);
+            }, [theme]);
+
+            // Time/Date Effect
+            useEffect(() => { const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000); return () => clearInterval(timer); }, []);
+            useEffect(() => { if (currentPage === 1 && activeMonthIndex === 0) return; journalContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [currentPage, activeMonthIndex]);
+
+
+            // --- Terminal Actions ---
             const executeTrade = () => {
                 if (!entryPrice || !quantity) return alert("Enter Price and Quantity");
-                const newPosition = {
-                    id: generateId(),
-                    symbol: symbol.toUpperCase(),
-                    type: orderType,
-                    entryPrice: parseFloat(entryPrice),
-                    quantity: parseFloat(quantity),
-                    timestamp: new Date().toISOString()
-                };
+                const newPosition = { id: generateId(), symbol: symbol.toUpperCase(), type: orderType, entryPrice: parseFloat(entryPrice), quantity: parseFloat(quantity), timestamp: new Date().toISOString() };
                 setOpenPositions([newPosition, ...openPositions]);
-                setEntryPrice(""); // Reset input
+                setEntryPrice("");
             };
 
+            // --- !! MERGED ACTION !! ---
             const closePosition = (id, exitPrice) => {
                 if (!exitPrice) return alert("Enter Exit Price");
                 const pos = openPositions.find(p => p.id === id);
+                if (!pos) return;
                 const exit = parseFloat(exitPrice);
                 
-                // Calculate PnL
+                // 1. Calculate PnL (Terminal logic)
                 let pnl = 0;
                 if (pos.type === "BUY") pnl = (exit - pos.entryPrice) * pos.quantity;
                 else pnl = (pos.entryPrice - exit) * pos.quantity;
 
-                const closedTrade = {
-                    ...pos,
-                    exitPrice: exit,
-                    exitTime: new Date().toISOString(),
-                    pnl: pnl,
-                    status: pnl > 0 ? "WIN" : "LOSS"
-                };
+                const closedTrade = { ...pos, exitPrice: exit, exitTime: new Date().toISOString(), pnl: pnl, status: pnl > 0 ? "WIN" : "LOSS" };
 
-                setTrades([closedTrade, ...trades]);
+                // 2. Update Terminal State
+                setTrades(prev => [closedTrade, ...prev]);
                 setCapital(prev => prev + pnl);
-                setOpenPositions(openPositions.filter(p => p.id !== id));
+                setOpenPositions(prev => prev.filter(p => p.id !== id));
+
+                // 3. Update Journal State
+                setJournalData(prevData => {
+                    if (!prevData) return prevData;
+                    const todayStr = getToday();
+                    let dayUpdated = false;
+                    
+                    const newMonths = prevData.months.map(month => {
+                        const newDays = month.days.map(day => {
+                            if (day.date === todayStr) {
+                                dayUpdated = true;
+                                const currentActual = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0);
+                                const newActual = currentActual + pnl;
+                                
+                                day.actual = String(Math.abs(newActual)); // Store absolute value
+                                day.pnlSign = newActual >= 0 ? '+' : '-'; // Store sign
+                                
+                                if (pnl > 0) {
+                                    day.winningTrades = (Number(day.winningTrades) || 0) + 1;
+                                } else if (pnl < 0) {
+                                    day.losingTrades = (Number(day.losingTrades) || 0) + 1;
+                                }
+                                day.achieved = newActual >= (day.profit || 0);
+                            }
+                            return day;
+                        });
+                        return { ...month, days: newDays };
+                    });
+
+                    if (dayUpdated) {
+                        let updatedData = { ...prevData, months: newMonths };
+                        updatedData.months = recalculatePlan(updatedData); // Recalculate future plan
+                        return updatedData;
+                    }
+                    return prevData;
+                });
             };
 
-            const resetData = () => {
-                if(confirm("Reset ALL data?")) {
-                    localStorage.clear();
-                    window.location.reload();
-                }
-            };
+            // --- Journal Actions ---
+            const handleUpdateTargets = () => { const newInitialCapital = parseInt(inputCapital, 10) || DEFAULT_JOURNAL_CAPITAL; const newFinalTarget = parseInt(inputTarget, 10) || DEFAULT_JOURNAL_TARGET; const newTenure = parseInt(inputTenure, 10) || DEFAULT_TENURE_DAYS; setJournalData(prevData => { const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, initialCapital: newInitialCapital, finalTarget: newFinalTarget, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); setActiveMonthIndex(0); setCurrentPage(1); return updatedData; }); };
+            const handleDataChange = (monthIndex, dayIndex, field, value) => { setJournalData(prevData => { const newData = JSON.parse(JSON.stringify(prevData)); const day = newData.months[monthIndex].days[dayIndex]; day[field] = value; if (field === 'actual' || field === 'pnlSign') { const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); day.achieved = signedProfit >= day.profit; } newData.months = recalculatePlan(newData); return newData; }); };
+            const handleConfirmReset = () => { const savedPasscode = localStorage.getItem('devTraderPasscode') || ''; if (resetPasswordInput === savedPasscode) { localStorage.removeItem(storageKeyJournal); localStorage.removeItem(storageKeyCapital); localStorage.removeItem(storageKeyTrades); localStorage.removeItem(storageKeyPositions); localStorage.removeItem(storageKeyApiKey); localStorage.removeItem('devTraderPasscode'); setResetPopupVisible(false); onLogout(); } else { setResetError("Incorrect Passcode. Reset Aborted."); } };
+            const handleAddNewMonth = () => { setJournalData(prevData => { const newTenure = prevData.tenure + TRADING_DAYS_PER_MONTH; const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); setInputTenure(newTenure.toString()); return updatedData; }); };
+            const openResetPopup = () => { setResetPasswordInput(""); setResetError(""); setResetPopupVisible(true); };
+            const toggleTheme = () => { setTheme(prev => prev === "dark" ? "light" : "dark"); };
+            const handleMouseMove = useCallback((e) => { if (!dragInfo.current) return; const { element, startX, startY } = dragInfo.current; const deltaX = e.clientX - startX; const deltaY = e.clientY - startY; element.style.transform = `rotateX(${-deltaY * 0.2}deg) rotateY(${deltaX * 0.2}deg) scale3d(1.05, 1.05, 1.05)`; }, []);
+            const handleMouseUp = useCallback(() => { if (!dragInfo.current) return; dragInfo.current.element.classList.remove('is-dragging'); dragInfo.current.element.style.transform = ''; window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); dragInfo.current = null; }, [handleMouseMove]);
+            const handleMouseDown = useCallback((e) => { if (e.button !== 0 || ['INPUT', 'TEXTAREA', 'LABEL', 'BUTTON'].includes(e.target.tagName) || e.target.closest('label')) return; e.currentTarget.classList.add('is-dragging'); dragInfo.current = { element: e.currentTarget, startX: e.clientX, startY: e.clientY }; window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); }, [handleMouseMove, handleMouseUp]);
+            const analysis = useMemo(() => { if (!journalData || !journalData.months[activeMonthIndex]) return { pnl: 0, profitDays: 0, lossDays: 0, winningTrades: 0, losingTrades: 0 }; const month = journalData.months[activeMonthIndex]; const completedDays = month.days.filter(d => d.actual !== ""); const pnl = completedDays.reduce((acc, d) => acc + (d.pnlSign === '+' ? 1 : -1) * (Number(d.actual) || 0), 0); const profitDays = completedDays.filter(d => (d.pnlSign === '+' && d.actual !== '0')).length; const lossDays = completedDays.filter(d => (d.pnlSign === '-' && d.actual !== '0')).length; const winningTrades = completedDays.reduce((acc, d) => acc + (Number(d.winningTrades) || 0), 0); const losingTrades = completedDays.reduce((acc, d) => acc + (Number(d.losingTrades) || 0), 0); return { pnl, profitDays, lossDays, winningTrades, losingTrades }; }, [journalData, activeMonthIndex]);
+            const startCapitalForMonth = useMemo(() => { if (!journalData || activeMonthIndex === 0) return journalData ? journalData.initialCapital : 0; const allDays = journalData.months.flatMap(m => m.days); const firstDayOfMonthIndex = activeMonthIndex * TRADING_DAYS_PER_MONTH; return allDays[firstDayOfMonthIndex]?.capital ?? 0; }, [journalData, activeMonthIndex]);
+            
+            const currentMonthDays = journalData ? journalData.months[activeMonthIndex]?.days || [] : [];
+            const totalPages = Math.ceil(currentMonthDays.length / DAYS_PER_PAGE);
+            const startIndex = (currentPage - 1) * DAYS_PER_PAGE;
+            const endIndex = startIndex + DAYS_PER_PAGE;
+            const displayedDays = currentMonthDays.slice(startIndex, endIndex);
+            const goToPrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
+            const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
+
 
             // --- Render View: TERMINAL ---
             const renderTerminal = () => (
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full p-4">
-                    {/* Left: Charts */}
                     <div className="lg:col-span-3 flex flex-col gap-4 h-full">
                         <div className="glass-panel p-4 rounded-xl flex-1 min-h-[500px] flex flex-col">
                              <div className="flex justify-between items-center mb-2">
                                 <div className="flex gap-2">
                                     <input value={symbol} onChange={e=>setSymbol(e.target.value.toUpperCase())} className="bg-gray-800 border border-gray-600 px-2 py-1 rounded text-white font-bold w-24" />
-                                    <span className="text-gray-500 flex items-center text-xs">TYPE SYMBOL & ENTER</span>
+                                    <span className="text-gray-500 flex items-center text-xs">TYPE SYMBOL & REFRESH</span>
                                 </div>
                                 <div className="text-cyan-400 font-orbitron">LIVE MARKET FEED // SIMULATION MODE</div>
                              </div>
@@ -335,19 +440,10 @@
                                  <TradingViewChart symbol={symbol} />
                              </div>
                         </div>
-
-                        {/* Bottom: Recent History */}
                         <div className="glass-panel p-4 rounded-xl h-64 overflow-y-auto">
                             <h3 className="font-bold text-gray-400 mb-2 sticky top-0 bg-gray-900/90 backdrop-blur p-1 z-10">RECENT CLOSED TRADES</h3>
                             <table className="w-full text-sm text-left">
-                                <thead className="text-xs text-gray-500 uppercase bg-gray-800">
-                                    <tr>
-                                        <th className="px-4 py-2">Time</th>
-                                        <th className="px-4 py-2">Symbol</th>
-                                        <th className="px-4 py-2">Type</th>
-                                        <th className="px-4 py-2">P&L</th>
-                                    </tr>
-                                </thead>
+                                <thead className="text-xs text-gray-500 uppercase bg-gray-800"><tr><th className="px-4 py-2">Time</th><th className="px-4 py-2">Symbol</th><th className="px-4 py-2">Type</th><th className="px-4 py-2">P&L</th></tr></thead>
                                 <tbody>
                                     {trades.length === 0 ? <tr><td colSpan="4" className="p-4 text-center text-gray-600">No history available</td></tr> : 
                                     trades.map(t => (
@@ -355,68 +451,41 @@
                                             <td className="px-4 py-2 text-gray-400">{new Date(t.exitTime).toLocaleTimeString()}</td>
                                             <td className="px-4 py-2 font-bold">{t.symbol}</td>
                                             <td className={`px-4 py-2 ${t.type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>{t.type}</td>
-                                            <td className={`px-4 py-2 font-mono font-bold ${t.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                                {t.pnl > 0 ? '+' : ''}{formatCurrency(t.pnl)}
-                                            </td>
+                                            <td className={`px-4 py-2 font-mono font-bold ${t.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>{t.pnl > 0 ? '+' : ''}{formatCurrency(t.pnl)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
                     </div>
-
-                    {/* Right: Order Panel */}
                     <div className="lg:col-span-1 flex flex-col gap-4">
-                        {/* Account Summary */}
                         <div className="glass-panel p-6 rounded-xl text-center neon-border">
                             <h2 className="text-gray-400 text-sm tracking-widest mb-1">NET LIQUIDITY</h2>
                             <div className="text-3xl font-black text-white font-orbitron">{formatCurrency(capital)}</div>
-                            <div className={`text-sm font-bold mt-1 ${capital >= DEFAULT_INITIAL_CAPITAL ? 'text-green-400' : 'text-red-400'}`}>
-                                {((capital - DEFAULT_INITIAL_CAPITAL) / DEFAULT_INITIAL_CAPITAL * 100).toFixed(2)}% Total Return
-                            </div>
+                            <div className={`text-sm font-bold mt-1 ${capital >= DEFAULT_TERMINAL_CAPITAL ? 'text-green-400' : 'text-red-400'}`}>{((capital - DEFAULT_TERMINAL_CAPITAL) / DEFAULT_TERMINAL_CAPITAL * 100).toFixed(2)}% Total Return</div>
                         </div>
-
-                        {/* Order Entry */}
                         <div className="glass-panel p-6 rounded-xl">
                             <h3 className="font-bold text-cyan-400 mb-4 border-b border-cyan-900 pb-2">EXECUTION DECK</h3>
-                            
                             <div className="flex bg-gray-800 rounded mb-4 p-1">
                                 <button onClick={()=>setOrderType("BUY")} className={`flex-1 py-2 rounded font-bold transition-colors ${orderType==='BUY' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'}`}>LONG</button>
                                 <button onClick={()=>setOrderType("SELL")} className={`flex-1 py-2 rounded font-bold transition-colors ${orderType==='SELL' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}>SHORT</button>
                             </div>
-
                             <div className="space-y-3">
-                                <div>
-                                    <label className="text-xs text-gray-500">ENTRY PRICE (MANUAL SIM)</label>
-                                    <input type="number" value={entryPrice} onChange={e=>setEntryPrice(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" placeholder="Current Chart Price" />
-                                </div>
-                                <div>
-                                    <label className="text-xs text-gray-500">QUANTITY / LOTS</label>
-                                    <input type="number" value={quantity} onChange={e=>setQuantity(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" />
-                                </div>
-                                <button onClick={executeTrade} className={`w-full py-3 rounded font-black text-lg shadow-lg transform active:scale-95 transition-all ${orderType==='BUY' ? 'bg-green-600 hover:bg-green-500 shadow-green-900/50' : 'bg-red-600 hover:bg-red-500 shadow-red-900/50'}`}>
-                                    EXECUTE {orderType}
-                                </button>
+                                <div><label className="text-xs text-gray-500">ENTRY PRICE (MANUAL SIM)</label><input type="number" value={entryPrice} onChange={e=>setEntryPrice(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" placeholder="Current Chart Price" /></div>
+                                <div><label className="text-xs text-gray-500">QUANTITY / LOTS</label><input type="number" value={quantity} onChange={e=>setQuantity(e.target.value)} className="w-full bg-gray-900 border border-gray-700 rounded p-2 text-white focus:border-cyan-500 outline-none" /></div>
+                                <button onClick={executeTrade} className={`w-full py-3 rounded font-black text-lg shadow-lg transform active:scale-95 transition-all ${orderType==='BUY' ? 'bg-green-600 hover:bg-green-500 shadow-green-900/50' : 'bg-red-600 hover:bg-red-500 shadow-red-900/50'}`}>EXECUTE {orderType}</button>
                             </div>
                         </div>
-
-                        {/* Open Positions */}
                         <div className="glass-panel p-4 rounded-xl flex-1 overflow-y-auto">
                             <h3 className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-wider">Open Positions ({openPositions.length})</h3>
                             <div className="space-y-3">
                                 {openPositions.map(p => (
                                     <div key={p.id} className="bg-gray-800/50 p-3 rounded border-l-2 border-cyan-500 relative group">
                                         <div className="flex justify-between items-start mb-2">
-                                            <div>
-                                                <div className="font-bold">{p.symbol}</div>
-                                                <div className={`text-xs font-bold ${p.type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>{p.type} x{p.quantity}</div>
-                                            </div>
+                                            <div><div className="font-bold">{p.symbol}</div><div className={`text-xs font-bold ${p.type === 'BUY' ? 'text-green-400' : 'text-red-400'}`}>{p.type} x{p.quantity}</div></div>
                                             <div className="text-xs text-gray-500">@ {p.entryPrice}</div>
                                         </div>
-                                        <div className="flex gap-2">
-                                            <input type="number" id={`exit-${p.id}`} className="w-full bg-black border border-gray-700 rounded px-2 py-1 text-xs" placeholder="Exit Price" />
-                                            <button onClick={() => closePosition(p.id, document.getElementById(`exit-${p.id}`).value)} className="bg-yellow-600 hover:bg-yellow-500 text-white text-xs px-3 py-1 rounded font-bold">CLOSE</button>
-                                        </div>
+                                        <div className="flex gap-2"><input type="number" id={`exit-${p.id}`} className="w-full bg-black border border-gray-700 rounded px-2 py-1 text-xs" placeholder="Exit Price" /><button onClick={() => closePosition(p.id, document.getElementById(`exit-${p.id}`).value)} className="bg-yellow-600 hover:bg-yellow-500 text-white text-xs px-3 py-1 rounded font-bold">CLOSE</button></div>
                                     </div>
                                 ))}
                                 {openPositions.length === 0 && <div className="text-center text-gray-600 text-sm py-4">No Active Positions</div>}
@@ -426,54 +495,101 @@
                 </div>
             );
 
-            // --- Render View: JOURNAL (Simplified Version of Original) ---
-            const renderJournal = () => (
-                <div className="p-6 max-w-7xl mx-auto">
-                    <div className="glass-panel p-8 rounded-xl text-center">
-                        <h2 className="text-2xl font-bold text-cyan-400 mb-4">DAILY JOURNAL LOGS</h2>
-                        <p className="text-gray-400 mb-8">Track your psychological state and daily aggregate P&L here. (Original journal features are preserved in local storage).</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-                             <div className="bg-gray-800 p-4 rounded">
-                                <div className="text-gray-500 text-xs">TRADES TAKEN TODAY</div>
-                                <div className="text-2xl font-bold">{trades.filter(t => t.exitTime.startsWith(getToday())).length}</div>
+            // --- Render View: JOURNAL ---
+            const renderJournal = () => {
+                if (!journalData) { return <div className="min-h-screen flex items-center justify-center text-cyan-400"><p>LOADING JOURNAL...</p></div>; }
+                const currentMonthData = journalData.months[activeMonthIndex];
+                const totalGainPercent = journalData.initialCapital > 0 ? ((journalData.finalTarget / journalData.initialCapital) - 1) * 100 : 0;
+
+                return (
+                    <div className="relative flex flex-col items-center pb-4 px-2 sm:px-4 text-black dark:text-gray-200">
+                        {isAccountPopupVisible && ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2" onClick={() => setAccountPopupVisible(false)}><div className="glass-panel p-4 text-center" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-3 text-cyan-400">ACCOUNT</h3><p className="mb-4 text-white">User: <span className="font-bold text-cyan-400">{user}</span></p><div className="flex flex-col gap-3"><button onClick={() => { setStatementVisible(true); setAccountPopupVisible(false); }} className="px-5 py-2 rounded-lg bg-fuchsia-600/80 hover:bg-fuchsia-500/80 border border-fuchsia-400 backdrop-blur-sm text-white font-bold transition-all text-sm">Monthly Statement</button><button onClick={onLogout} className="px-5 py-2 rounded-lg bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all text-sm">LOGOUT</button><button onClick={() => setAccountPopupVisible(false)} className="px-5 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all text-sm">Back</button></div></div></div> )}
+                        {isResetPopupVisible && ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-2" onClick={() => setResetPopupVisible(false)}><div className="glass-panel p-6 border border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.5)] text-center" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-3 text-red-500">CONFIRM DATA PURGE</h3><p className="text-xs text-gray-400 mb-4">This action will reset all journal data and log you out.</p><input type="password" value={resetPasswordInput} onChange={(e) => setResetPasswordInput(e.target.value)} className="bg-gray-800 border border-gray-600 text-center p-2 w-full focus:ring-2 focus:ring-red-500 mb-3 text-white" placeholder="Enter your passcode to confirm"/>{resetError && <p className="text-red-500 text-xs text-center mb-3">{resetError}</p>}<div className="flex justify-center gap-3"><button onClick={() => { setResetPopupVisible(false); }} className="bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white px-5 py-2 font-bold transition-all text-sm">CANCEL</button><button onClick={handleConfirmReset} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all text-sm">CONFIRM PURGE</button></div></div></div> )}
+                        {isStatementVisible && <MonthlyStatement monthData={currentMonthData} startCapital={startCapitalForMonth} onClose={() => setStatementVisible(false)} />}
+                        <ScrollToTopButton />
+
+                        <div className="text-center w-full max-w-7xl z-10 pt-4 mb-3">
+                            <p className="font-bold tracking-wider text-gray-300 mt-2 text-base sm:text-xl lg:text-2xl">
+                                CHALLENGE: ₹{formatNumber(journalData.initialCapital, false)} → ₹{formatNumber(journalData.finalTarget, false)} in {journalData.tenure} days
+                                <br className="sm:hidden" />
+                                <span className="text-fuchsia-400 sm:ml-2">({totalGainPercent.toFixed(2)}% GAIN)</span>
+                            </p>
+                        </div>
+
+                        <div className="w-full max-w-5xl my-3 p-3 z-10 glass-panel">
+                             <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-3">
+                                 <div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-400 mb-0.5">START</label><div className="flex items-center bg-gray-800 border border-gray-600 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-32"><span className="px-1.5 text-gray-500 text-sm">₹</span><input type="number" value={inputCapital} onChange={e => setInputCapital(e.target.value)} className="bg-transparent text-center p-1.5 w-full focus:outline-none text-sm text-white"/></div></div>
+                                 <div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-400 mb-0.5">TARGET</label><div className="flex items-center bg-gray-800 border border-gray-600 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-32"><span className="px-1.5 text-gray-500 text-sm">₹</span><input type="number" value={inputTarget} onChange={e => setInputTarget(e.target.value)} className="bg-transparent text-center p-1.5 w-full focus:outline-none text-sm text-white"/></div></div>
+                                 <div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-400 mb-0.5">DAYS</label><input type="number" value={inputTenure} onChange={e => setInputTenure(e.target.value)} className="bg-gray-800 border border-gray-600 text-center p-1.5 w-full sm:w-24 focus:outline-none focus:ring-2 focus:ring-cyan-400 text-sm text-white"/></div>
+                                 <button onClick={handleUpdateTargets} className="w-full sm:w-auto bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-4 py-2 mt-2 sm:mt-0 sm:ml-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all text-xs">SET</Cbutton>
                              </div>
-                             <div className="bg-gray-800 p-4 rounded">
-                                <div className="text-gray-500 text-xs">TODAY'S REALIZED P&L</div>
-                                <div className={`text-2xl font-bold ${trades.filter(t => t.exitTime.startsWith(getToday())).reduce((a,b)=>a+b.pnl,0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    {formatCurrency(trades.filter(t => t.exitTime.startsWith(getToday())).reduce((a,b)=>a+b.pnl,0))}
-                                </div>
-                             </div>
-                             <div className="bg-gray-800 p-4 rounded flex items-center justify-center">
-                                 <a href="#" onClick={()=>setActiveView('terminal')} className="text-cyan-400 hover:underline">Return to Terminal &rarr;</a>
-                             </div>
+                        </div>
+
+                        <div ref={journalContainerRef} className="w-full max-w-7xl mb-3 glass-panel rounded-t-lg z-10">
+                            <div className="flex overflow-x-auto">{journalData.months.map((month, index) => (<button key={month.id} onClick={() => { setActiveMonthIndex(index); setCurrentPage(1); }} className={`px-3 py-1.5 text-xs sm:text-sm font-bold transition-all whitespace-nowrap border-b-2 ${activeMonthIndex === index ? 'border-cyan-500 text-cyan-400' : 'border-transparent text-gray-400 hover:text-cyan-400 hover:bg-cyan-900/20'}`}>&gt; {month.monthName || `Month ${month.id}`}</button>))}</div>
+                        </div>
+
+                        <div className="w-full max-w-7xl grid grid-cols-3 md:grid-cols-6 gap-1.5 sm:gap-2 mb-3 text-center z-10">
+                            {['MONTH P&L', 'PROFIT DAYS', 'LOSS DAYS', 'WINNING TRADES', 'LOSING TRADES', 'MONTH START'].map((title, i) => (<div key={title} className="glass-panel p-1.5 sm:p-2 border border-fuchsia-700/30 dark:border-fuchsia-500/50 shadow-[0_0_10px_rgba(255,0,255,0.2)]"><h4 className="text-[10px] sm:text-xs font-semibold text-gray-400">{title}</h4><p className={`text-sm sm:text-base font-bold ${i === 0 ? (analysis.pnl >= 0 ? 'text-green-400' : 'text-red-400') : i === 1 || i === 3 ? 'text-green-400' : i === 2 || i === 4 ? 'text-red-400' : 'text-gray-200'}`}>{i === 0 ? `₹${formatNumber(analysis.pnl, true)}` : i === 1 ? analysis.profitDays : i === 2 ? analysis.lossDays : i === 3 ? analysis.winningTrades : i === 4 ? analysis.losingTrades : '₹' + formatNumber(Math.round(startCapitalForMonth), false) }</p></div>))}
+                        </div>
+
+                        <div className="w-full max-w-7xl perspective-container z-10">
+                            <div className="space-y-3">
+                                {displayedDays.map((row) => { const originalIndex = currentMonthDays.findIndex(day => day.date === row.date); const isToday = row.date === todayString; const pnlValue = (row.pnlSign === '+' ? 1 : -1) * (Number(row.actual) || 0); const isProfit = pnlValue > 0; const isLoss = pnlValue < 0; return ( <div key={row.date} className={`day-container p-2 sm:p-3 border transition-all duration-300 transform-style-3d hover:scale-[1.01] ${isToday ? 'today-highlight border-gray-500/80' : 'border-cyan-700/20 dark:border-cyan-500/30'} ${isProfit ? "glass-panel bg-green-800/10" : isLoss ? "glass-panel bg-red-800/10" : "glass-panel" }`} onMouseDown={handleMouseDown}>
+                                    <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-9 gap-1.5 sm:gap-2 items-center text-center text-[10px] sm:text-xs">
+                                        <div className="flex flex-col"><span className="text-gray-400">DAY</span><span className="font-black text-sm sm:text-base">{row.day}</span></div>
+                                        <div className="flex flex-col"><span className="text-gray-400">DATE</span><span className="font-bold">{new Date(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span></div>
+                                        <div className="flex flex-col"><span className="text-gray-400">CAPITAL</span><span className="font-mono font-bold text-xs sm:text-sm">₹{formatNumber(row.capital, false)}</span></div>
+                                        <div className="flex flex-col"><span className="text-gray-400">TARGET%</span><span className={`font-mono font-bold text-xs sm:text-sm ${row.dailyRate > 0 ? 'text-cyan-400' : 'text-gray-500'}`}>{(row.dailyRate * 100).toFixed(2)}%</span></div>
+                                        <div className="hidden sm:flex flex-col"><span className="text-gray-400">PROFIT</span><span className="font-mono text-yellow-400 font-bold text-xs sm:text-sm">₹{formatNumber(row.profit, false)}</span></div>
+                                        <div className="hidden lg:flex flex-col"><span className="text-gray-400">TARGET AMT</span><span className="font-mono font-bold text-xs sm:text-sm">₹{formatNumber(row.target, false)}</span></div>
+                                        <div className="flex flex-col items-center"><span className="text-gray-400 mb-0.5">W</span><input type="number" placeholder="W" value={row.winningTrades} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'winningTrades', e.target.value)} className="bg-gray-800 border border-gray-600 text-center p-0.5 w-10 sm:w-12 focus:outline-none focus:ring-1 focus:ring-cyan-400 text-xs text-white"/></div>
+                                        <div className="flex flex-col items-center"><span className="text-gray-400 mb-0.5">L</span><input type="number" placeholder="L" value={row.losingTrades} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'losingTrades', e.target.value)} className="bg-gray-800 border border-gray-600 text-center p-0.5 w-10 sm:w-12 focus:outline-none focus:ring-1 focus:ring-cyan-400 text-xs text-white"/></div>
+                                        <div className="flex flex-col items-center col-span-2 sm:col-span-1 lg:col-span-1"><span className="text-gray-400 mb-0.5">P&L</span><div className="flex items-center w-full max-w-[100px]"><button onClick={() => handleDataChange(activeMonthIndex, originalIndex, 'pnlSign', '+')} className={`px-1 py-0 border text-[10px] ${row.pnlSign === '+' ? 'bg-green-500 text-white border-green-500' : 'bg-transparent border-gray-500'}`}>+</button><input type="number" placeholder="₹" value={row.actual} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'actual', e.target.value)} className="bg-gray-800 border-y border-gray-600 text-center p-1 w-full focus:outline-none focus:ring-1 focus:ring-cyan-400 text-xs text-white" /><button onClick={() => handleDataChange(activeMonthIndex, originalIndex, 'pnlSign', '-')} className={`px-1 py-0 border text-[10px] ${row.pnlSign === '-' ? 'bg-red-500 text-white border-red-500' : 'bg-transparent border-gray-500'}`}>-</button></div></div>
+                                    </div>
+                                    <div className="mt-2 pt-2 border-t border-cyan-500/30">
+                                        <div className="flex flex-col md:flex-row gap-3">
+                                            <div className="flex-1 md:w-1/2"><h3 className="font-bold mb-1 text-left text-fuchsia-400 text-xs sm:text-sm">DAILY PROTOCOLS</h3><div className="space-y-0.5 text-left">{row.rules.map((rule, ruleIndex) => (<label key={ruleIndex} className="flex items-center text-[10px] sm:text-xs cursor-pointer group"><input type="checkbox" checked={rule.checked} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'rules', row.rules.map((r,idx) => idx === ruleIndex ? {...r, checked: e.target.checked} : r))} className="h-3 w-3 rounded-none border-2 border-fuchsia-500/50 text-fuchsia-500 focus:ring-fuchsia-500 bg-transparent mr-1.5" /><span className="text-gray-300 group-hover:text-fuchsia-400 transition-colors">{rule.text}</span></label>))}</div></div>
+                                            <div className="flex-1 md:w-1/2"><h3 className="font-bold mb-1 text-left text-fuchsia-400 text-xs sm:text-sm">EXECUTION LOG</h3><textarea value={row.logic} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'logic', e.target.value)} placeholder={`// LOG FOR DAY ${row.day}...`} className="w-full h-16 min-h-[4rem] p-1.5 bg-gray-800/50 border border-fuchsia-500/30 text-green-400 rounded-none focus:outline-none focus:ring-1 focus:ring-fuchsia-500 text-xs"></textarea></div>
+                                        </div>
+                                    </div>
+                                 </div> ) })}
+                            </div>
+                             {totalPages > 1 && ( <div className="mt-4 flex justify-between items-center w-full max-w-xl mx-auto z-10"> <button onClick={goToPrevPage} disabled={currentPage === 1} className="px-3 py-1.5 font-semibold shadow-md transition-all text-xs sm:text-sm bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">&lt; Prev</button> <span className="font-bold text-xs sm:text-sm text-gray-300">Days {startIndex + 1}-{Math.min(endIndex, currentMonthDays.length)}</span> <button onClick={goToNextPage} disabled={currentPage === totalPages} className="px-3 py-1.5 font-semibold shadow-md transition-all text-xs sm:text-sm bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">Next &gt;</button> </div> )}
+                        </div>
+
+                        <div className="w-full max-w-7xl mt-4 flex flex-wrap justify-center gap-2 z-10">
+                            <button onClick={handleAddNewMonth} className="bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-3 py-1.5 font-semibold shadow-md transition-all text-xs sm:text-sm">ADD 1 MONTH</button>
+                            <button onClick={openResetPopup} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-3 py-1.5 font-semibold shadow-md transition-all text-xs sm:text-sm">PURGE & RESET</button>
                         </div>
                     </div>
-                </div>
-            );
+                );
+            };
 
+            // --- Main Render ---
             return (
-                <div className="min-h-screen relative">
+                <div className="min-h-screen relative" ref={topOfPageRef}>
                     <DynamicBackground />
                     
-                    {/* Nav Bar */}
-                    <nav className="sticky top-0 z-40 bg-gray-900/80 backdrop-blur border-b border-gray-800 px-6 py-3 flex justify-between items-center">
+                    <nav className="fixed top-0 z-40 bg-gray-900/80 backdrop-blur border-b border-gray-800 px-4 sm:px-6 py-3 flex justify-between items-center w-full h-[60px]">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded flex items-center justify-center font-bold text-black font-orbitron">DT</div>
-                            <h1 className="font-orbitron font-bold text-xl tracking-wider text-gray-100"><span className="text-cyan-400">DEV</span>TRADER</h1>
+                            <Logo size="32" />
+                            <h1 className="font-orbitron font-bold text-lg sm:text-xl tracking-wider text-gray-100"><span className="text-cyan-400">DEV</span>TRADER</h1>
                         </div>
                         <div className="flex bg-gray-800 rounded p-1">
-                            <button onClick={() => setActiveView('terminal')} className={`px-4 py-1 rounded text-sm font-bold transition-colors ${activeView === 'terminal' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'}`}>TERMINAL</button>
-                            <button onClick={() => setActiveView('journal')} className={`px-4 py-1 rounded text-sm font-bold transition-colors ${activeView === 'journal' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'}`}>JOURNAL</button>
+                            <button onClick={() => setActiveView('terminal')} className={`px-3 sm:px-4 py-1 rounded text-xs sm:text-sm font-bold transition-colors ${activeView === 'terminal' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'}`}>TERMINAL</button>
+                            <button onClick={() => setActiveView('journal')} className={`px-3 sm:px-4 py-1 rounded text-xs sm:text-sm font-bold transition-colors ${activeView === 'journal' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white'}`}>JOURNAL</button>
                         </div>
-                        <button onClick={resetData} className="text-xs text-red-900 hover:text-red-500 uppercase font-bold border border-red-900 px-2 py-1 rounded">Reset Data</button>
+                        <div className="flex items-center gap-2">
+                             <button onClick={toggleTheme} className="p-1.5 rounded-lg hover:bg-cyan-500/20" title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}>{theme === 'dark' ? ( <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg> ) : ( <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> )}</button>
+                            <button onClick={() => setAccountPopupVisible(true)} className="p-1.5 rounded-lg hover:bg-cyan-500/20" title="Account"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></button>
+                        </div>
                     </nav>
 
-                    {/* Content Area */}
                     <main className="pt-4 h-[calc(100vh-60px)]">
                         {activeView === 'terminal' ? renderTerminal() : renderJournal()}
                     </main>
 
-                    {/* AI Sidebar */}
                     <AIAssistant 
                         trades={trades} 
                         capital={capital} 
@@ -484,8 +600,55 @@
             );
         }
 
+        // --- AuthWrapper & LoginScreen ---
+        function LoginScreen({ onLogin }) {
+            const[p,sp]=useState("");
+            const[sp1,ssp1]=useState("");
+            const[cp,scp]=useState("");
+            const[e,se]=useState('');
+            const[t,st]=useState(()=>localStorage.getItem("theme")||"dark");
+            const[m,sm]=useState('loading');
+            
+            useEffect(()=>{document.documentElement.className=t;},[t]);
+            
+            useEffect(()=>{
+                try{ const spc=localStorage.getItem('devTraderPasscode'); sm(spc?'login':'setup'); }
+                catch(er){ console.error(er); sm('setup'); }
+            },[]);
+            
+            const hls=(ev)=>{ ev.preventDefault(); se(''); const spc=localStorage.getItem('devTraderPasscode'); (p===spc) ? onLogin('devtrader') : se("Incorrect Passcode."); };
+            const hss=(ev)=>{ ev.preventDefault(); se(''); if(!sp1||!cp){se("Fields cannot be empty.");return;} if(sp1!==cp){se("Passcodes do not match.");return;} try{ localStorage.setItem('devTraderPasscode',sp1); onLogin('devtrader'); }catch(er){ se("Error saving passcode."); console.error(er); }};
+            const hr=()=>{ if(window.confirm('WARNING: This will reset all app data and passcodes. Are you sure?')){ try{ localStorage.clear(); sessionStorage.clear(); window.location.reload(); }catch(er){ alert("Error resetting data."); console.error(er); }}};
+            
+            const cw=(title,children,rl=false)=>(
+                <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${t==='dark'?'bg-gray-900':'bg-gray-100'}`}>
+                    <DynamicBackground />
+                    <div className="relative z-10 w-full max-w-sm p-6 glass-panel">
+                        <div className="flex flex-col items-center mb-4"><Logo size="56"/><p className="font-bold text-base mt-2 text-cyan-400">{title}</p></div>
+                        {children}
+                        {rl&&(<div className="text-center mt-3"><button onClick={hr} className="text-xs text-gray-400 hover:text-red-500">Forgot Passcode? (Reset All Data)</button></div>)}
+                    </div>
+                </div>
+            );
+            
+            if(m==='loading') return(<div className={`min-h-screen flex items-center justify-center ${t==='dark'?'bg-gray-900':'bg-gray-100'}`}><p className="text-cyan-400">Loading...</p></div>);
+            
+            if(m==='setup') return cw("Create Passcode",(<form onSubmit={hss}><label className="text-xs text-gray-400 mb-0.5 block">Set Passcode</label><input type="password" value={sp1} onChange={(ev)=>ssp1(ev.target.value)} className="bg-gray-800 border border-gray-600 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-2 text-white" placeholder="••••"/><label className="text-xs text-gray-400 mb-0.5 block">Confirm Passcode</label><input type="password" value={cp} onChange={(ev)=>scp(ev.target.value)} className="bg-gray-800 border border-gray-600 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3 text-white" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Save & Enter</button></form>));
+            
+            if(m==='login') return cw("DevTrader Access",(<form onSubmit={hls}><label className="text-xs text-gray-400 mb-0.5 block">Enter Passcode</label><input type="password" value={p} onChange={(ev)=>sp(ev.target.value)} className="bg-gray-800 border border-gray-600 text-center p-2 w-full focus:ring-2 focus:ring-cyan-400 mb-3 text-white" placeholder="••••"/>{e&&<p className="text-red-500 text-xs text-center mb-3">{e}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-5 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] text-sm">Enter</button></form>),true);
+        }
+
+        function AuthWrapper() {
+            const [user, setUser] = useState(() => sessionStorage.getItem("devTraderUser"));
+            const handleLogin = (username) => { if(username.trim()){ sessionStorage.setItem("devTraderUser", username.trim()); setUser(username.trim()); } };
+            const handleLogout = () => { sessionStorage.removeItem("devTraderUser"); setUser(null); };
+            
+            if (!user) { return <LoginScreen onLogin={handleLogin} />; }
+            return <App user={user} onLogout={handleLogout} />;
+        }
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<AuthWrapper />);
     </script>
 </body>
 </html>

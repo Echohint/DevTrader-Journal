@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevTrader: INR Pro Journal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DevTrader: INR Mobile Pro</title>
     <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -17,63 +18,57 @@
     <style>
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #f3f4f6; /* Light Gray */
-            color: #1f2937; /* Dark Gray Text */
-            overflow: hidden; 
+            background-color: #f8fafc; 
+            color: #0f172a; 
+            overflow: hidden; /* Prevent body scroll, handle internally */
+            -webkit-tap-highlight-color: transparent;
         }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
         
-        /* Clean Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
-        /* Glass UI - Light Theme */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.6);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            border-radius: 12px;
+        /* Responsive Layout Helper */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
         }
 
-        /* Inputs */
-        .input-clean {
-            background: #ffffff;
+        /* Desktop Grid (Only applies on LG screens) */
+        @media (min-width: 1024px) {
+            .app-container {
+                display: grid;
+                grid-template-columns: 260px 1fr 320px;
+                grid-template-rows: 60px 1fr 250px;
+            }
+            .nav-area { grid-column: 1 / -1; grid-row: 1; }
+            .sidebar { grid-column: 1; grid-row: 2; display: block !important; }
+            .main-area { grid-column: 2; grid-row: 2; }
+            .order-panel { grid-column: 3; grid-row: 2; display: block !important; }
+            .bottom-panel { grid-column: 1 / -1; grid-row: 3; display: flex !important; }
+            .mobile-nav { display: none !important; }
+        }
+
+        /* Mobile Styles */
+        @media (max-width: 1023px) {
+            .sidebar, .order-panel, .bottom-panel { display: none; } /* Hidden by default, toggled via state */
+            .mobile-view-active { display: flex !important; flex-direction: column; height: 100%; }
+            .nav-area { padding: 0.5rem; }
+        }
+
+        /* Glass UI */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
             border: 1px solid #e2e8f0;
-            color: #0f172a;
-            padding: 8px 12px;
-            border-radius: 8px;
-            transition: all 0.2s;
-            outline: none;
         }
-        .input-clean:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1); }
 
-        /* Layout */
-        .grid-layout { display: grid; grid-template-columns: 260px 1fr 300px; grid-template-rows: 60px 1fr 250px; height: 100vh; }
-        .nav-bar { grid-column: 1 / -1; grid-row: 1; display: flex; align-items: center; padding: 0 1.5rem; background: white; border-bottom: 1px solid #e2e8f0; z-index: 50; }
-        .sidebar { grid-column: 1; grid-row: 2; background: #f8fafc; border-right: 1px solid #e2e8f0; overflow-y: auto; }
-        .main-view { grid-column: 2; grid-row: 2; position: relative; background: #f3f4f6; }
-        .order-panel { grid-column: 3; grid-row: 2; background: white; border-left: 1px solid #e2e8f0; }
-        .bottom-panel { grid-column: 1 / -1; grid-row: 3; background: white; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; }
-        
-        /* Buttons */
-        .btn-primary { background: #3b82f6; color: white; font-weight: 600; transition: background 0.2s; }
-        .btn-primary:hover { background: #2563eb; }
-        .btn-buy { background: #10b981; color: white; }
-        .btn-buy:hover { background: #059669; }
-        .btn-sell { background: #ef4444; color: white; }
-        .btn-sell:hover { background: #dc2626; }
-
-        /* Journal Log Textarea */
-        .log-area {
-            width: 100%; height: 60px;
-            background: #f8fafc; border: 1px solid #e2e8f0;
-            border-radius: 6px; padding: 8px; font-size: 12px;
-            resize: none; outline: none;
-        }
-        .log-area:focus { border-color: #3b82f6; background: white; }
+        /* Animations */
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -82,28 +77,20 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // --- CONFIGURATION ---
-        const USD_INR = 84.50; // Fixed conversion
+        // --- CONFIG ---
+        const USD_INR = 84.50;
         const LEVERAGE = 200;
+        const WATCHLIST = ["BTCUSD", "ETHUSD", "XAUUSD", "EURUSD", "AAPL", "TSLA", "NVDA"];
         
-        const DEFAULT_CONFIG = {
-            startCapital: 50000, // INR
-            target: 1000000, // INR
-            days: 66
-        };
-
-        const WATCHLIST = ["BTCUSD", "ETHUSD", "XAUUSD", "EURUSD", "AAPL", "TSLA", "NVDA", "SPX500"];
-
         // --- HELPERS ---
         const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
         const genId = () => Math.random().toString(36).substr(2, 9);
         const getToday = () => new Date().toISOString().split('T')[0];
-        
-        // --- PRICE HOOK (Live) ---
+
+        // --- PRICE HOOK ---
         const useMarket = (symbol) => {
             const [price, setPrice] = useState(0);
-            const ws = useRef(null);
-            const sim = useRef(null);
+            const ws = useRef(null); const sim = useRef(null);
 
             useEffect(() => {
                 setPrice(0);
@@ -116,328 +103,341 @@
                     ws.current = new WebSocket(`wss://stream.binance.com:9443/ws/${pair}@trade`);
                     ws.current.onmessage = (e) => setPrice(parseFloat(JSON.parse(e.data).p));
                     ws.current.onerror = () => startSim();
-                } else {
-                    startSim();
-                }
+                } else { startSim(); }
 
                 function startSim() {
-                    let base = 100;
-                    if(symbol.includes('XAU')) base=2650; else if(symbol.includes('BTC')) base=90000; else if(symbol.includes('AAPL')) base=230;
+                    let base = symbol.includes('XAU') ? 2650 : symbol.includes('BTC') ? 90000 : 150;
                     setPrice(base);
-                    sim.current = setInterval(() => {
-                        setPrice(p => p * (1 + (Math.random()-0.5)*0.001));
-                    }, 1000);
+                    sim.current = setInterval(() => setPrice(p => p * (1 + (Math.random()-0.5)*0.001)), 1000);
                 }
                 return () => { if(ws.current) ws.current.close(); if(sim.current) clearInterval(sim.current); }
             }, [symbol]);
             return price;
         };
 
-        // --- MAIN APP ---
+        // --- APP COMPONENT ---
         const App = () => {
-            // State
+            // App State
             const [view, setView] = useState('TERMINAL'); // TERMINAL, JOURNAL
-            const [activeSymbol, setActiveSymbol] = useState('BTCUSD');
+            const [mobileTab, setMobileTab] = useState('CHART'); // CHART, TRADE, POSITIONS (Mobile Only)
+            
+            // Trading State
+            const [symbol, setSymbol] = useState('BTCUSD');
             const [qty, setQty] = useState(0.01);
             const [positions, setPositions] = useState(() => JSON.parse(localStorage.getItem('pos')) || []);
             const [journal, setJournal] = useState(() => JSON.parse(localStorage.getItem('journal')) || null);
             const [activeMonth, setActiveMonth] = useState(0);
 
-            const price = useMarket(activeSymbol);
+            const price = useMarket(symbol);
 
-            // --- INITIALIZATION ---
+            // --- INIT ---
             useEffect(() => {
                 if(!journal) {
-                    let months = [], d = new Date(), c = 0;
-                    while(c < DEFAULT_CONFIG.days) {
+                    let months=[], d=new Date(), c=0;
+                    while(c < 66) {
                         const mIdx = Math.floor(c/22);
                         if(!months[mIdx]) months[mIdx] = { id: mIdx, name: `Month ${mIdx+1}`, days: [] };
-                        months[mIdx].days.push({
-                            day: c+1, date: d.toISOString().split('T')[0],
-                            target: 0, actual: 0, trades: 0, log: "",
-                            rules: [{t:"Plan Followed",c:false}, {t:"Risk Mgmt",c:false}, {t:"Journaled",c:false}]
+                        months[mIdx].days.push({ 
+                            day: c+1, date: d.toISOString().split('T')[0], 
+                            actual: 0, log: "", rules: [{t:"Plan",c:false},{t:"Risk",c:false}] 
                         });
                         d.setDate(d.getDate()+1); while(d.getDay()===0||d.getDay()===6) d.setDate(d.getDate()+1);
                         c++;
                     }
-                    // Compounding Math
-                    let bal = DEFAULT_CONFIG.startCapital;
-                    const rate = Math.pow(DEFAULT_CONFIG.target/bal, 1/DEFAULT_CONFIG.days) - 1;
-                    months.forEach(m => m.days.forEach(day => {
-                        day.start = Math.round(bal);
-                        day.profitTgt = Math.round(bal * rate);
-                        bal += day.profitTgt;
-                    }));
-                    setJournal({ ...DEFAULT_CONFIG, months });
+                    // Simple Compounding
+                    let bal = 50000; const rate = Math.pow(1000000/50000, 1/66) - 1;
+                    months.forEach(m => m.days.forEach(d => { d.start=Math.round(bal); d.tgt=Math.round(bal*rate); bal+=d.tgt; }));
+                    setJournal({ start: 50000, months });
                 }
             }, []);
 
-            // Save
             useEffect(() => { localStorage.setItem('pos', JSON.stringify(positions)); }, [positions]);
             useEffect(() => { if(journal) localStorage.setItem('journal', JSON.stringify(journal)); }, [journal]);
 
-            // --- COMPUTED VALUES ---
+            // --- MATH ---
             const balance = useMemo(() => {
-                if(!journal) return DEFAULT_CONFIG.startCapital;
-                let b = journal.startCapital;
+                if(!journal) return 50000;
+                let b = journal.start;
                 journal.months.forEach(m => m.days.forEach(d => b += Number(d.actual)));
                 return b;
             }, [journal]);
 
             const equity = useMemo(() => {
-                const floatingINR = positions.reduce((acc, p) => {
-                    const curr = p.symbol === activeSymbol ? price : p.entry; // Simplification
-                    const diffUSD = p.type === 'BUY' ? curr - p.entry : p.entry - curr;
-                    return acc + (diffUSD * p.qty * USD_INR);
+                const float = positions.reduce((acc, p) => {
+                    const curr = p.symbol === symbol ? price : p.entry;
+                    const diff = p.type === 'BUY' ? curr - p.entry : p.entry - curr;
+                    return acc + (diff * p.qty * USD_INR);
                 }, 0);
-                return balance + floatingINR;
-            }, [balance, positions, price, activeSymbol]);
+                return balance + float;
+            }, [balance, positions, price, symbol]);
 
-            // --- TRADING ACTIONS ---
+            // --- ACTIONS ---
             const execute = (type) => {
-                if(!price) return alert("No Price Feed");
-                const marginReq = (price * qty * USD_INR) / LEVERAGE;
-                if(marginReq > equity) return alert(`Insufficient Margin! Need ${fmt(marginReq)}`);
-
-                setPositions([...positions, {
-                    id: genId(), symbol: activeSymbol, type, qty: parseFloat(qty),
-                    entry: price, time: new Date().toISOString()
-                }]);
+                if(!price) return;
+                setPositions([...positions, { id: genId(), symbol, type, qty: parseFloat(qty), entry: price, time: new Date().toISOString() }]);
+                // On mobile, switch to positions tab after trade
+                if(window.innerWidth < 1024) setMobileTab('POSITIONS'); 
             };
 
             const closeTrade = (id) => {
                 const pos = positions.find(p => p.id === id);
                 if(!pos) return;
-                const exit = pos.symbol === activeSymbol ? price : pos.entry;
-                const pnlUSD = pos.type === 'BUY' ? (exit - pos.entry)*pos.qty : (pos.entry - exit)*pos.qty;
-                const pnlINR = Math.round(pnlUSD * USD_INR);
-
-                // Update Journal
+                const exit = pos.symbol === symbol ? price : pos.entry;
+                const pnl = Math.round((pos.type === 'BUY' ? exit - pos.entry : pos.entry - exit) * pos.qty * USD_INR);
+                
                 const t = getToday();
                 const nj = {...journal};
-                let found = false;
+                let updated = false;
                 nj.months.forEach(m => m.days.forEach(d => {
-                    if(d.date === t) {
-                        d.actual = Number(d.actual) + pnlINR;
-                        d.trades += 1;
-                        found = true;
-                    }
+                    if(d.date === t) { d.actual = Number(d.actual) + pnl; updated = true; }
                 }));
-                
-                if(found) setJournal(nj);
+                if(updated) setJournal(nj);
                 setPositions(positions.filter(p => p.id !== id));
             };
 
-            // --- RENDER ---
-            return (
-                <div className="grid-layout">
-                    {/* NAV */}
-                    <nav className="nav-bar justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">DT</div>
-                            <h1 className="font-bold text-lg text-gray-800">DevTrader <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded ml-2">INR PRO</span></h1>
-                        </div>
-                        <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
-                            <button onClick={()=>setView('TERMINAL')} className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${view==='TERMINAL'?'bg-white shadow text-blue-600':'text-gray-500 hover:text-gray-700'}`}>Terminal</button>
-                            <button onClick={()=>setView('JOURNAL')} className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-all ${view==='JOURNAL'?'bg-white shadow text-blue-600':'text-gray-500 hover:text-gray-700'}`}>Journal</button>
-                        </div>
-                        <div className="flex gap-6 text-sm">
-                            <div className="text-right">
-                                <div className="text-xs text-gray-400 uppercase font-bold">Balance</div>
-                                <div className="font-mono font-bold text-gray-800">{fmt(balance)}</div>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-xs text-gray-400 uppercase font-bold">Equity</div>
-                                <div className="font-mono font-bold text-blue-600">{fmt(equity)}</div>
-                            </div>
-                        </div>
-                    </nav>
+            // --- SUB-COMPONENTS ---
 
-                    {/* SIDEBAR */}
-                    <div className="sidebar p-4">
-                        <h3 className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">Watchlist</h3>
-                        <div className="space-y-2">
-                            {WATCHLIST.map(sym => (
-                                <div key={sym} onClick={()=>setActiveSymbol(sym)} 
-                                    className={`p-3 rounded-lg cursor-pointer flex justify-between items-center transition-all ${activeSymbol===sym ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm' : 'hover:bg-gray-200 text-gray-600'}`}>
-                                    <span className="font-bold text-sm">{sym}</span>
-                                    {activeSymbol===sym && <span className="font-mono text-sm font-bold animate-pulse">${price.toFixed(2)}</span>}
-                                </div>
+            const ChartPanel = () => (
+                <div className="w-full h-full flex flex-col bg-white lg:rounded-xl lg:border border-gray-200 overflow-hidden">
+                    <div className="p-2 border-b border-gray-100 flex justify-between items-center bg-white">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                            {WATCHLIST.map(s => (
+                                <button key={s} onClick={()=>setSymbol(s)} 
+                                    className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${symbol===s?'bg-blue-600 text-white':'bg-gray-100 text-gray-500'}`}>
+                                    {s}
+                                </button>
                             ))}
                         </div>
+                        <div className="font-mono font-bold text-blue-600 text-sm ml-2 animate-pulse">${price.toFixed(2)}</div>
                     </div>
-
-                    {/* MAIN AREA */}
-                    <div className="main-view">
-                        {view === 'TERMINAL' ? (
-                            <div className="w-full h-full p-4 flex flex-col">
-                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex-1 overflow-hidden relative">
-                                    <TradingChart symbol={activeSymbol} />
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="h-full overflow-y-auto p-6">
-                                {journal && (
-                                    <div>
-                                        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                                            {journal.months.map((m, i) => (
-                                                <button key={i} onClick={()=>setActiveMonth(i)} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap ${activeMonth===i?'bg-blue-600 text-white':'bg-white border text-gray-600'}`}>{m.name}</button>
-                                            ))}
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                            {journal.months[activeMonth].days.map((day, i) => {
-                                                const isToday = day.date === getToday();
-                                                const net = Number(day.actual);
-                                                return (
-                                                    <div key={i} className={`glass-card p-4 ${isToday ? 'border-blue-400 ring-2 ring-blue-100' : ''}`}>
-                                                        <div className="flex justify-between items-center mb-2 border-b border-gray-100 pb-2">
-                                                            <span className="font-bold text-gray-800">Day {day.day}</span>
-                                                            <span className="text-xs text-gray-400">{day.date}</span>
-                                                        </div>
-                                                        <div className="space-y-2 mb-3">
-                                                            <div className="flex justify-between text-xs">
-                                                                <span className="text-gray-500">Start Cap</span>
-                                                                <span className="font-mono">{fmt(day.start)}</span>
-                                                            </div>
-                                                            <div className="flex justify-between text-xs">
-                                                                <span className="text-gray-500">Target</span>
-                                                                <span className="font-mono text-blue-600">{fmt(day.profitTgt)}</span>
-                                                            </div>
-                                                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded border border-gray-100">
-                                                                <span className="text-xs font-bold text-gray-600">P&L ₹</span>
-                                                                <input type="number" 
-                                                                    value={day.actual} 
-                                                                    onChange={(e)=>{
-                                                                        const nj = {...journal}; nj.months[activeMonth].days[i].actual = e.target.value;
-                                                                        setJournal(nj);
-                                                                    }}
-                                                                    className={`bg-transparent text-right font-mono font-bold outline-none w-24 ${net>=0?'text-green-600':'text-red-600'}`}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                        <textarea 
-                                                            className="log-area" 
-                                                            placeholder="Trade logic & psychology notes..."
-                                                            value={day.log}
-                                                            onChange={(e)=>{
-                                                                const nj = {...journal}; nj.months[activeMonth].days[i].log = e.target.value;
-                                                                setJournal(nj);
-                                                            }}
-                                                        ></textarea>
-                                                        <div className="mt-2 flex flex-wrap gap-2">
-                                                            {day.rules.map((r, ri) => (
-                                                                <label key={ri} className="flex items-center gap-1.5 cursor-pointer bg-gray-50 px-2 py-1 rounded border border-gray-100 hover:bg-white">
-                                                                    <input type="checkbox" checked={r.c} 
-                                                                        onChange={()=>{ const nj={...journal}; nj.months[activeMonth].days[i].rules[ri].c=!r.c; setJournal(nj); }} 
-                                                                        className="accent-blue-600 w-3 h-3" 
-                                                                    />
-                                                                    <span className="text-[10px] text-gray-600 font-medium">{r.t}</span>
-                                                                </label>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                    <div id="tv_chart" className="flex-1 relative">
+                        <TradingChart symbol={symbol} />
                     </div>
+                </div>
+            );
 
-                    {/* RIGHT PANEL: ORDERS */}
-                    <div className="order-panel p-6 flex flex-col">
-                        <div className="mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-1">{activeSymbol}</h2>
-                            <div className="text-4xl font-mono font-bold text-blue-600 mb-2">${price.toFixed(2)}</div>
-                            <div className="flex gap-2 text-xs font-mono text-gray-500">
-                                <span>1 USD = ₹{USD_INR}</span>
-                                <span>LEV: {LEVERAGE}x</span>
+            const OrderPanel = () => (
+                <div className="h-full bg-white flex flex-col">
+                    <div className="p-4 border-b border-gray-100">
+                        <h2 className="text-lg font-bold text-gray-800 mb-1">Execution Deck</h2>
+                        <div className="flex justify-between text-xs text-gray-500">
+                            <span>Asset: <b className="text-black">{symbol}</b></span>
+                            <span>Lev: <b>200x</b></span>
+                        </div>
+                    </div>
+                    <div className="p-4 space-y-4 flex-1">
+                        <div>
+                            <label className="text-xs font-bold text-gray-400 block mb-1">QUANTITY (Lots)</label>
+                            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                <button onClick={()=>setQty(Math.max(0.01, parseFloat((qty-0.01).toFixed(2))))} className="text-xl font-bold text-blue-600 px-2">-</button>
+                                <input type="number" value={qty} onChange={e=>setQty(e.target.value)} className="flex-1 bg-transparent text-center font-mono text-lg outline-none" />
+                                <button onClick={()=>setQty(parseFloat((qty+0.01).toFixed(2)))} className="text-xl font-bold text-blue-600 px-2">+</button>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                            <div className="flex justify-between text-xs mb-1">
+                                <span className="text-blue-800 font-medium">Required Margin (INR)</span>
+                                <span className="font-mono font-bold text-blue-900">{fmt((price * qty * USD_INR)/LEVERAGE)}</span>
                             </div>
                         </div>
 
-                        <div className="space-y-4 flex-1">
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 mb-1">QUANTITY (Lots)</label>
-                                <input type="number" value={qty} onChange={e=>setQty(e.target.value)} className="input-clean w-full font-mono text-lg" step="0.01" />
-                            </div>
-                            
-                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                <div className="flex justify-between text-xs mb-1">
-                                    <span className="text-blue-700 font-semibold">Margin Required:</span>
-                                    <span className="font-mono text-blue-900 font-bold">{fmt((price * qty * USD_INR)/LEVERAGE)}</span>
-                                </div>
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-blue-700 font-semibold">Trade Value:</span>
-                                    <span className="font-mono text-blue-900">{fmt(price * qty * USD_INR)}</span>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 mt-4">
-                                <button onClick={()=>execute('SELL')} className="btn-sell py-4 rounded-xl shadow-lg shadow-red-100 transform hover:-translate-y-0.5 transition-all">
-                                    <div className="text-xs opacity-80">SELL</div>
-                                    <div className="text-lg font-bold">MARKET</div>
-                                </button>
-                                <button onClick={()=>execute('BUY')} className="btn-buy py-4 rounded-xl shadow-lg shadow-green-100 transform hover:-translate-y-0.5 transition-all">
-                                    <div className="text-xs opacity-80">BUY</div>
-                                    <div className="text-lg font-bold">MARKET</div>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* BOTTOM PANEL: POSITIONS */}
-                    <div className="bottom-panel">
-                        <div className="px-4 py-2 border-b border-gray-200 bg-gray-50 flex gap-4 text-xs font-bold text-gray-500 uppercase">
-                            <span>Open Positions ({positions.length})</span>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-0">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-white text-gray-400 text-xs uppercase sticky top-0">
-                                    <tr>
-                                        <th className="px-6 py-2 font-medium">Symbol</th>
-                                        <th className="px-6 py-2 font-medium">Side</th>
-                                        <th className="px-6 py-2 font-medium">Size</th>
-                                        <th className="px-6 py-2 font-medium">Entry</th>
-                                        <th className="px-6 py-2 font-medium">Current</th>
-                                        <th className="px-6 py-2 font-medium">P&L (INR)</th>
-                                        <th className="px-6 py-2 font-medium">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {positions.map(p => {
-                                        const curr = p.symbol === activeSymbol ? price : p.entry;
-                                        const diffUSD = p.type === 'BUY' ? curr - p.entry : p.entry - curr;
-                                        const pnlINR = diffUSD * p.qty * USD_INR;
-                                        return (
-                                            <tr key={p.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-3 font-bold text-gray-700">{p.symbol}</td>
-                                                <td className={`px-6 py-3 font-bold ${p.type==='BUY'?'text-green-600':'text-red-600'}`}>{p.type}</td>
-                                                <td className="px-6 py-3 text-gray-600">{p.qty}</td>
-                                                <td className="px-6 py-3 font-mono text-gray-600">{p.entry.toFixed(2)}</td>
-                                                <td className="px-6 py-3 font-mono text-gray-800">{curr.toFixed(2)}</td>
-                                                <td className={`px-6 py-3 font-mono font-bold ${pnlINR>=0?'text-green-600':'text-red-600'}`}>{pnlINR>=0?'+':''}{fmt(pnlINR)}</td>
-                                                <td className="px-6 py-3">
-                                                    <button onClick={()=>closeTrade(p.id)} className="text-xs bg-white border border-gray-300 hover:bg-gray-100 px-3 py-1 rounded shadow-sm text-gray-600 font-medium">Close</button>
-                                                </td>
-                                            </tr>
-                                        )
-                                    })}
-                                </tbody>
-                            </table>
-                            {positions.length === 0 && <div className="p-8 text-center text-gray-400 text-sm italic">No active trades</div>}
+                        <div className="grid grid-cols-2 gap-3 pt-2">
+                            <button onClick={()=>execute('SELL')} className="bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-red-100 transition-transform active:scale-95">
+                                SELL
+                            </button>
+                            <button onClick={()=>execute('BUY')} className="bg-green-500 hover:bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-100 transition-transform active:scale-95">
+                                BUY
+                            </button>
                         </div>
                     </div>
                 </div>
             );
+
+            const PositionsList = () => (
+                <div className="h-full bg-white flex flex-col">
+                    <div className="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                        <span className="text-xs font-bold text-gray-500 uppercase">Open Positions ({positions.length})</span>
+                        <span className="text-xs font-mono text-gray-400">P&L (INR)</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto">
+                        {positions.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-gray-300 text-sm">
+                                <p>No Active Trades</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-gray-50">
+                                {positions.map(p => {
+                                    const curr = p.symbol===symbol ? price : p.entry;
+                                    const pnl = (p.type==='BUY' ? curr-p.entry : p.entry-curr) * p.qty * USD_INR;
+                                    return (
+                                        <div key={p.id} className="p-3 flex justify-between items-center hover:bg-gray-50">
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-sm">{p.symbol}</span>
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${p.type==='BUY'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{p.type}</span>
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-0.5">Lot: {p.qty} • @ {p.entry.toFixed(2)}</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className={`font-mono font-bold text-sm ${pnl>=0?'text-green-600':'text-red-600'}`}>{pnl>=0?'+':''}{fmt(pnl)}</div>
+                                                <button onClick={()=>closeTrade(p.id)} className="text-[10px] text-gray-400 hover:text-red-500 underline mt-1">Close</button>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+
+            const JournalList = () => (
+                <div className="h-full overflow-y-auto p-4 pb-24 lg:pb-4 bg-gray-50">
+                    <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
+                        {journal && journal.months.map((m, i) => (
+                            <button key={i} onClick={()=>setActiveMonth(i)} className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition-all ${activeMonth===i?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>{m.name}</button>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                        {journal && journal.months[activeMonth].days.map((day, i) => {
+                            const isToday = day.date === getToday();
+                            const net = Number(day.actual);
+                            return (
+                                <div key={i} className={`bg-white p-4 rounded-xl border ${isToday ? 'border-blue-500 shadow-md' : 'border-gray-200'} slide-up`}>
+                                    <div className="flex justify-between mb-2">
+                                        <span className="font-bold text-gray-700">Day {day.day}</span>
+                                        <span className="text-xs text-gray-400">{day.date}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                        <span>Target: {fmt(day.tgt)}</span>
+                                        <span>Start: {fmt(day.start)}</span>
+                                    </div>
+                                    <div className="bg-gray-50 rounded p-2 flex justify-between items-center border border-gray-100">
+                                        <span className="text-xs font-bold text-gray-400">P&L</span>
+                                        <input type="number" value={day.actual} 
+                                            onChange={e=>{const nj={...journal}; nj.months[activeMonth].days[i].actual=e.target.value; setJournal(nj);}}
+                                            className={`bg-transparent text-right font-mono font-bold outline-none w-24 ${net>=0?'text-green-600':'text-red-600'}`}
+                                        />
+                                    </div>
+                                    <textarea className="w-full mt-2 bg-white border border-gray-200 rounded p-2 text-xs resize-none focus:border-blue-400 outline-none" placeholder="Log..."
+                                        value={day.log} onChange={e=>{const nj={...journal}; nj.months[activeMonth].days[i].log=e.target.value; setJournal(nj);}}
+                                    ></textarea>
+                                    <div className="flex gap-2 mt-2">
+                                        {day.rules.map((r,ri)=>(
+                                            <label key={ri} className="flex items-center gap-1 cursor-pointer">
+                                                <input type="checkbox" checked={r.c} onChange={()=>{const nj={...journal}; nj.months[activeMonth].days[i].rules[ri].c=!r.c; setJournal(nj);}} className="w-3 h-3 accent-blue-500"/>
+                                                <span className="text-[10px] text-gray-500">{r.t}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            );
+
+            // --- RENDER ---
+            return (
+                <div className="app-container">
+                    
+                    {/* 1. NAV BAR */}
+                    <nav className="nav-area bg-white border-b border-gray-200 flex justify-between items-center px-4">
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg text-white flex items-center justify-center font-bold shadow-lg shadow-blue-200">DT</div>
+                            <div>
+                                <h1 className="font-bold text-gray-800 leading-tight">DevTrader</h1>
+                                <div className="text-[10px] text-gray-400 font-mono leading-tight">INR PRO</div>
+                            </div>
+                        </div>
+                        
+                        {/* Desktop Tabs */}
+                        <div className="hidden lg:flex gap-1 bg-gray-100 p-1 rounded-lg">
+                            <button onClick={()=>setView('TERMINAL')} className={`px-4 py-1 rounded text-sm font-semibold ${view==='TERMINAL'?'bg-white shadow text-blue-600':'text-gray-500'}`}>Terminal</button>
+                            <button onClick={()=>setView('JOURNAL')} className={`px-4 py-1 rounded text-sm font-semibold ${view==='JOURNAL'?'bg-white shadow text-blue-600':'text-gray-500'}`}>Journal</button>
+                        </div>
+
+                        {/* Balance Stats */}
+                        <div className="text-right">
+                            <div className="text-[10px] text-gray-400 font-bold uppercase">Equity</div>
+                            <div className="font-mono font-bold text-blue-600 text-sm lg:text-base">{fmt(equity)}</div>
+                        </div>
+                    </nav>
+
+                    {/* 2. DESKTOP LAYOUT CONTAINERS */}
+                    {/* Only Visible on Large Screens */}
+                    <div className="sidebar hidden lg:block">
+                        {/* Watchlist Desktop */}
+                        <div className="p-4 font-bold text-gray-400 text-xs">WATCHLIST</div>
+                        {WATCHLIST.map(s => (
+                            <div key={s} onClick={()=>setSymbol(s)} className={`px-4 py-3 cursor-pointer flex justify-between ${symbol===s?'bg-blue-50 text-blue-600 border-l-4 border-blue-600':'hover:bg-gray-100 text-gray-600'}`}>
+                                <span className="font-bold text-sm">{s}</span>
+                                {symbol===s && <span className="font-mono text-xs animate-pulse">${price.toFixed(2)}</span>}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="main-area bg-gray-100 relative">
+                        {view === 'TERMINAL' ? (
+                            window.innerWidth >= 1024 ? <ChartPanel /> : 
+                            /* MOBILE VIEW SWITCHER */
+                            (mobileTab === 'CHART' ? <ChartPanel /> :
+                             mobileTab === 'TRADE' ? <OrderPanel /> :
+                             mobileTab === 'POSITIONS' ? <PositionsList /> : null)
+                        ) : (
+                            <JournalList />
+                        )}
+                    </div>
+
+                    <div className="order-panel hidden lg:block">
+                         {view === 'TERMINAL' ? <OrderPanel /> : null}
+                    </div>
+
+                    <div className="bottom-panel hidden lg:block">
+                        {view === 'TERMINAL' ? <PositionsList /> : null}
+                    </div>
+
+                    {/* 3. MOBILE BOTTOM NAV */}
+                    {view === 'TERMINAL' && (
+                        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex justify-around py-3 z-50 pb-safe">
+                            <button onClick={()=>setMobileTab('CHART')} className={`flex flex-col items-center ${mobileTab==='CHART'?'text-blue-600':'text-gray-400'}`}>
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+                                <span className="text-[10px] font-bold mt-1">Chart</span>
+                            </button>
+                            <button onClick={()=>setMobileTab('TRADE')} className={`flex flex-col items-center ${mobileTab==='TRADE'?'text-blue-600':'text-gray-400'}`}>
+                                <div className="bg-blue-600 rounded-full p-2 -mt-6 border-4 border-white shadow-lg">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                                </div>
+                                <span className="text-[10px] font-bold mt-1">Trade</span>
+                            </button>
+                            <button onClick={()=>setMobileTab('POSITIONS')} className={`flex flex-col items-center ${mobileTab==='POSITIONS'?'text-blue-600':'text-gray-400'}`}>
+                                <span className="relative">
+                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                                    {positions.length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-white"></span>}
+                                </span>
+                                <span className="text-[10px] font-bold mt-1">Pos</span>
+                            </button>
+                            <button onClick={()=>setView('JOURNAL')} className="flex flex-col items-center text-gray-400">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                                <span className="text-[10px] font-bold mt-1">Journal</span>
+                            </button>
+                        </div>
+                    )}
+                    {view === 'JOURNAL' && (
+                         <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 z-50">
+                            <button onClick={()=>setView('TERMINAL')} className="w-full bg-gray-800 text-white py-3 rounded-xl font-bold shadow-lg">Back to Terminal</button>
+                         </div>
+                    )}
+
+                </div>
+            );
         };
 
-        // --- CHART COMPONENT ---
         const TradingChart = React.memo(({ symbol }) => {
             const id = useRef('tv_'+Math.random());
             useEffect(() => {
-                const div = document.getElementById(id.current);
-                if(div) div.innerHTML = '';
+                const div = document.getElementById(id.current); if(div) div.innerHTML = '';
                 new window.TradingView.widget({
                     "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Kolkata", "theme": "light", "style": "1", "locale": "en", "toolbar_bg": "#f1f3f6", "enable_publishing": false, "hide_side_toolbar": false, "allow_symbol_change": false, "container_id": id.current
                 });

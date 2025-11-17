@@ -1,657 +1,428 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DevTrader Institutional Terminal</title>
-    <meta name="theme-color" content="#0b0e11">
+    <title>DevTrader: Cyberpunk Terminal</title>
+    <meta name="theme-color" content="#000000">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* Institutional Dark Theme */
-        :root {
-            --bg-main: #0b0e11;
-            --bg-panel: #15191e;
-            --bg-input: #20262d;
-            --border-color: #2a3139;
-            --text-primary: #e1e4e8;
-            --text-secondary: #8b949e;
-            --accent-buy: #0ecb81;
-            --accent-sell: #f6465d;
-            --accent-blue: #2962ff;
+        body { font-family: 'Rajdhani', sans-serif; background-color: #050505; color: #e0f2fe; overflow-x: hidden; }
+        .font-cyber { font-family: 'Orbitron', sans-serif; }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #06b6d4; border-radius: 3px; }
+        
+        /* Cyberpunk Effects */
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        
+        .scanlines::before {
+            content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50; background-size: 100% 2px, 3px 100%; pointer-events: none; animation: flicker 0.15s infinite;
         }
-        body { background-color: var(--bg-main); color: var(--text-primary); font-family: 'Inter', sans-serif; overflow: hidden; }
-        .font-mono { font-family: 'Roboto Mono', monospace; }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: var(--bg-main); }
-        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-        
-        /* Utilities */
-        .glass-panel { background: var(--bg-panel); border: 1px solid var(--border-color); }
-        .input-field { background: var(--bg-input); border: 1px solid var(--border-color); color: white; outline: none; transition: border 0.2s; }
-        .input-field:focus { border-color: var(--accent-blue); }
-        
+        @keyframes flicker { 0% { opacity: 0.9; } 50% { opacity: 1.0; } 100% { opacity: 0.9; } }
+
+        .glass-panel {
+            background: rgba(10, 10, 15, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.15), inset 0 0 20px rgba(0,0,0,0.5);
+            border-radius: 8px;
+        }
+
+        .neon-text { text-shadow: 0 0 5px rgba(6, 182, 212, 0.8); }
+        .neon-text-pink { text-shadow: 0 0 5px rgba(236, 72, 153, 0.8); }
+
+        /* 3D Card Interaction */
+        .perspective-container { perspective: 1000px; }
+        .card-3d { transition: transform 0.1s; transform-style: preserve-3d; }
+        .card-3d:hover { transform: translateZ(10px); box-shadow: 0 0 20px rgba(6, 182, 212, 0.4); border-color: #06b6d4; }
+
         /* Animations */
-        .flash-up { animation: flashGreen 0.6s ease-out; color: var(--accent-buy) !important; }
-        .flash-down { animation: flashRed 0.6s ease-out; color: var(--accent-sell) !important; }
-        @keyframes flashGreen { 0% { background-color: rgba(14, 203, 129, 0.2); } 100% { background-color: transparent; } }
-        @keyframes flashRed { 0% { background-color: rgba(246, 70, 93, 0.2); } 100% { background-color: transparent; } }
-
-        /* Layout */
-        .grid-layout { display: grid; grid-template-columns: 250px 1fr 300px; grid-template-rows: 50px 1fr 300px; height: 100vh; width: 100vw; }
-        .nav-area { grid-column: 1 / -1; grid-row: 1; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 1rem; background: var(--bg-panel); z-index: 20; }
-        .market-watch { grid-column: 1; grid-row: 2; border-right: 1px solid var(--border-color); overflow-y: auto; }
-        .chart-area { grid-column: 2; grid-row: 2; position: relative; }
-        .order-panel { grid-column: 3; grid-row: 2; border-left: 1px solid var(--border-color); overflow-y: auto; }
-        .terminal-area { grid-column: 1 / -1; grid-row: 3; border-top: 1px solid var(--border-color); background: var(--bg-panel); overflow: hidden; display: flex; flex-direction: column; }
-
-        /* Tabs */
-        .tab-btn { padding: 8px 16px; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; border-top: 2px solid transparent; }
-        .tab-btn.active { color: var(--accent-blue); border-top-color: var(--accent-blue); background: rgba(41, 98, 255, 0.05); }
+        .flash-green { animation: flashG 0.5s; color: #4ade80; text-shadow: 0 0 10px #4ade80; }
+        .flash-red { animation: flashR 0.5s; color: #f87171; text-shadow: 0 0 10px #f87171; }
+        @keyframes flashG { 0% { background: rgba(74, 222, 128, 0.2); } }
+        @keyframes flashR { 0% { background: rgba(248, 113, 113, 0.2); } }
     </style>
+    <script>tailwind.config = { darkMode: 'class' }</script>
 </head>
-<body>
+<body class="scanlines">
     <div id="root"></div>
-
-    <audio id="sfx-open" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
-    <audio id="sfx-close" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
 
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
-        // --- Configuration ---
-        const WATCHLIST = [
-            { symbol: "BTCUSD", name: "Bitcoin", type: "CRYPTO" },
-            { symbol: "ETHUSD", name: "Ethereum", type: "CRYPTO" },
-            { symbol: "XAUUSD", name: "Gold", type: "METAL" },
-            { symbol: "EURUSD", name: "Euro/USD", type: "FOREX" },
-            { symbol: "GBPUSD", name: "GBP/USD", type: "FOREX" },
-            { symbol: "USDJPY", name: "USD/JPY", type: "FOREX" },
-            { symbol: "SPX500", name: "S&P 500", type: "INDEX" },
-            { symbol: "NDX100", name: "Nasdaq 100", type: "INDEX" },
-            { symbol: "AAPL", name: "Apple", type: "STOCK" },
-            { symbol: "TSLA", name: "Tesla", type: "STOCK" },
-            { symbol: "NVDA", name: "Nvidia", type: "STOCK" }
-        ];
-
-        // --- Utilities ---
-        const fmtMoney = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
-        const generateId = () => Math.random().toString(36).substr(2, 9);
+        // --- CONFIG ---
+        const GEMINI_KEY = "AIzaSyDcQXcWOBe3_FeDF6waV-mvIQjtszZyTtk"; // Hardcoded for your use
+        const DEFAULT_CAPITAL = 50000;
+        const DEFAULT_TARGET = 1000000;
+        const TENURE = 66;
         
-        // --- PRICE ENGINE (WebSocket + Simulation) ---
-        const useMarketData = (symbol) => {
+        // --- HELPERS ---
+        const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+        const genId = () => Math.random().toString(36).substr(2, 9);
+        const getToday = () => new Date().toISOString().split('T')[0];
+        const getNextDay = (d) => { const n = new Date(d); n.setDate(n.getDate()+1); while(n.getDay()===0||n.getDay()===6) n.setDate(n.getDate()+1); return n; };
+
+        // --- HOOK: Price Engine ---
+        const useMarket = (symbol) => {
             const [price, setPrice] = useState(0);
-            const [prevPrice, setPrevPrice] = useState(0);
-            const [connectionStatus, setStatus] = useState('CONNECTING'); // CONNECTING, LIVE, SIM
-            const wsRef = useRef(null);
-            const simRef = useRef(null);
+            const [status, setStatus] = useState('INIT');
+            const ws = useRef(null); const sim = useRef(null);
 
-            // Reset when symbol changes
             useEffect(() => {
-                setPrice(0);
-                setStatus('CONNECTING');
-                if(wsRef.current) wsRef.current.close();
-                if(simRef.current) clearInterval(simRef.current);
+                setPrice(0); setStatus('CONNECTING...');
+                if(ws.current) ws.current.close();
+                if(sim.current) clearInterval(sim.current);
 
-                const isCrypto = /BTC|ETH|SOL|BNB|XRP|ADA|DOGE/.test(symbol.toUpperCase());
-
+                const isCrypto = /BTC|ETH|SOL|BNB|XRP|ADA/.test(symbol.toUpperCase());
+                
                 if (isCrypto) {
-                    // Use Binance WS
-                    const pair = symbol.toLowerCase().replace('usd', 'usdt');
-                    const ws = new WebSocket(`wss://stream.binance.com:9443/ws/${pair}@trade`);
-                    
-                    ws.onopen = () => setStatus('LIVE');
-                    ws.onmessage = (e) => {
-                        const data = JSON.parse(e.data);
-                        const newPrice = parseFloat(data.p);
-                        setPrice(prev => { setPrevPrice(prev); return newPrice; });
-                    };
-                    ws.onerror = () => { setStatus('SIM'); startSim(); };
-                    wsRef.current = ws;
+                    const pair = symbol.toLowerCase().replace('usd','usdt');
+                    ws.current = new WebSocket(`wss://stream.binance.com:9443/ws/${pair}@trade`);
+                    ws.current.onopen = () => setStatus('LIVE FEED');
+                    ws.current.onmessage = (e) => setPrice(parseFloat(JSON.parse(e.data).p));
+                    ws.current.onerror = () => { setStatus('SIMULATED'); startSim(); };
                 } else {
-                    // Use Simulation for Forex/Stocks/Metals
-                    setStatus('SIM');
+                    setStatus('SIMULATED');
                     startSim();
                 }
 
                 function startSim() {
-                    // Seed price based on symbol hash to keep it roughly consistent
-                    let seed = symbol.split('').reduce((a,b)=>a+b.charCodeAt(0),0);
-                    let basePrice = 100;
-                    if(symbol.includes('XAU')) basePrice = 2650;
-                    else if(symbol.includes('EUR')) basePrice = 1.05;
-                    else if(symbol.includes('JPY')) basePrice = 152;
-                    else if(symbol.includes('SPX')) basePrice = 5850;
-                    else if(symbol.includes('AAPL')) basePrice = 230;
-                    else basePrice = (seed % 1000) + 50;
-
-                    setPrice(basePrice);
-
-                    simRef.current = setInterval(() => {
-                        setPrice(prev => {
-                            setPrevPrice(prev);
-                            // Random walk logic
-                            const volatility = basePrice * 0.0002; 
-                            const movement = (Math.random() - 0.5) * volatility;
-                            return parseFloat((prev + movement).toFixed(symbol.includes('JPY') || basePrice > 1000 ? 2 : 5));
-                        });
-                    }, 800); // Update every 800ms
+                    let base = 100;
+                    // Quick heuristic for base prices
+                    if(symbol.includes('XAU')) base=2650; else if(symbol.includes('BTC')) base=90000; else if(symbol.includes('AAPL')) base=230;
+                    setPrice(base);
+                    sim.current = setInterval(() => {
+                        setPrice(p => parseFloat((p * (1 + (Math.random()-0.5)*0.001)).toFixed(2)));
+                    }, 1000);
                 }
-
-                return () => {
-                    if(wsRef.current) wsRef.current.close();
-                    if(simRef.current) clearInterval(simRef.current);
-                };
+                return () => { if(ws.current) ws.current.close(); if(sim.current) clearInterval(sim.current); }
             }, [symbol]);
-
-            return { price, prevPrice, connectionStatus };
+            return { price, status };
         };
 
-        // --- MAIN COMPONENT ---
+        // --- COMPONENT: 3D Background ---
+        const CyberBG = () => {
+            const mount = useRef(null);
+            useEffect(() => {
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer({ alpha: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                mount.current.appendChild(renderer.domElement);
+                
+                // Grid
+                const grid = new THREE.GridHelper(100, 50, 0x06b6d4, 0x111827);
+                scene.add(grid);
+
+                // Particles
+                const geo = new THREE.BufferGeometry();
+                const pos = new Float32Array(1200 * 3);
+                for(let i=0; i<3600; i++) pos[i] = (Math.random()-0.5)*100;
+                geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+                const mat = new THREE.PointsMaterial({ size: 0.15, color: 0xec4899, transparent: true, opacity: 0.8 });
+                const particles = new THREE.Points(geo, mat);
+                scene.add(particles);
+
+                camera.position.set(0, 5, 15);
+                camera.lookAt(0, 0, 0);
+
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    particles.rotation.y += 0.001;
+                    grid.position.z = (grid.position.z + 0.05) % 2;
+                    renderer.render(scene, camera);
+                };
+                animate();
+                
+                const resize = () => {
+                    camera.aspect = window.innerWidth/window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                };
+                window.addEventListener('resize', resize);
+                return () => { window.removeEventListener('resize', resize); mount.current.innerHTML=''; }
+            }, []);
+            return <div ref={mount} id="bg-canvas" />;
+        };
+
+        // --- MAIN APP ---
         const App = () => {
-            // --- STATE ---
-            const [activeSymbol, setActiveSymbol] = useState("BTCUSD");
-            const [balance, setBalance] = useState(() => parseFloat(localStorage.getItem('dt_balance')) || 50000);
-            const [positions, setPositions] = useState(() => JSON.parse(localStorage.getItem('dt_positions')) || []);
-            const [pendingOrders, setPendingOrders] = useState(() => JSON.parse(localStorage.getItem('dt_orders')) || []);
-            const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem('dt_history')) || []);
-            
-            // Inputs
-            const [volume, setVolume] = useState(1.00);
-            const [leverage, setLeverage] = useState(100);
-            const [orderType, setOrderType] = useState('MARKET'); // MARKET, LIMIT, STOP
-            const [pendingPrice, setPendingPrice] = useState("");
-            const [sl, setSl] = useState("");
-            const [tp, setTp] = useState("");
-            const [activeTab, setActiveTab] = useState('POSITIONS'); // POSITIONS, ORDERS, HISTORY, JOURNAL
+            const [view, setView] = useState('TERMINAL');
+            const [symbol, setSymbol] = useState('BTCUSD');
+            const [qty, setQty] = useState(0.01);
+            const [positions, setPositions] = useState(() => JSON.parse(localStorage.getItem('dt_pos')) || []);
+            const [journal, setJournal] = useState(() => JSON.parse(localStorage.getItem('dt_journal')) || null);
 
-            // Data Feed
-            const { price, prevPrice, connectionStatus } = useMarketData(activeSymbol);
-            const direction = price > prevPrice ? 'up' : 'down';
-
-            // --- CALCULATIONS ---
-            // Margin & PnL
-            const { equity, marginUsed, freeMargin, marginLevel, totalPnL } = useMemo(() => {
-                let floatingPnL = 0;
-                let totalMargin = 0;
-
-                positions.forEach(pos => {
-                    // Calculate PnL
-                    let tradePnL = 0;
-                    // Current price only applies if symbol matches active, otherwise we need a way to get prices for all open assets.
-                    // SIMPLIFICATION: In this single-file app, we only update PnL for the ACTIVE symbol in real-time. 
-                    // Others stay static until viewed. (Limitation of single stream).
-                    // Better approach: Assume static price for others or apply random noise. 
-                    // We will use the 'entryPrice' as current for non-active to prevent crazy jumps, or just show stored.
-                    
-                    const currentMark = (pos.symbol === activeSymbol) ? price : pos.markPrice || pos.entryPrice; 
-                    
-                    if (pos.type === 'BUY') tradePnL = (currentMark - pos.entryPrice) * pos.volume; // Simplified contract size 1 for stocks/crypto simplicity
-                    else tradePnL = (pos.entryPrice - currentMark) * pos.volume;
-
-                    // Update mark price in position object for persistence
-                    pos.currentPnL = tradePnL;
-                    pos.markPrice = currentMark;
-
-                    floatingPnL += tradePnL;
-                    totalMargin += (pos.entryPrice * pos.volume) / pos.leverage;
-                });
-
-                const eq = balance + floatingPnL;
-                const fm = eq - totalMargin;
-                const ml = totalMargin > 0 ? (eq / totalMargin) * 100 : 9999;
-
-                return { equity: eq, marginUsed: totalMargin, freeMargin: fm, marginLevel: ml, totalPnL: floatingPnL };
-            }, [balance, positions, price, activeSymbol]);
-
-            // --- EFFECTS ---
-            
-            // Save Data
+            // Init Journal if empty
             useEffect(() => {
-                localStorage.setItem('dt_balance', balance);
-                localStorage.setItem('dt_positions', JSON.stringify(positions));
-                localStorage.setItem('dt_orders', JSON.stringify(pendingOrders));
-                localStorage.setItem('dt_history', JSON.stringify(history));
-            }, [balance, positions, pendingOrders, history]);
-
-            // Sound FX
-            const playSound = (type) => {
-                const audio = document.getElementById(type === 'open' ? 'sfx-open' : 'sfx-close');
-                if(audio) { audio.currentTime = 0; audio.play().catch(e=>{}); }
-            };
-
-            // Order Trigger Logic (Limit/Stop/SL/TP)
-            useEffect(() => {
-                if (!price) return;
-
-                // 1. Check Pending Orders
-                const remainingOrders = [];
-                let orderTriggered = false;
-                
-                pendingOrders.forEach(order => {
-                    if (order.symbol !== activeSymbol) {
-                        remainingOrders.push(order);
-                        return;
+                if(!journal) {
+                    let months=[], d=new Date(), c=0;
+                    while(c < TENURE) {
+                        const mIdx = Math.floor(c/22);
+                        if(!months[mIdx]) months[mIdx] = { id: mIdx, name: `Month ${mIdx+1}`, days: [] };
+                        months[mIdx].days.push({ 
+                            day: c+1, date: d.toISOString().split('T')[0], 
+                            target: 0, actual: 0, trades: 0, 
+                            rules: [{text:"Plan", checked:false}, {text:"Risk", checked:false}] 
+                        });
+                        d = getNextDay(d); c++;
                     }
-
-                    let triggered = false;
-                    const triggerPrice = parseFloat(order.triggerPrice);
-                    
-                    if (order.type === 'BUY LIMIT' && price <= triggerPrice) triggered = true;
-                    else if (order.type === 'BUY STOP' && price >= triggerPrice) triggered = true;
-                    else if (order.type === 'SELL LIMIT' && price >= triggerPrice) triggered = true;
-                    else if (order.type === 'SELL STOP' && price <= triggerPrice) triggered = true;
-
-                    if (triggered) {
-                        // Convert to Position
-                        const newPos = {
-                            id: generateId(),
-                            ticket: Math.floor(Math.random() * 10000000),
-                            symbol: order.symbol,
-                            type: order.side,
-                            volume: order.volume,
-                            entryPrice: price, // Fill at market
-                            leverage: order.leverage,
-                            sl: order.sl,
-                            tp: order.tp,
-                            openTime: new Date().toISOString(),
-                            markPrice: price,
-                            currentPnL: 0
-                        };
-                        setPositions(prev => [newPos, ...prev]);
-                        playSound('open');
-                        orderTriggered = true;
-                    } else {
-                        remainingOrders.push(order);
-                    }
-                });
-
-                if (orderTriggered) setPendingOrders(remainingOrders);
-
-                // 2. Check SL/TP
-                const openPosCopy = [...positions];
-                let positionClosed = false;
-
-                const activePositions = openPosCopy.filter(p => p.symbol === activeSymbol);
-                activePositions.forEach(pos => {
-                    let close = false;
-                    if (pos.type === 'BUY') {
-                        if (pos.sl && price <= pos.sl) close = true;
-                        else if (pos.tp && price >= pos.tp) close = true;
-                    } else {
-                        if (pos.sl && price >= pos.sl) close = true;
-                        else if (pos.tp && price <= pos.tp) close = true;
-                    }
-
-                    if (close) {
-                        closeTrade(pos.id);
-                        positionClosed = true;
-                    }
-                });
-
-            }, [price, activeSymbol]); // Runs on every tick of active symbol
-
-            // --- ACTIONS ---
-            const placeOrder = (side) => {
-                if (!price) return alert("No price feed.");
-                if (freeMargin < (price * volume / leverage) && (orderType === 'MARKET')) return alert("Not enough free margin!");
-
-                const newOrder = {
-                    id: generateId(),
-                    symbol: activeSymbol,
-                    volume: parseFloat(volume),
-                    leverage: parseInt(leverage),
-                    sl: parseFloat(sl) || null,
-                    tp: parseFloat(tp) || null,
-                    side: side
-                };
-
-                if (orderType === 'MARKET') {
-                    // Instant Execution
-                    const position = {
-                        ...newOrder,
-                        ticket: Math.floor(Math.random() * 10000000),
-                        type: side, // BUY or SELL
-                        entryPrice: price,
-                        openTime: new Date().toISOString(),
-                        markPrice: price,
-                        currentPnL: 0
-                    };
-                    setPositions(prev => [position, ...prev]);
-                    playSound('open');
-                } else {
-                    // Pending Order
-                    if (!pendingPrice) return alert("Enter Price for Pending Order");
-                    newOrder.triggerPrice = parseFloat(pendingPrice);
-                    
-                    // Determine Limit vs Stop based on logic
-                    let typeStr = "";
-                    const p = parseFloat(pendingPrice);
-                    if (side === 'BUY') typeStr = p < price ? "BUY LIMIT" : "BUY STOP";
-                    else typeStr = p > price ? "SELL LIMIT" : "SELL STOP";
-                    
-                    newOrder.type = typeStr;
-                    newOrder.placedTime = new Date().toISOString();
-                    
-                    setPendingOrders(prev => [newOrder, ...prev]);
-                    alert(`Order Placed: ${typeStr} @ ${pendingPrice}`);
+                    // Calc Compound Targets
+                    let bal = DEFAULT_CAPITAL;
+                    months.forEach(m => m.days.forEach(day => {
+                        day.startBal = Math.round(bal);
+                        const rate = Math.pow(DEFAULT_TARGET/DEFAULT_CAPITAL, 1/TENURE) - 1;
+                        day.profitTarget = Math.round(bal * rate);
+                        bal += day.profitTarget;
+                    }));
+                    setJournal({ capital: DEFAULT_CAPITAL, months });
                 }
+            }, []);
+
+            useEffect(() => { localStorage.setItem('dt_pos', JSON.stringify(positions)); }, [positions]);
+            useEffect(() => { if(journal) localStorage.setItem('dt_journal', JSON.stringify(journal)); }, [journal]);
+
+            // Market Data
+            const { price, status } = useMarket(symbol);
+            
+            // Computed
+            const balance = useMemo(() => {
+                if(!journal) return DEFAULT_CAPITAL;
+                let b = journal.capital;
+                journal.months.forEach(m => m.days.forEach(d => b += Number(d.actual)));
+                return b;
+            }, [journal]);
+
+            const equity = useMemo(() => {
+                const floating = positions.reduce((acc, p) => {
+                    const curr = p.symbol === symbol ? price : p.entry; // Simplified: only active symbol live updates
+                    const diff = p.type === 'BUY' ? curr - p.entry : p.entry - curr;
+                    return acc + (diff * p.qty);
+                }, 0);
+                return balance + floating;
+            }, [balance, positions, price, symbol]);
+
+            // Trading
+            const execute = (type) => {
+                if(!price) return;
+                setPositions([...positions, { 
+                    id: genId(), symbol, type, qty: parseFloat(qty), 
+                    entry: price, time: new Date().toISOString() 
+                }]);
             };
 
-            const closeTrade = (id) => {
-                const posIndex = positions.findIndex(p => p.id === id);
-                if (posIndex === -1) return;
-                const pos = positions[posIndex];
+            const closePos = (id) => {
+                const pos = positions.find(p => p.id === id);
+                if(!pos) return;
+                const exit = pos.symbol === symbol ? price : pos.entry; // Simplified
+                const pnl = pos.type === 'BUY' ? (exit - pos.entry)*pos.qty : (pos.entry - exit)*pos.qty;
                 
-                // If symbol is not active, use last mark price. If active, use current `price`
-                const exitPrice = (pos.symbol === activeSymbol) ? price : pos.markPrice;
+                // Update Journal
+                const t = getToday();
+                const newJournal = {...journal};
+                let updated = false;
+                newJournal.months.forEach(m => m.days.forEach(d => {
+                    if(d.date === t) {
+                        d.actual = Number(d.actual) + pnl;
+                        d.trades += 1;
+                        updated = true;
+                    }
+                }));
                 
-                // Calculate final PnL
-                let pnl = 0;
-                if (pos.type === 'BUY') pnl = (exitPrice - pos.entryPrice) * pos.volume;
-                else pnl = (pos.entryPrice - exitPrice) * pos.volume;
-
-                const historyItem = {
-                    ...pos,
-                    closeTime: new Date().toISOString(),
-                    exitPrice: exitPrice,
-                    finalPnL: pnl
-                };
-
-                setHistory(prev => [historyItem, ...prev]);
-                setBalance(prev => prev + pnl);
-                setPositions(prev => prev.filter(p => p.id !== id));
-                playSound('close');
+                if(updated) setJournal(newJournal);
+                setPositions(positions.filter(p => p.id !== id));
             };
 
-            // --- RENDER HELPERS ---
-            const PnlColor = ({ val }) => <span className={val >= 0 ? "text-[#0ecb81]" : "text-[#f6465d]"}>{val >= 0 ? '+' : ''}{val.toFixed(2)}</span>;
+            // 3D Tilt Logic for Journal
+            const handleMove = (e) => {
+                const card = e.currentTarget;
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                const rotateX = ((y - centerY) / centerY) * -10; // Max 10deg
+                const rotateY = ((x - centerX) / centerX) * 10;
+                card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            };
+            const handleLeave = (e) => { e.currentTarget.style.transform = 'perspective(1000px) rotateX(0) rotateY(0)'; };
 
+            // --- RENDER ---
             return (
-                <div className="grid-layout">
-                    {/* 1. TOP NAV */}
-                    <nav className="nav-area justify-between">
+                <div className="min-h-screen flex flex-col">
+                    <CyberBG />
+                    
+                    {/* Header */}
+                    <header className="h-16 glass-panel m-2 flex items-center justify-between px-6 z-10">
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold text-white">DT</div>
-                            <h1 className="font-bold text-lg tracking-wide">DEVTRADER <span className="text-xs text-gray-500 font-normal ml-1">PRO TERMINAL</span></h1>
+                            <div className="font-cyber text-2xl text-cyan-400 neon-text">DEV<span className="text-pink-500">TRADER</span></div>
+                            <div className="text-xs text-gray-400 border border-gray-600 px-2 py-0.5 rounded">CYBERPUNK V2</div>
                         </div>
-                        <div className="flex gap-6 text-sm font-mono">
-                            <div>BAL: <span className="text-white font-bold">{fmtMoney(balance)}</span></div>
-                            <div>EQ: <span className="text-white font-bold">{fmtMoney(equity)}</span></div>
-                            <div>MRG: <span className="text-gray-400">{fmtMoney(marginUsed)}</span></div>
-                            <div>FREE: <span className="text-white font-bold">{fmtMoney(freeMargin)}</span></div>
-                            <div>LVL: <span className={marginLevel < 100 ? "text-red-500 font-bold" : "text-green-500"}>{marginLevel.toFixed(0)}%</span></div>
+                        <div className="flex gap-4 font-mono text-sm">
+                            <div className="text-right"><div className="text-xs text-gray-500">BALANCE</div><div className="text-cyan-300">{fmt(balance)}</div></div>
+                            <div className="text-right"><div className="text-xs text-gray-500">EQUITY</div><div className="text-pink-300">{fmt(equity)}</div></div>
                         </div>
-                        <div>
-                            <button className="bg-red-600/20 text-red-500 px-3 py-1 rounded text-xs border border-red-900 hover:bg-red-600 hover:text-white transition" onClick={() => {if(confirm("Reset Account?")) { localStorage.clear(); window.location.reload(); }}}>RESET</button>
-                        </div>
-                    </nav>
+                    </header>
 
-                    {/* 2. MARKET WATCH (Left) */}
-                    <div className="market-watch glass-panel">
-                        <div className="p-3 border-b border-[#2a3139] font-bold text-xs text-gray-500">MARKET WATCH</div>
-                        {WATCHLIST.map(asset => (
-                            <div key={asset.symbol} 
-                                 onClick={() => setActiveSymbol(asset.symbol)}
-                                 className={`p-3 border-b border-[#2a3139] cursor-pointer hover:bg-[#20262d] flex justify-between items-center ${activeSymbol === asset.symbol ? 'bg-[#20262d] border-l-4 border-l-[#2962ff]' : ''}`}>
-                                <div>
-                                    <div className="font-bold text-sm text-white">{asset.symbol}</div>
-                                    <div className="text-xs text-gray-500">{asset.name}</div>
-                                </div>
-                                <div className="text-right">
-                                    {/* We don't stream all prices for perf, just a placeholder or static unless active */}
-                                    {activeSymbol === asset.symbol ? 
-                                        <div className={`font-mono text-sm ${direction === 'up' ? 'text-[#0ecb81]' : 'text-[#f6465d]'}`}>{price.toFixed(2)}</div> 
-                                        : <div className="text-xs text-gray-600">Click to Load</div>}
-                                </div>
-                            </div>
-                        ))}
+                    {/* Tabs */}
+                    <div className="flex justify-center gap-4 z-10 mb-2">
+                        <button onClick={()=>setView('TERMINAL')} className={`px-6 py-2 font-cyber font-bold rounded border ${view==='TERMINAL'?'bg-cyan-500/20 border-cyan-400 text-cyan-300':'bg-black/50 border-gray-700 text-gray-500'}`}>TERMINAL</button>
+                        <button onClick={()=>setView('JOURNAL')} className={`px-6 py-2 font-cyber font-bold rounded border ${view==='JOURNAL'?'bg-pink-500/20 border-pink-400 text-pink-300':'bg-black/50 border-gray-700 text-gray-500'}`}>JOURNAL</button>
                     </div>
 
-                    {/* 3. CHART AREA (Center) */}
-                    <div className="chart-area bg-[#0b0e11]">
-                        <div id={`tv_${activeSymbol}`} className="w-full h-full"></div> 
-                        {/* React Effect to load chart */}
-                        <TradingViewWidget symbol={activeSymbol} />
-                    </div>
-
-                    {/* 4. ORDER PANEL (Right) */}
-                    <div className="order-panel glass-panel flex flex-col">
-                        <div className="p-4 border-b border-[#2a3139]">
-                            <h2 className="text-xl font-bold text-white mb-1">{activeSymbol}</h2>
-                            <div className={`text-3xl font-mono font-bold mb-2 ${direction === 'up' ? 'flash-up' : 'flash-down'}`}>{price.toFixed(2)}</div>
-                            <div className="flex items-center gap-2 text-xs text-gray-500">
-                                <span className={`w-2 h-2 rounded-full ${connectionStatus === 'LIVE' ? 'bg-green-500' : 'bg-orange-500'}`}></span>
-                                {connectionStatus} FEED
-                            </div>
-                        </div>
-
-                        <div className="p-4 flex-1 overflow-y-auto">
-                            {/* Order Type Tab */}
-                            <div className="flex bg-[#20262d] rounded p-1 mb-4">
-                                <button onClick={() => setOrderType('MARKET')} className={`flex-1 py-1 text-xs font-bold rounded ${orderType === 'MARKET' ? 'bg-[#2a3139] text-white' : 'text-gray-500'}`}>MARKET</button>
-                                <button onClick={() => setOrderType('PENDING')} className={`flex-1 py-1 text-xs font-bold rounded ${orderType === 'PENDING' ? 'bg-[#2a3139] text-white' : 'text-gray-500'}`}>PENDING</button>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">Volume (Lots)</label>
-                                    <input type="number" value={volume} onChange={e => setVolume(e.target.value)} className="input-field w-full p-2 rounded font-mono" step="0.01" />
-                                </div>
-                                
-                                <div>
-                                    <label className="text-xs text-gray-500 mb-1 block">Leverage (1:X)</label>
-                                    <select value={leverage} onChange={e => setLeverage(e.target.value)} className="input-field w-full p-2 rounded font-mono text-sm">
-                                        <option value="1">1:1</option>
-                                        <option value="10">1:10</option>
-                                        <option value="50">1:50</option>
-                                        <option value="100">1:100</option>
-                                        <option value="500">1:500</option>
-                                    </select>
-                                </div>
-
-                                {orderType === 'PENDING' && (
-                                    <div>
-                                        <label className="text-xs text-gray-500 mb-1 block">Entry Price</label>
-                                        <input type="number" value={pendingPrice} onChange={e => setPendingPrice(e.target.value)} className="input-field w-full p-2 rounded font-mono" placeholder="Price..." />
-                                    </div>
-                                )}
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label className="text-xs text-gray-500 mb-1 block">Stop Loss</label>
-                                        <input type="number" value={sl} onChange={e => setSl(e.target.value)} className="input-field w-full p-2 rounded font-mono" placeholder="-" />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-gray-500 mb-1 block">Take Profit</label>
-                                        <input type="number" value={tp} onChange={e => setTp(e.target.value)} className="input-field w-full p-2 rounded font-mono" placeholder="-" />
-                                    </div>
-                                </div>
-
-                                {/* Margin Info */}
-                                <div className="text-xs text-gray-500 flex justify-between mt-2">
-                                    <span>Req Margin:</span>
-                                    <span className="text-white font-mono">{price ? fmtMoney((price * volume) / leverage) : '-'}</span>
-                                </div>
-
-                                {/* Buttons */}
-                                <div className="grid grid-cols-2 gap-3 mt-2">
-                                    <button onClick={() => placeOrder('SELL')} className="bg-[#f6465d] hover:bg-[#d93a4e] text-white py-3 rounded font-bold text-sm transition shadow-lg shadow-red-900/20">
-                                        SELL {orderType === 'PENDING' ? 'LIMIT/STOP' : ''}
-                                    </button>
-                                    <button onClick={() => placeOrder('BUY')} className="bg-[#0ecb81] hover:bg-[#0aa86b] text-white py-3 rounded font-bold text-sm transition shadow-lg shadow-green-900/20">
-                                        BUY {orderType === 'PENDING' ? 'LIMIT/STOP' : ''}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 5. BOTTOM TERMINAL */}
-                    <div className="terminal-area">
-                        <div className="flex border-b border-[#2a3139] bg-[#15191e]">
-                            <div onClick={() => setActiveTab('POSITIONS')} className={`tab-btn ${activeTab === 'POSITIONS' ? 'active' : ''}`}>Positions ({positions.length})</div>
-                            <div onClick={() => setActiveTab('ORDERS')} className={`tab-btn ${activeTab === 'ORDERS' ? 'active' : ''}`}>Pending ({pendingOrders.length})</div>
-                            <div onClick={() => setActiveTab('HISTORY')} className={`tab-btn ${activeTab === 'HISTORY' ? 'active' : ''}`}>History</div>
-                            <div onClick={() => setActiveTab('JOURNAL')} className={`tab-btn ${activeTab === 'JOURNAL' ? 'active' : ''}`}>Journal</div>
-                        </div>
-
-                        <div className="flex-1 overflow-auto p-0 relative">
-                            {activeTab === 'POSITIONS' && (
-                                <table className="w-full text-left text-xs text-gray-400 border-collapse">
-                                    <thead className="bg-[#20262d] sticky top-0 z-10">
-                                        <tr>
-                                            <th className="p-2 font-normal">Ticket</th>
-                                            <th className="p-2 font-normal">Time</th>
-                                            <th className="p-2 font-normal">Symbol</th>
-                                            <th className="p-2 font-normal">Type</th>
-                                            <th className="p-2 font-normal">Vol</th>
-                                            <th className="p-2 font-normal">Price</th>
-                                            <th className="p-2 font-normal">S/L</th>
-                                            <th className="p-2 font-normal">T/P</th>
-                                            <th className="p-2 font-normal">Mark</th>
-                                            <th className="p-2 font-normal">Profit</th>
-                                            <th className="p-2 font-normal">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {positions.length === 0 ? <tr><td colSpan="11" className="p-8 text-center italic opacity-50">No open positions</td></tr> : 
-                                        positions.map(pos => (
-                                            <tr key={pos.id} className="border-b border-[#2a3139] hover:bg-[#20262d]">
-                                                <td className="p-2 font-mono">{pos.ticket}</td>
-                                                <td className="p-2">{new Date(pos.openTime).toLocaleTimeString()}</td>
-                                                <td className="p-2 font-bold text-white">{pos.symbol}</td>
-                                                <td className={`p-2 font-bold ${pos.type === 'BUY' ? 'text-[#0ecb81]' : 'text-[#f6465d]'}`}>{pos.type}</td>
-                                                <td className="p-2">{pos.volume}</td>
-                                                <td className="p-2 font-mono">{pos.entryPrice.toFixed(pos.symbol.includes('JPY') ? 3 : 2)}</td>
-                                                <td className="p-2 font-mono">{pos.sl || '-'}</td>
-                                                <td className="p-2 font-mono">{pos.tp || '-'}</td>
-                                                <td className="p-2 font-mono text-white">{pos.markPrice?.toFixed(2) || '...'}</td>
-                                                <td className="p-2 font-mono font-bold"><PnlColor val={pos.currentPnL || 0} /></td>
-                                                <td className="p-2"><button onClick={() => closeTrade(pos.id)} className="bg-[#2a3139] hover:bg-[#363d46] px-2 py-1 rounded text-[10px] text-white border border-gray-600">X</button></td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-
-                            {activeTab === 'ORDERS' && (
-                                <table className="w-full text-left text-xs text-gray-400">
-                                    <thead className="bg-[#20262d]"><tr><th className="p-2">Symbol</th><th className="p-2">Type</th><th className="p-2">Vol</th><th className="p-2">Price</th><th className="p-2">SL</th><th className="p-2">TP</th><th className="p-2">Action</th></tr></thead>
-                                    <tbody>
-                                        {pendingOrders.map((o, i) => (
-                                            <tr key={i} className="border-b border-[#2a3139]">
-                                                <td className="p-2">{o.symbol}</td>
-                                                <td className="p-2 text-blue-400">{o.type}</td>
-                                                <td className="p-2">{o.volume}</td>
-                                                <td className="p-2">{o.triggerPrice}</td>
-                                                <td className="p-2">{o.sl}</td>
-                                                <td className="p-2">{o.tp}</td>
-                                                <td className="p-2"><button onClick={() => setPendingOrders(pendingOrders.filter((_, idx) => idx !== i))} className="text-red-500 hover:text-white">Cancel</button></td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-                            
-                            {activeTab === 'HISTORY' && (
-                                <table className="w-full text-left text-xs text-gray-400">
-                                    <thead className="bg-[#20262d]"><tr><th className="p-2">Time</th><th className="p-2">Symbol</th><th className="p-2">Type</th><th className="p-2">Vol</th><th className="p-2">Entry</th><th className="p-2">Exit</th><th className="p-2">P&L</th></tr></thead>
-                                    <tbody>
-                                        {history.slice(0, 50).map((h, i) => (
-                                            <tr key={i} className="border-b border-[#2a3139]">
-                                                <td className="p-2">{new Date(h.closeTime).toLocaleString()}</td>
-                                                <td className="p-2">{h.symbol}</td>
-                                                <td className={`p-2 ${h.type==='BUY'?'text-green-500':'text-red-500'}`}>{h.type}</td>
-                                                <td className="p-2">{h.volume}</td>
-                                                <td className="p-2">{h.entryPrice}</td>
-                                                <td className="p-2">{h.exitPrice}</td>
-                                                <td className="p-2 font-bold"><PnlColor val={h.finalPnL} /></td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )}
-
-                            {activeTab === 'JOURNAL' && (
-                                <div className="p-4 text-center text-gray-500">
-                                    <p className="mb-2">Auto-Journal is active. All closed trades are logged to local storage.</p>
-                                    <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
-                                        <div className="bg-[#20262d] p-4 rounded border border-gray-700">
-                                            <div className="text-xs">TOTAL TRADES</div>
-                                            <div className="text-xl text-white">{history.length}</div>
-                                        </div>
-                                        <div className="bg-[#20262d] p-4 rounded border border-gray-700">
-                                            <div className="text-xs">WIN RATE</div>
-                                            <div className="text-xl text-white">{history.length > 0 ? ((history.filter(h=>h.finalPnL>0).length / history.length)*100).toFixed(1) : 0}%</div>
-                                        </div>
-                                        <div className="bg-[#20262d] p-4 rounded border border-gray-700">
-                                            <div className="text-xs">NET P&L</div>
-                                            <div className={`text-xl ${balance >= 50000 ? 'text-green-500' : 'text-red-500'}`}>${(balance - 50000).toFixed(2)}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                    {/* Main Content */}
+                    <main className="flex-1 relative p-2 overflow-hidden">
                         
-                        {/* Status Bar */}
-                        <div className="h-6 bg-[#0b0e11] border-t border-[#2a3139] flex items-center px-2 text-[10px] text-gray-500 justify-between">
-                            <div>Ping: 24ms | Server: US-East | API: {activeSymbol.includes('USD') && !activeSymbol.includes('USDT') ? 'Simulated' : 'Binance Stream'}</div>
-                            <div>{new Date().toUTCString()}</div>
-                        </div>
-                    </div>
+                        {/* TERMINAL VIEW */}
+                        {view === 'TERMINAL' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-full pb-2">
+                                {/* Chart & Feed */}
+                                <div className="lg:col-span-2 flex flex-col gap-2">
+                                    <div className="glass-panel p-4 flex-1 relative flex flex-col">
+                                        <div className="flex justify-between mb-2 z-20">
+                                            <div className="flex gap-2">
+                                                <input value={symbol} onChange={e=>setSymbol(e.target.value.toUpperCase())} className="bg-black/50 border border-gray-600 rounded px-3 py-1 text-cyan-400 font-cyber w-32" />
+                                                <div className="flex items-center px-2 text-xs text-gray-400 border border-gray-700 rounded">
+                                                    <span className={`w-2 h-2 rounded-full mr-2 ${status.includes('LIVE')?'bg-green-500':'bg-orange-500'}`}></span>
+                                                    {status}
+                                                </div>
+                                            </div>
+                                            <div className="text-4xl font-mono font-bold text-white">{price.toFixed(2)}</div>
+                                        </div>
+                                        <div className="flex-1 border border-gray-800 rounded overflow-hidden relative z-10">
+                                             <TradingChart symbol={symbol} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Execution & Positions */}
+                                <div className="flex flex-col gap-2">
+                                    <div className="glass-panel p-6">
+                                        <h3 className="font-cyber text-pink-500 mb-4 border-b border-pink-500/30 pb-2">EXECUTION DECK</h3>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-xs text-cyan-400">QUANTITY</label>
+                                                <input type="number" value={qty} onChange={e=>setQty(e.target.value)} className="w-full bg-black/50 border border-cyan-900 focus:border-cyan-400 text-white p-2 rounded font-mono outline-none" />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <button onClick={()=>execute('BUY')} className="bg-green-600/20 hover:bg-green-600/40 border border-green-500 text-green-400 py-4 rounded font-cyber font-bold transition-all shadow-[0_0_15px_rgba(34,197,94,0.2)]">BUY MARKET</button>
+                                                <button onClick={()=>execute('SELL')} className="bg-red-600/20 hover:bg-red-600/40 border border-red-500 text-red-400 py-4 rounded font-cyber font-bold transition-all shadow-[0_0_15px_rgba(239,68,68,0.2)]">SELL MARKET</button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="glass-panel flex-1 p-4 overflow-y-auto">
+                                        <h3 className="text-xs font-cyber text-gray-500 mb-2">OPEN POSITIONS ({positions.length})</h3>
+                                        <div className="space-y-2">
+                                            {positions.map(p => {
+                                                const curr = p.symbol===symbol ? price : p.entry;
+                                                const pl = p.type==='BUY'?(curr-p.entry)*p.qty : (p.entry-curr)*p.qty;
+                                                return (
+                                                    <div key={p.id} className="bg-black/40 p-3 rounded border-l-2 border-cyan-500 flex justify-between items-center">
+                                                        <div>
+                                                            <div className="text-sm font-bold text-white">{p.symbol} <span className={p.type==='BUY'?'text-green-400':'text-red-400'}>{p.type}</span></div>
+                                                            <div className="text-xs text-gray-500">@ {p.entry}</div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className={`font-mono font-bold ${pl>=0?'text-green-400':'text-red-400'}`}>{pl>0?'+':''}{pl.toFixed(2)}</div>
+                                                            <button onClick={()=>closePos(p.id)} className="text-[10px] text-pink-500 hover:text-pink-300 underline">CLOSE</button>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* JOURNAL VIEW (3D CARDS) */}
+                        {view === 'JOURNAL' && journal && (
+                            <div className="h-full overflow-y-auto pr-2">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-10">
+                                    {journal.months[0].days.map((day, i) => {
+                                        const isToday = day.date === getToday();
+                                        return (
+                                            <div key={i} 
+                                                className={`glass-panel p-4 card-3d relative ${isToday ? 'border-pink-500 shadow-[0_0_20px_rgba(236,72,153,0.3)]' : ''}`}
+                                                onMouseMove={handleMove} onMouseLeave={handleLeave}
+                                            >
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="font-cyber text-xl font-bold text-cyan-400">DAY {day.day}</span>
+                                                    <span className="text-xs text-gray-500">{day.date}</span>
+                                                </div>
+                                                
+                                                <div className="space-y-2 mb-4">
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-gray-400">Start:</span>
+                                                        <span className="font-mono text-gray-200">{fmt(day.startBal)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm">
+                                                        <span className="text-gray-400">Goal:</span>
+                                                        <span className="font-mono text-yellow-400">{fmt(day.profitTarget)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between text-sm bg-black/30 p-1 rounded">
+                                                        <span className="text-gray-400">Actual:</span>
+                                                        <span className={`font-mono font-bold ${day.actual>=0?'text-green-400':'text-red-400'}`}>{day.actual>=0?'+':''}{Number(day.actual).toFixed(2)}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="border-t border-gray-800 pt-2">
+                                                    <div className="text-[10px] text-gray-500 mb-1">RULES</div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {day.rules.map((r, ri) => (
+                                                            <label key={ri} className="flex items-center gap-1 cursor-pointer">
+                                                                <input type="checkbox" checked={r.checked} 
+                                                                    onChange={()=>{
+                                                                        const nj = {...journal}; 
+                                                                        nj.months[0].days[i].rules[ri].checked = !r.checked;
+                                                                        setJournal(nj);
+                                                                    }}
+                                                                    className="accent-pink-500 h-3 w-3" 
+                                                                />
+                                                                <span className={`text-[10px] ${r.checked?'text-pink-400':'text-gray-600'}`}>{r.text}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </main>
                 </div>
             );
         };
 
-        // Helper Component: Chart
-        const TradingViewWidget = React.memo(({ symbol }) => {
-            const containerId = useRef(`tv_${Math.random().toString(36).substr(2, 9)}`);
+        // Chart Helper
+        const TradingChart = React.memo(({symbol}) => {
+            const id = useRef('tv_'+Math.random());
             useEffect(() => {
-                const script = document.createElement('script');
-                script.src = 'https://s3.tradingview.com/tv.js';
-                script.async = true;
-                script.onload = () => {
-                    if (window.TradingView) {
-                        new window.TradingView.widget({
-                            "autosize": true,
-                            "symbol": symbol,
-                            "interval": "D",
-                            "timezone": "Etc/UTC",
-                            "theme": "dark",
-                            "style": "1",
-                            "locale": "en",
-                            "toolbar_bg": "#f1f3f6",
-                            "enable_publishing": false,
-                            "hide_side_toolbar": false,
-                            "allow_symbol_change": false,
-                            "container_id": containerId.current,
-                            "overrides": {
-                                "paneProperties.background": "#0b0e11",
-                                "paneProperties.vertGridProperties.color": "#1f2937",
-                                "paneProperties.horzGridProperties.color": "#1f2937",
-                                "scalesProperties.textColor": "#9ca3af"
-                            }
-                        });
-                    }
-                };
-                document.head.appendChild(script);
-                return () => document.head.removeChild(script);
+                const div = document.getElementById(id.current);
+                if(div) div.innerHTML = '';
+                new window.TradingView.widget({
+                    "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Etc/UTC", "theme": "dark", "style": "1", "locale": "en", "toolbar_bg": "#f1f3f6", "enable_publishing": false, "hide_side_toolbar": false, "allow_symbol_change": false, "container_id": id.current,
+                    "overrides": { "paneProperties.background": "#000000", "paneProperties.vertGridProperties.color": "#111", "paneProperties.horzGridProperties.color": "#111" }
+                });
             }, [symbol]);
-            return <div id={containerId.current} className="w-full h-full" />;
+            return <div id={id.current} className="w-full h-full" />;
         });
-
-        const PnlColor = ({ val }) => <span className={val >= 0 ? "text-[#0ecb81]" : "text-[#f6465d]"}>{val >= 0 ? '+' : ''}{val.toFixed(2)}</span>;
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);

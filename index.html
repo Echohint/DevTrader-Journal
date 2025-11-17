@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevTrader: INR Averaging Pro</title>
+    <title>DevTrader Pro</title>
     <meta name="theme-color" content="#ffffff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -12,78 +13,87 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 
     <style>
+        /* Base Styles */
         body { 
             font-family: 'Inter', sans-serif; 
-            background-color: #f3f4f6; 
-            color: #1f2937; 
-            overflow: hidden; 
+            background-color: #f8fafc; 
+            color: #0f172a; 
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dark body { background-color: #0f172a; color: #f1f5f9; }
 
-        /* Layout */
-        .grid-layout { display: grid; grid-template-columns: 260px 1fr 300px; grid-template-rows: 60px 1fr 280px; height: 100vh; }
-        .nav-bar { grid-column: 1 / -1; grid-row: 1; display: flex; align-items: center; padding: 0 1.5rem; background: white; border-bottom: 1px solid #e2e8f0; z-index: 50; }
-        .sidebar { grid-column: 1; grid-row: 2; background: #f8fafc; border-right: 1px solid #e2e8f0; overflow-y: auto; }
-        .main-view { grid-column: 2; grid-row: 2; position: relative; background: #f3f4f6; }
-        .order-panel { grid-column: 3; grid-row: 2; background: white; border-left: 1px solid #e2e8f0; }
-        .bottom-panel { grid-column: 1 / -1; grid-row: 3; background: white; border-top: 1px solid #e2e8f0; display: flex; flex-direction: column; overflow: hidden; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .dark ::-webkit-scrollbar-thumb { background: #334155; }
+
+        /* Animations */
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Mobile Overrides */
-        @media (max-width: 1023px) {
-            .grid-layout { display: flex; flex-direction: column; height: 100vh; }
-            .sidebar, .order-panel, .bottom-panel { display: none; } 
-            .mobile-visible { display: flex !important; flex: 1; flex-direction: column; overflow: hidden; }
-            .nav-bar { padding: 0 1rem; }
+        .flash-green { animation: flashG 0.5s ease-out; }
+        .flash-red { animation: flashR 0.5s ease-out; }
+        @keyframes flashG { 0% { background-color: rgba(34, 197, 94, 0.2); } 100% { background-color: transparent; } }
+        @keyframes flashR { 0% { background-color: rgba(239, 68, 68, 0.2); } 100% { background-color: transparent; } }
+
+        /* Layout Grid */
+        .app-layout { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+
+        /* Desktop */
+        @media (min-width: 1024px) {
+            .app-layout {
+                display: grid;
+                grid-template-columns: 260px 1fr 320px;
+                grid-template-rows: 60px 1fr 280px;
+            }
+            .nav-area { grid-column: 1 / -1; grid-row: 1; }
+            .sidebar { grid-column: 1; grid-row: 2; display: block !important; }
+            .main-view { grid-column: 2; grid-row: 2; }
+            .order-panel { grid-column: 3; grid-row: 2; display: block !important; }
+            .bottom-panel { grid-column: 1 / -1; grid-row: 3; display: flex !important; }
+            .mobile-nav { display: none !important; }
         }
 
-        /* Buttons */
-        .btn-buy { background: #10b981; color: white; transition: all 0.2s; }
-        .btn-buy:active { transform: scale(0.95); }
-        .btn-sell { background: #ef4444; color: white; transition: all 0.2s; }
-        .btn-sell:active { transform: scale(0.95); }
+        /* Mobile */
+        @media (max-width: 1023px) {
+            .sidebar, .order-panel, .bottom-panel { display: none; }
+            .mobile-active { display: flex !important; flex: 1; flex-direction: column; overflow: hidden; }
+            .nav-area { padding: 0 1rem; }
+        }
 
-        /* Flash Animation for Updates */
-        .flash-bg { animation: flashBg 0.3s ease-out; }
-        @keyframes flashBg { 0% { background-color: rgba(59, 130, 246, 0.1); } 100% { background-color: transparent; } }
+        /* Glass UI Helpers */
+        .glass { background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border: 1px solid #e2e8f0; }
+        .dark .glass { background: rgba(30, 41, 59, 0.8); border: 1px solid #334155; }
     </style>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
 </head>
-<body>
+<body class="light">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback, useMemo, useRef } = React;
+        const { useState, useEffect, useCallback, useMemo, useRef, memo } = React;
 
-        // --- CONFIGURATION ---
+        // --- CONSTANTS ---
         const USD_INR = 84.50;
         const LEVERAGE = 200;
-        
-        const DEFAULT_CONFIG = {
-            startCapital: 50000, // INR
-            target: 1000000, // INR
-            days: 66
-        };
-
         const WATCHLIST = ["BTCUSD", "ETHUSD", "XAUUSD", "EURUSD", "GBPUSD", "AAPL", "TSLA", "NVDA", "SPX500"];
-
+        
         // --- HELPERS ---
         const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
         const genId = () => Math.random().toString(36).substr(2, 9);
         const getToday = () => new Date().toISOString().split('T')[0];
-        
-        // --- PRICE HOOK ---
+
+        // --- PRICE ENGINE ---
         const useMarket = (symbol) => {
             const [price, setPrice] = useState(0);
-            const ws = useRef(null);
-            const sim = useRef(null);
+            const ws = useRef(null); const sim = useRef(null);
 
             useEffect(() => {
                 setPrice(0);
@@ -99,378 +109,446 @@
                 } else { startSim(); }
 
                 function startSim() {
-                    let base = symbol.includes('XAU') ? 2650 : symbol.includes('BTC') ? 90000 : symbol.includes('JPY') ? 150 : 150;
+                    let base = symbol.includes('XAU') ? 2650 : symbol.includes('BTC') ? 90000 : symbol.includes('AAPL') ? 230 : 150;
                     setPrice(base);
-                    sim.current = setInterval(() => {
-                        setPrice(p => p * (1 + (Math.random()-0.5)*0.001));
-                    }, 1000);
+                    sim.current = setInterval(() => setPrice(p => p * (1 + (Math.random()-0.5)*0.001)), 1000);
                 }
                 return () => { if(ws.current) ws.current.close(); if(sim.current) clearInterval(sim.current); }
             }, [symbol]);
             return price;
         };
 
+        // --- SUB-COMPONENTS ---
+
+        const SetupWizard = ({ onComplete }) => {
+            const [capital, setCapital] = useState(50000);
+            const [target, setTarget] = useState(1000000);
+            const [days, setDays] = useState(66);
+
+            const handleStart = () => {
+                if (capital <= 0 || target <= capital || days <= 0) return alert("Please enter valid realistic targets.");
+                onComplete(capital, target, days);
+            };
+
+            return (
+                <div className="fixed inset-0 bg-gray-50 dark:bg-gray-900 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md fade-in border border-gray-100 dark:border-gray-700">
+                        <h1 className="text-3xl font-bold text-blue-600 mb-2">DevTrader Pro</h1>
+                        <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">Configure your trading challenge.</p>
+                        
+                        <div className="space-y-5">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Initial Balance (INR)</label>
+                                <input type="number" value={capital} onChange={e=>setCapital(parseFloat(e.target.value))} className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl font-mono text-lg outline-none focus:border-blue-500 dark:text-white transition-colors" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Target Amount (INR)</label>
+                                <input type="number" value={target} onChange={e=>setTarget(parseFloat(e.target.value))} className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl font-mono text-lg outline-none focus:border-blue-500 dark:text-white transition-colors" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-400 mb-1 uppercase">Duration (Days)</label>
+                                <input type="number" value={days} onChange={e=>setDays(parseFloat(e.target.value))} className="w-full p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl font-mono text-lg outline-none focus:border-blue-500 dark:text-white transition-colors" />
+                            </div>
+
+                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-sm text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+                                <div className="flex justify-between mb-1"><span>Required Growth:</span> <strong>{((Math.pow(target/capital, 1/days) - 1) * 100).toFixed(2)}% / day</strong></div>
+                                <div className="flex justify-between"><span>Total ROI:</span> <strong>{(((target-capital)/capital)*100).toFixed(0)}%</strong></div>
+                            </div>
+
+                            <button onClick={handleStart} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-200 dark:shadow-none transition-all transform active:scale-95">
+                                LAUNCH TERMINAL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const AccountModal = ({ isOpen, onClose, balance, equity, user, onLogout, onReset, journal }) => {
+            if (!isOpen) return null;
+            const progress = journal ? ((balance - journal.start) / (journal.target - journal.start)) * 100 : 0;
+
+            return (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="bg-white dark:bg-gray-800 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden fade-in" onClick={e=>e.stopPropagation()}>
+                        <div className="bg-gray-50 dark:bg-gray-900 p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col items-center">
+                            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-2xl mb-3">👤</div>
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-white">{user}</h2>
+                            <span className="text-xs text-gray-500 uppercase tracking-wider font-bold">Pro Account</span>
+                        </div>
+                        <div className="p-6 space-y-4">
+                             <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-500">Challenge Progress</span>
+                                <span className="font-bold text-blue-600">{progress.toFixed(1)}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                <div className="bg-blue-600 h-2.5 rounded-full" style={{width: `${Math.min(100, Math.max(0, progress))}%`}}></div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 mt-4">
+                                <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-center">
+                                    <div className="text-xs text-gray-400 uppercase">Balance</div>
+                                    <div className="font-mono font-bold text-gray-800 dark:text-white">{fmt(balance)}</div>
+                                </div>
+                                <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-center">
+                                    <div className="text-xs text-gray-400 uppercase">Equity</div>
+                                    <div className="font-mono font-bold text-blue-500">{fmt(equity)}</div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex flex-col gap-2">
+                                <button onClick={onReset} className="w-full py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-sm font-bold transition-colors">Reset Data</button>
+                                <button onClick={onLogout} className="w-full py-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm font-bold transition-colors">Logout</button>
+                            </div>
+                        </div>
+                        <div className="p-3 bg-gray-50 dark:bg-gray-900 text-center border-t border-gray-100 dark:border-gray-700">
+                            <button onClick={onClose} className="text-blue-600 font-bold text-sm">Close</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const TradingChart = memo(({ symbol, theme }) => {
+            const id = useRef('tv_'+Math.random());
+            useEffect(() => {
+                const div = document.getElementById(id.current); if(div) div.innerHTML = '';
+                new window.TradingView.widget({
+                    "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Kolkata", 
+                    "theme": theme, "style": "1", "locale": "en", "toolbar_bg": "#f1f3f6", 
+                    "enable_publishing": false, "hide_side_toolbar": false, "allow_symbol_change": false, 
+                    "container_id": id.current
+                });
+            }, [symbol, theme]);
+            return <div id={id.current} className="w-full h-full bg-white dark:bg-gray-900" />;
+        });
+
         // --- MAIN APP ---
-        const App = () => {
-            // State
+        const App = ({ user, onLogout }) => {
             const [view, setView] = useState('TERMINAL');
             const [mobileTab, setMobileTab] = useState('CHART');
+            const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
             
-            const [activeSymbol, setActiveSymbol] = useState('BTCUSD');
+            // User Data
+            const [symbol, setSymbol] = useState('BTCUSD');
             const [qty, setQty] = useState(0.01);
-            const [positions, setPositions] = useState(() => JSON.parse(localStorage.getItem('pos')) || []);
-            const [journal, setJournal] = useState(() => JSON.parse(localStorage.getItem('journal')) || null);
+            const [positions, setPositions] = useState(() => JSON.parse(localStorage.getItem(`${user}_pos`)) || []);
+            const [journal, setJournal] = useState(() => JSON.parse(localStorage.getItem(`${user}_journal`)) || null);
             const [activeMonth, setActiveMonth] = useState(0);
+            const [showAccount, setShowAccount] = useState(false);
 
-            const price = useMarket(activeSymbol);
+            const price = useMarket(symbol);
 
-            // --- INITIALIZATION ---
+            // --- THEME ---
             useEffect(() => {
-                if(!journal) {
-                    let months = [], d = new Date(), c = 0;
-                    while(c < DEFAULT_CONFIG.days) {
-                        const mIdx = Math.floor(c/22);
-                        if(!months[mIdx]) months[mIdx] = { id: mIdx, name: `Month ${mIdx+1}`, days: [] };
-                        months[mIdx].days.push({ day: c+1, date: d.toISOString().split('T')[0], target: 0, actual: 0, trades: 0, log: "", rules: [{t:"Plan",c:false}, {t:"Risk",c:false}] });
-                        d.setDate(d.getDate()+1); while(d.getDay()===0||d.getDay()===6) d.setDate(d.getDate()+1);
-                        c++;
-                    }
-                    let bal = DEFAULT_CONFIG.startCapital;
-                    const rate = Math.pow(DEFAULT_CONFIG.target/bal, 1/DEFAULT_CONFIG.days) - 1;
-                    months.forEach(m => m.days.forEach(day => { day.start = Math.round(bal); day.profitTgt = Math.round(bal * rate); bal += day.profitTgt; }));
-                    setJournal({ ...DEFAULT_CONFIG, months });
+                document.documentElement.className = theme;
+                localStorage.setItem('theme', theme);
+            }, [theme]);
+
+            // --- PERSISTENCE ---
+            useEffect(() => { localStorage.setItem(`${user}_pos`, JSON.stringify(positions)); }, [positions, user]);
+            useEffect(() => { if(journal) localStorage.setItem(`${user}_journal`, JSON.stringify(journal)); }, [journal, user]);
+
+            // --- SETUP LOGIC ---
+            const initializeChallenge = (start, target, days) => {
+                let months = [], d = new Date(), c = 0;
+                while(c < days) {
+                    const mIdx = Math.floor(c/22);
+                    if(!months[mIdx]) months[mIdx] = { id: mIdx, name: `Month ${mIdx+1}`, days: [] };
+                    months[mIdx].days.push({ 
+                        day: c+1, date: d.toISOString().split('T')[0], 
+                        start: 0, target: 0, actual: 0, trades: 0, log: "", 
+                        rules: [{t:"Plan",c:false}, {t:"Risk",c:false}, {t:"Journal",c:false}] 
+                    });
+                    d.setDate(d.getDate()+1); while(d.getDay()===0||d.getDay()===6) d.setDate(d.getDate()+1);
+                    c++;
                 }
-            }, []);
+                
+                let bal = start; 
+                const rate = Math.pow(target/start, 1/days) - 1;
+                
+                months.forEach(m => m.days.forEach(day => { 
+                    day.start = Math.round(bal); 
+                    day.target = Math.round(bal * rate); 
+                    bal += day.target; 
+                }));
+                
+                setJournal({ start, target, days, months });
+            };
 
-            useEffect(() => { localStorage.setItem('pos', JSON.stringify(positions)); }, [positions]);
-            useEffect(() => { if(journal) localStorage.setItem('journal', JSON.stringify(journal)); }, [journal]);
-
-            // --- COMPUTED VALUES ---
+            // --- MATH ---
             const balance = useMemo(() => {
-                if(!journal) return DEFAULT_CONFIG.startCapital;
-                let b = journal.startCapital;
+                if(!journal) return 0;
+                let b = journal.start;
                 journal.months.forEach(m => m.days.forEach(d => b += Number(d.actual)));
                 return b;
             }, [journal]);
 
             const equity = useMemo(() => {
-                const floatingINR = positions.reduce((acc, p) => {
-                    const curr = p.symbol === activeSymbol ? price : p.entry; 
-                    const diffUSD = p.type === 'BUY' ? curr - p.entry : p.entry - curr;
-                    return acc + (diffUSD * p.qty * USD_INR);
+                const float = positions.reduce((acc, p) => {
+                    const curr = p.symbol===symbol ? price : p.entry;
+                    const diff = p.type==='BUY' ? curr-p.entry : p.entry-curr;
+                    return acc + (diff * p.qty * USD_INR);
                 }, 0);
-                return balance + floatingINR;
-            }, [balance, positions, price, activeSymbol]);
+                return balance + float;
+            }, [balance, positions, price, symbol]);
 
-            // --- TRADING ACTIONS (AVERAGING) ---
-            const execute = (type) => {
-                if(!price) return alert("No Price Feed");
-                const marginReq = (price * qty * USD_INR) / LEVERAGE;
-                if(marginReq > equity) return alert(`Insufficient Margin! Need ${fmt(marginReq)}`);
-
+            // --- ACTIONS ---
+            const execute = useCallback((type) => {
+                if(!price) return alert("Waiting for price...");
+                const margin = (price * qty * USD_INR) / LEVERAGE;
+                if(margin > equity) return alert("Insufficient Margin!");
+                
                 setPositions(prev => {
-                    // Check for existing position to average
-                    const existingIndex = prev.findIndex(p => p.symbol === activeSymbol && p.type === type);
-                    
-                    if (existingIndex >= 0) {
-                        // Average It
-                        const existing = prev[existingIndex];
-                        const newTotalQty = parseFloat((existing.qty + qty).toFixed(2));
-                        const newEntry = ((existing.entry * existing.qty) + (price * qty)) / newTotalQty;
-                        
-                        const updatedPositions = [...prev];
-                        updatedPositions[existingIndex] = {
-                            ...existing,
-                            qty: newTotalQty,
-                            entry: newEntry,
-                            time: new Date().toISOString() // Update time to show activity
-                        };
-                        return updatedPositions;
-                    } else {
-                        // New Position
-                        return [...prev, {
-                            id: genId(), symbol: activeSymbol, type, qty: parseFloat(qty),
-                            entry: price, time: new Date().toISOString()
-                        }];
+                    const idx = prev.findIndex(p => p.symbol === symbol && p.type === type);
+                    if (idx > -1) {
+                        // Average
+                        const old = prev[idx];
+                        const nQty = parseFloat((old.qty + qty).toFixed(2));
+                        const nEnt = ((old.entry * old.qty) + (price * qty)) / nQty;
+                        const upd = [...prev];
+                        upd[idx] = { ...old, qty: nQty, entry: nEnt };
+                        return upd;
                     }
+                    return [...prev, { id: genId(), symbol, type, qty, entry: price, time: new Date().toISOString() }];
                 });
                 if(window.innerWidth < 1024) setMobileTab('POSITIONS');
-            };
+            }, [price, qty, equity, symbol]);
 
-            const closeTrade = (id, currentPrice = null) => {
+            const closeTrade = useCallback((id) => {
                 setPositions(prev => {
                     const pos = prev.find(p => p.id === id);
                     if(!pos) return prev;
+                    const exit = pos.symbol === symbol ? price : pos.entry;
+                    const pnl = Math.round((pos.type==='BUY'?exit-pos.entry:pos.entry-exit) * pos.qty * USD_INR);
                     
-                    const exit = currentPrice || (pos.symbol === activeSymbol ? price : pos.entry);
-                    const pnlUSD = pos.type === 'BUY' ? (exit - pos.entry)*pos.qty : (pos.entry - exit)*pos.qty;
-                    const pnlINR = Math.round(pnlUSD * USD_INR);
-
-                    // Update Journal
                     setJournal(j => {
                         const t = getToday();
                         const nj = {...j};
                         let updated = false;
                         nj.months.forEach(m => m.days.forEach(d => {
-                            if(d.date === t) { d.actual = Number(d.actual) + pnlINR; d.trades += 1; updated = true; }
+                            if(d.date === t) { d.actual = Number(d.actual) + pnl; d.trades++; updated = true; }
                         }));
                         return updated ? nj : j;
                     });
-                    
                     return prev.filter(p => p.id !== id);
                 });
+            }, [price, symbol]);
+
+            const handleReset = () => {
+                if(confirm("Delete all journal and trade data for this account?")) {
+                    localStorage.removeItem(`${user}_journal`);
+                    localStorage.removeItem(`${user}_pos`);
+                    window.location.reload();
+                }
             };
 
-            const closeAll = () => {
-                if(!confirm("Close ALL positions at current market price?")) return;
-                // Note: In a real app, we'd need live prices for all. 
-                // Here we use the live price for active symbol, and 'entry' price (break-even) for others to prevent simulated losses on non-streamed assets.
-                // Or we just close them.
-                const ids = positions.map(p => p.id);
-                ids.forEach(id => {
-                    const pos = positions.find(p => p.id === id);
-                    // If it's the active symbol, we use real price. If not, we assume break even (limitation of single stream)
-                    // or we could just use 'price' if we assume user switches. 
-                    // For safety in this demo: We close active at market, others at entry.
-                    const exit = pos.symbol === activeSymbol ? price : pos.entry;
-                    closeTrade(id, exit);
-                });
-            };
+            if(!journal) return <SetupWizard onComplete={initializeChallenge} />;
 
-            // --- SUB-COMPONENTS ---
-
-            const ChartPanel = () => (
-                <div className="w-full h-full flex flex-col bg-white lg:rounded-none overflow-hidden">
-                    <div id="tv_chart" className="flex-1 relative">
-                        <TradingChart symbol={activeSymbol} />
-                    </div>
-                </div>
-            );
-
-            const OrderPanel = () => (
-                <div className="h-full bg-white flex flex-col border-l border-gray-200">
-                    <div className="p-4 border-b border-gray-100">
+            // --- RENDER COMPONENTS ---
+            const OrderUI = () => (
+                <div className="h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
+                    <div className="p-4 border-b border-gray-100 dark:border-gray-700">
                         <div className="flex justify-between items-center">
-                            <h2 className="text-lg font-bold text-gray-800">{activeSymbol}</h2>
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">200x</span>
+                            <h2 className="font-bold text-lg text-gray-800 dark:text-white">{symbol}</h2>
+                            <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded font-bold">200x</span>
                         </div>
-                        <div className="text-3xl font-mono font-bold text-blue-600 mt-1">${price.toFixed(2)}</div>
+                        <div className="text-3xl font-mono font-bold text-blue-600 dark:text-blue-400 mt-1 price-ticker">${price.toFixed(2)}</div>
                     </div>
-                    <div className="p-4 space-y-4 flex-1">
-                        <div>
-                            <label className="text-xs font-bold text-gray-400 block mb-1">QUANTITY (Lots)</label>
-                            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-2">
-                                <button onClick={()=>setQty(Math.max(0.01, parseFloat((qty-0.01).toFixed(2))))} className="p-3 text-lg font-bold text-blue-600">-</button>
-                                <input type="number" value={qty} onChange={e=>setQty(parseFloat(e.target.value))} className="flex-1 bg-transparent text-center font-mono text-lg outline-none py-2" />
-                                <button onClick={()=>setQty(parseFloat((qty+0.01).toFixed(2)))} className="p-3 text-lg font-bold text-blue-600">+</button>
+                    <div className="p-4 flex-1 overflow-y-auto">
+                        <div className="mb-4">
+                            <label className="text-xs font-bold text-gray-400 block mb-1">QUANTITY</label>
+                            <div className="flex items-center border dark:border-gray-600 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-700">
+                                <button onClick={()=>setQty(Math.max(0.01, parseFloat((qty-0.01).toFixed(2))))} className="px-4 py-3 font-bold text-blue-600 hover:bg-gray-200 dark:hover:bg-gray-600">-</button>
+                                <input type="number" value={qty} onChange={e=>setQty(parseFloat(e.target.value))} className="flex-1 text-center outline-none font-mono text-lg bg-transparent dark:text-white" step="0.01"/>
+                                <button onClick={()=>setQty(parseFloat((qty+0.01).toFixed(2)))} className="px-4 py-3 font-bold text-blue-600 hover:bg-gray-200 dark:hover:bg-gray-600">+</button>
                             </div>
                         </div>
-                        
-                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        <div className={`p-3 rounded-xl mb-4 border ${((price*qty*USD_INR)/LEVERAGE) > equity ? 'bg-red-50 border-red-100 dark:bg-red-900/30 dark:border-red-800' : 'bg-blue-50 border-blue-100 dark:bg-blue-900/30 dark:border-blue-800'}`}>
                             <div className="flex justify-between text-xs mb-1">
-                                <span className="text-blue-800 font-medium">Margin (INR)</span>
-                                <span className="font-mono font-bold text-blue-900">{fmt((price * qty * USD_INR)/LEVERAGE)}</span>
+                                <span className="text-gray-500 dark:text-gray-400">Margin (INR)</span>
+                                <span className="font-mono font-bold text-blue-700 dark:text-blue-300">{fmt((price * qty * USD_INR)/LEVERAGE)}</span>
                             </div>
-                            <div className="text-[10px] text-center text-blue-400 mt-1">Avg Mode Active</div>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                            <button onClick={()=>execute('SELL')} className="btn-sell py-4 rounded-xl font-bold shadow-lg shadow-red-100">SELL</button>
-                            <button onClick={()=>execute('BUY')} className="btn-buy py-4 rounded-xl font-bold shadow-lg shadow-green-100">BUY</button>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button onClick={()=>execute('SELL')} className="bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">SELL</button>
+                            <button onClick={()=>execute('BUY')} className="bg-green-500 hover:bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-transform">BUY</button>
                         </div>
                     </div>
                 </div>
             );
 
-            const PositionsList = () => (
-                <div className="h-full bg-white flex flex-col">
-                    <div className="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center sticky top-0 z-10">
+            const PositionsUI = () => (
+                <div className="h-full bg-white dark:bg-gray-800 flex flex-col">
+                    <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center sticky top-0 z-10 bg-white dark:bg-gray-800">
                         <span className="text-xs font-bold text-gray-500 uppercase">Positions ({positions.length})</span>
-                        <button onClick={closeAll} className="text-xs bg-red-50 text-red-600 border border-red-200 px-3 py-1 rounded hover:bg-red-100 font-bold transition-colors">Close All</button>
                     </div>
                     <div className="flex-1 overflow-y-auto">
-                        {positions.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-gray-300 text-sm">No Active Trades</div>
-                        ) : (
-                            <div className="divide-y divide-gray-50">
-                                {positions.map(p => {
-                                    const curr = p.symbol===activeSymbol ? price : p.entry;
-                                    const pnl = (p.type==='BUY' ? curr-p.entry : p.entry-curr) * p.qty * USD_INR;
-                                    return (
-                                        <div key={p.id} className="p-3 flex justify-between items-center hover:bg-gray-50 flash-bg">
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-bold text-sm">{p.symbol}</span>
-                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${p.type==='BUY'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{p.type}</span>
-                                                </div>
-                                                <div className="text-xs text-gray-400 mt-0.5 font-mono">
-                                                    Qty: {p.qty} • Avg: {p.entry.toFixed(2)}
-                                                </div>
+                        {positions.length === 0 ? <div className="flex items-center justify-center h-full text-gray-300 text-sm">No Trades</div> : 
+                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                            {positions.map(p => {
+                                const curr = p.symbol===symbol ? price : p.entry;
+                                const pnl = (p.type==='BUY'?curr-p.entry:p.entry-curr)*p.qty*USD_INR;
+                                return (
+                                    <div key={p.id} className={`p-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 ${pnl>=0?'flash-green':'flash-red'}`}>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-sm text-gray-800 dark:text-gray-200">{p.symbol}</span>
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${p.type==='BUY'?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}`}>{p.type}</span>
                                             </div>
-                                            <div className="text-right">
-                                                <div className={`font-mono font-bold text-sm ${pnl>=0?'text-green-600':'text-red-600'}`}>{pnl>=0?'+':''}{fmt(pnl)}</div>
-                                                <button onClick={()=>closeTrade(p.id)} className="text-[10px] text-gray-400 hover:text-red-500 underline mt-1">Close</button>
-                                            </div>
+                                            <div className="text-xs text-gray-400 mt-0.5 font-mono">Qty: {p.qty} • Avg: {p.entry.toFixed(2)}</div>
                                         </div>
-                                    )
-                                })}
-                            </div>
-                        )}
+                                        <div className="text-right">
+                                            <div className={`font-mono font-bold text-sm ${pnl>=0?'text-green-600':'text-red-600'}`}>{pnl>=0?'+':''}{fmt(pnl)}</div>
+                                            <button onClick={()=>closeTrade(p.id)} className="text-[10px] text-gray-400 hover:text-red-500 underline mt-1">Close</button>
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>}
                     </div>
                 </div>
             );
 
-            // --- RENDER ---
-            return (
-                <div className="grid-layout">
-                    {/* NAV */}
-                    <nav className="nav-bar justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">DT</div>
-                            <h1 className="font-bold text-lg text-gray-800 hidden sm:block">DevTrader</h1>
-                        </div>
-                        
-                        {/* Desktop Tabs */}
-                        <div className="hidden lg:flex gap-2 bg-gray-100 p-1 rounded-lg">
-                            <button onClick={()=>setView('TERMINAL')} className={`px-4 py-1.5 rounded-md text-sm font-semibold ${view==='TERMINAL'?'bg-white shadow text-blue-600':'text-gray-500'}`}>Terminal</button>
-                            <button onClick={()=>setView('JOURNAL')} className={`px-4 py-1.5 rounded-md text-sm font-semibold ${view==='JOURNAL'?'bg-white shadow text-blue-600':'text-gray-500'}`}>Journal</button>
-                        </div>
+            const JournalUI = () => (
+                <div className="h-full overflow-y-auto p-4 pb-24 bg-gray-100 dark:bg-gray-900">
+                    <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
+                        {journal.months.map((m,i) => (
+                            <button key={i} onClick={()=>setActiveMonth(i)} className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition-all ${activeMonth===i?'bg-blue-600 text-white':'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>{m.name}</button>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {journal.months[activeMonth].days.map((day, i) => {
+                            const isToday = day.date === getToday();
+                            return (
+                                <div key={i} className={`bg-white dark:bg-gray-800 p-4 rounded-xl border ${isToday ? 'border-blue-500 shadow-md ring-1 ring-blue-200 dark:ring-blue-900' : 'border-gray-200 dark:border-gray-700'}`}>
+                                    <div className="flex justify-between mb-2">
+                                        <span className="font-bold text-gray-700 dark:text-gray-200">Day {day.day}</span>
+                                        <span className="text-xs text-gray-400">{day.date}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-gray-500 mb-2">
+                                        <span>Tgt: <span className="text-blue-600 dark:text-blue-400">{fmt(day.target)}</span></span>
+                                        <span>Start: {fmt(day.start)}</span>
+                                    </div>
+                                    <div className="bg-gray-50 dark:bg-gray-700 p-2 rounded flex justify-between items-center mb-2 border border-gray-100 dark:border-gray-600">
+                                        <span className="text-xs font-bold text-gray-400">P&L</span>
+                                        <input type="number" value={day.actual} 
+                                            onChange={e=>{const nj={...journal}; nj.months[activeMonth].days[i].actual=e.target.value; setJournal(nj);}}
+                                            className={`bg-transparent text-right font-mono font-bold outline-none w-24 ${day.actual>=0?'text-green-600':'text-red-600'}`}
+                                        />
+                                    </div>
+                                    <textarea className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded p-2 text-xs resize-none outline-none h-16 mb-2 dark:text-gray-300" placeholder="Log..."
+                                        value={day.log} onChange={e=>{const nj={...journal}; nj.months[activeMonth].days[i].log=e.target.value; setJournal(nj);}}
+                                    ></textarea>
+                                    <div className="flex flex-wrap gap-2">
+                                        {day.rules.map((r,ri)=>(
+                                            <label key={ri} className="flex items-center gap-1 cursor-pointer bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded hover:bg-white dark:hover:bg-gray-600">
+                                                <input type="checkbox" checked={r.c} onChange={()=>{const nj={...journal}; nj.months[activeMonth].days[i].rules[ri].c=!r.c; setJournal(nj);}} className="accent-blue-600 w-3 h-3"/>
+                                                <span className="text-[10px] text-gray-600 dark:text-gray-300">{r.t}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            );
 
-                        <div className="text-right">
-                            <div className="text-[10px] text-gray-400 font-bold uppercase">Equity</div>
-                            <div className="font-mono font-bold text-blue-600">{fmt(equity)}</div>
+            return (
+                <div className="app-layout">
+                    <AccountModal isOpen={showAccount} onClose={()=>setShowAccount(false)} balance={balance} equity={equity} user={user} onLogout={onLogout} onReset={handleReset} journal={journal} />
+                    
+                    {/* NAV */}
+                    <nav className="nav-area bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center px-4 z-20">
+                        <div className="flex items-center gap-3 cursor-pointer" onClick={()=>setShowAccount(true)}>
+                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">DT</div>
+                            <div><h1 className="font-bold text-gray-800 dark:text-white leading-tight">DevTrader</h1><div className="text-[10px] text-gray-400">PRO</div></div>
+                        </div>
+                        <div className="hidden lg:flex gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                            <button onClick={()=>setView('TERMINAL')} className={`px-4 py-1.5 rounded-md text-sm font-bold ${view==='TERMINAL'?'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300':'text-gray-500 dark:text-gray-400'}`}>Terminal</button>
+                            <button onClick={()=>setView('JOURNAL')} className={`px-4 py-1.5 rounded-md text-sm font-bold ${view==='JOURNAL'?'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300':'text-gray-500 dark:text-gray-400'}`}>Journal</button>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <button onClick={()=>setTheme(theme==='dark'?'light':'dark')} className="text-lg">{theme==='dark'?'☀️':'🌙'}</button>
+                            <div className="text-right">
+                                <div className="text-[10px] text-gray-400 font-bold uppercase">Equity</div>
+                                <div className="font-mono font-bold text-blue-600 dark:text-blue-400">{fmt(equity)}</div>
+                            </div>
                         </div>
                     </nav>
 
-                    {/* SIDEBAR (Desktop) */}
-                    <div className="sidebar p-0 lg:block hidden">
-                        <div className="p-3 bg-gray-50 border-b text-xs font-bold text-gray-400 sticky top-0">WATCHLIST</div>
-                        {WATCHLIST.map(sym => (
-                            <div key={sym} onClick={()=>setActiveSymbol(sym)} className={`p-3 cursor-pointer flex justify-between border-b border-gray-100 ${activeSymbol===sym ? 'bg-blue-50 border-l-4 border-l-blue-600' : 'hover:bg-gray-50'}`}>
-                                <span className="font-bold text-sm">{sym}</span>
-                                {activeSymbol===sym && <span className="font-mono text-xs font-bold text-blue-600">${price.toFixed(2)}</span>}
+                    {/* SIDEBAR */}
+                    <div className="sidebar bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+                        <div className="p-3 font-bold text-xs text-gray-400">WATCHLIST</div>
+                        {WATCHLIST.map(s => (
+                            <div key={s} onClick={()=>setSymbol(s)} className={`px-4 py-3 cursor-pointer flex justify-between ${symbol===s?'bg-blue-50 dark:bg-gray-700 border-l-4 border-blue-500':'hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                                <span className="font-bold text-sm text-gray-700 dark:text-gray-200">{s}</span>
+                                {symbol===s && <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 animate-pulse">${price.toFixed(2)}</span>}
                             </div>
                         ))}
                     </div>
 
-                    {/* MAIN AREA */}
-                    <div className="main-view">
+                    {/* MAIN */}
+                    <div className="main-view bg-gray-100 dark:bg-gray-900 relative overflow-hidden">
                         {view === 'TERMINAL' ? (
-                            <div className="w-full h-full flex flex-col">
-                                {/* Desktop: Chart Only. Mobile: Swaps based on tab */}
-                                {window.innerWidth >= 1024 ? <ChartPanel /> : 
-                                (mobileTab === 'CHART' ? <ChartPanel /> : mobileTab === 'TRADE' ? <OrderPanel /> : <PositionsList />)}
-                            </div>
-                        ) : (
-                            <JournalList journal={journal} setJournal={setJournal} activeMonth={activeMonth} setActiveMonth={setActiveMonth} />
-                        )}
+                            window.innerWidth >= 1024 ? <TradingChart symbol={symbol} theme={theme} /> :
+                            (mobileTab === 'CHART' ? <TradingChart symbol={symbol} theme={theme} /> : 
+                             mobileTab === 'TRADE' ? <OrderUI /> : <PositionsUI />)
+                        ) : <JournalUI />}
                     </div>
 
-                    {/* RIGHT PANEL (Desktop) */}
-                    <div className="order-panel hidden lg:block">
-                         {view === 'TERMINAL' ? <OrderPanel /> : null}
-                    </div>
-
-                    {/* BOTTOM PANEL (Desktop) */}
-                    <div className="bottom-panel hidden lg:flex">
-                        {view === 'TERMINAL' ? <PositionsList /> : null}
-                    </div>
+                    {/* RIGHT/BOTTOM PANELS */}
+                    <div className="order-panel">{view === 'TERMINAL' && <OrderUI />}</div>
+                    <div className="bottom-panel">{view === 'TERMINAL' && <PositionsUI />}</div>
 
                     {/* MOBILE NAV */}
                     {view === 'TERMINAL' && (
-                        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 flex justify-around py-3 z-50 pb-safe">
-                            <button onClick={()=>setMobileTab('CHART')} className={`flex flex-col items-center ${mobileTab==='CHART'?'text-blue-600':'text-gray-400'}`}>
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
-                                <span className="text-[10px] font-bold mt-1">Chart</span>
-                            </button>
-                            <button onClick={()=>setMobileTab('TRADE')} className={`flex flex-col items-center ${mobileTab==='TRADE'?'text-blue-600':'text-gray-400'}`}>
-                                <div className="bg-blue-600 rounded-full p-3 -mt-8 border-4 border-white shadow-xl text-white">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                                </div>
-                                <span className="text-[10px] font-bold mt-1">Trade</span>
-                            </button>
-                            <button onClick={()=>setMobileTab('POSITIONS')} className={`flex flex-col items-center ${mobileTab==='POSITIONS'?'text-blue-600':'text-gray-400'}`}>
-                                <div className="relative">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                                    {positions.length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-white"></span>}
-                                </div>
-                                <span className="text-[10px] font-bold mt-1">Pos</span>
-                            </button>
-                            <button onClick={()=>setView('JOURNAL')} className="flex flex-col items-center text-gray-400">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                                <span className="text-[10px] font-bold mt-1">Journal</span>
-                            </button>
+                        <div className="lg:hidden fixed bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around py-3 z-50 pb-safe">
+                            <button onClick={()=>setMobileTab('CHART')} className={`flex flex-col items-center ${mobileTab==='CHART'?'text-blue-600 dark:text-blue-400':'text-gray-400'}`}><span className="text-lg">📈</span><span className="text-[10px] font-bold">Chart</span></button>
+                            <button onClick={()=>setMobileTab('TRADE')} className={`flex flex-col items-center ${mobileTab==='TRADE'?'text-blue-600 dark:text-blue-400':'text-gray-400'}`}><div className="bg-blue-600 rounded-full p-3 -mt-8 border-4 border-white dark:border-gray-800 shadow-xl"><span className="text-white text-xl">⚡</span></div></button>
+                            <button onClick={()=>setMobileTab('POSITIONS')} className={`flex flex-col items-center ${mobileTab==='POSITIONS'?'text-blue-600 dark:text-blue-400':'text-gray-400'}`}><span className="text-lg relative">📋 {positions.length>0 && <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>}</span><span className="text-[10px] font-bold">Pos</span></button>
+                            <button onClick={()=>setView('JOURNAL')} className="flex flex-col items-center text-gray-400"><span className="text-lg">📅</span><span className="text-[10px] font-bold">Journal</span></button>
                         </div>
                     )}
                     {view === 'JOURNAL' && (
-                        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 p-4 z-50">
-                            <button onClick={()=>setView('TERMINAL')} className="w-full bg-gray-900 text-white py-3 rounded-xl font-bold shadow-lg">Back to Terminal</button>
+                        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-gray-800 border-t p-4 z-50 pb-safe">
+                            <button onClick={()=>setView('TERMINAL')} className="w-full bg-gray-900 dark:bg-gray-700 text-white py-3 rounded-xl font-bold shadow-lg">Back to Terminal</button>
                         </div>
                     )}
-
                 </div>
             );
         };
 
-        // --- SUB COMPONENTS (Journal List) ---
-        const JournalList = ({ journal, setJournal, activeMonth, setActiveMonth }) => (
-            <div className="h-full overflow-y-auto p-4 pb-24 lg:pb-4 bg-gray-50">
-                <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
-                    {journal && journal.months.map((m, i) => (
-                        <button key={i} onClick={()=>setActiveMonth(i)} className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap shadow-sm transition-all ${activeMonth===i?'bg-blue-600 text-white':'bg-white text-gray-600'}`}>{m.name}</button>
-                    ))}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {journal && journal.months[activeMonth].days.map((day, i) => {
-                        const isToday = day.date === getToday();
-                        const net = Number(day.actual);
-                        return (
-                            <div key={i} className={`bg-white p-4 rounded-xl border ${isToday ? 'border-blue-500 shadow-md' : 'border-gray-200'}`}>
-                                <div className="flex justify-between mb-2">
-                                    <span className="font-bold text-gray-700">Day {day.day}</span>
-                                    <span className="text-xs text-gray-400">{day.date}</span>
-                                </div>
-                                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                    <span>Target: {fmt(day.profitTgt)}</span>
-                                    <span>Start: {fmt(day.start)}</span>
-                                </div>
-                                <div className="bg-gray-50 rounded p-2 flex justify-between items-center border border-gray-100">
-                                    <span className="text-xs font-bold text-gray-400">P&L</span>
-                                    <input type="number" value={day.actual} onChange={e=>{const nj={...journal}; nj.months[activeMonth].days[i].actual=e.target.value; setJournal(nj);}}
-                                        className={`bg-transparent text-right font-mono font-bold outline-none w-24 ${net>=0?'text-green-600':'text-red-600'}`}
-                                    />
-                                </div>
-                                <textarea className="w-full mt-2 bg-white border border-gray-200 rounded p-2 text-xs resize-none focus:border-blue-400 outline-none h-12" placeholder="Log..."
-                                    value={day.log} onChange={e=>{const nj={...journal}; nj.months[activeMonth].days[i].log=e.target.value; setJournal(nj);}}
-                                ></textarea>
-                                <div className="flex gap-2 mt-2">
-                                    {day.rules.map((r,ri)=>(
-                                        <label key={ri} className="flex items-center gap-1 cursor-pointer">
-                                            <input type="checkbox" checked={r.c} onChange={()=>{const nj={...journal}; nj.months[activeMonth].days[i].rules[ri].c=!r.c; setJournal(nj);}} className="w-3 h-3 accent-blue-500"/>
-                                            <span className="text-[10px] text-gray-500">{r.t}</span>
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
-                        )
-                    })}
-                </div>
-            </div>
-        );
-
-        const TradingChart = React.memo(({ symbol }) => {
+        const TradingChart = memo(({ symbol, theme }) => {
             const id = useRef('tv_'+Math.random());
             useEffect(() => {
                 const div = document.getElementById(id.current); if(div) div.innerHTML = '';
                 new window.TradingView.widget({
-                    "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Kolkata", "theme": "light", "style": "1", "locale": "en", "toolbar_bg": "#f1f3f6", "enable_publishing": false, "hide_side_toolbar": false, "allow_symbol_change": false, "container_id": id.current
+                    "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Kolkata", 
+                    "theme": theme, "style": "1", "locale": "en", "toolbar_bg": "#f1f3f6", 
+                    "enable_publishing": false, "hide_side_toolbar": false, "allow_symbol_change": false, "container_id": id.current,
+                    "overrides": theme==='dark' ? { "paneProperties.background": "#111827" } : {}
                 });
-            }, [symbol]);
-            return <div id={id.current} className="w-full h-full" />;
+            }, [symbol, theme]);
+            return <div id={id.current} className="w-full h-full bg-white dark:bg-gray-900" />;
         });
 
+        // --- AUTH ---
+        function LoginScreen({ onLogin }) {
+            const [p, sp] = useState("");
+            const handleSubmit = (e) => { e.preventDefault(); localStorage.setItem('devTraderPasscode', p); onLogin('user'); };
+            return <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900"><form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-xl"><h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-white">Welcome</h2><input type="password" value={p} onChange={e=>sp(e.target.value)} className="w-full p-3 border rounded-lg mb-4 outline-none dark:bg-gray-700 dark:text-white" placeholder="Passcode" /><button className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">Enter</button></form></div>;
+        }
+
+        function AuthWrapper() {
+            const [user, setUser] = useState(() => sessionStorage.getItem("devTraderUser"));
+            if (!user) return <LoginScreen onLogin={(u) => { sessionStorage.setItem("devTraderUser", u); setUser(u); }} />;
+            return <App user={user} onLogout={() => { sessionStorage.removeItem("devTraderUser"); setUser(null); }} />;
+        }
+
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<AuthWrapper />);
     </script>
 </body>
 </html>

@@ -277,7 +277,6 @@
             const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem(storageKeyApiKey) || "AIzaSyDcQXcWOBe3_FeDF6waV-mvIQjtszZyTtk");
             const [symbol, setSymbol] = useState("BTCUSD");
             const [orderType, setOrderType] = useState("BUY");
-            const [entryPrice, setEntryPrice] = useState("");
             const [quantity, setQuantity] = useState(1);
             const [stopLoss, setStopLoss] = useState("");
             const [targetProfit, setTargetProfit] = useState("");
@@ -288,7 +287,7 @@
             const [journalData, setJournalData] = useState(null);
             const [activeMonthIndex, setActiveMonthIndex] = useState(0);
             const [todayString, setTodayString] = useState(getToday());
-            const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
+            const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' }));
             const [currentDateString, setCurrentDateString] = useState(getCurrentFormattedDate());
             const [isAccountPopupVisible, setAccountPopupVisible] = useState(false);
             const [isResetPopupVisible, setResetPopupVisible] = useState(false);
@@ -355,102 +354,99 @@
 
             // --- !! MERGED ACTION !! ---
             const closePosition = useCallback((id, exitPrice) => {
-                const pos = openPositions.find(p => p.id === id);
-                if (!pos) return; // Already closed
-                
-                const exit = parseFloat(exitPrice);
-                
-                // 1. Calculate PnL (Terminal logic)
+                // Use functional state update to get the latest openPositions
+                let closedTrade = null;
                 let pnl = 0;
-                if (pos.type === "BUY") pnl = (exit - pos.entryPrice) * pos.quantity;
-                else pnl = (pos.entryPrice - exit) * pos.quantity;
 
-                const closedTrade = { ...pos, exitPrice: exit, exitTime: new Date().toISOString(), pnl: pnl, status: pnl > 0 ? "WIN" : "LOSS" };
-
-                // 2. Update Terminal State
-                setTrades(prev => [closedTrade, ...prev]);
-                setCapital(prev => prev + pnl);
-                setOpenPositions(prev => prev.filter(p => p.id !== id));
-
-                // 3. Update Journal State
-                setJournalData(prevData => {
-                    if (!prevData) return prevData;
-                    const todayStr = getToday();
-                    let dayUpdated = false;
+                setOpenPositions(prevPositions => {
+                    const pos = prevPositions.find(p => p.id === id);
+                    if (!pos) return prevPositions; // Already closed by another call
                     
-                    const newMonths = prevData.months.map(month => {
-                        const newDays = month.days.map(day => {
-                            if (day.date === todayStr) {
-                                dayUpdated = true;
-                                const currentActual = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0);
-                                const newActual = currentActual + pnl;
-                                
-                                day.actual = String(Math.abs(newActual)); // Store absolute value
-                                day.pnlSign = newActual >= 0 ? '+' : '-'; // Store sign
-                                
-                                if (pnl > 0) {
-                                    day.winningTrades = (Number(day.winningTrades) || 0) + 1;
-                                } else if (pnl < 0) {
-                                    day.losingTrades = (Number(day.losingTrades) || 0) + 1;
-                                }
-                                day.achieved = newActual >= (day.profit || 0);
-                            }
-                            return day;
-                        });
-                        return { ...month, days: newDays };
-                    });
+                    const exit = parseFloat(exitPrice);
+                    
+                    // 1. Calculate PnL
+                    if (pos.type === "BUY") pnl = (exit - pos.entryPrice) * pos.quantity;
+                    else pnl = (pos.entryPrice - exit) * pos.quantity;
 
-                    if (dayUpdated) {
-                        let updatedData = { ...prevData, months: newMonths };
-                        updatedData.months = recalculatePlan(updatedData); // Recalculate future plan
-                        return updatedData;
-                    }
-                    return prevData;
+                    closedTrade = { ...pos, exitPrice: exit, exitTime: new Date().toISOString(), pnl: pnl, status: pnl > 0 ? "WIN" : "LOSS" };
+
+                    // Return new array without the closed position
+                    return prevPositions.filter(p => p.id !== id);
                 });
-            }, [openPositions, recalculatePlan]);
+
+                if (closedTrade) {
+                    // 2. Update Terminal State
+                    setTrades(prev => [closedTrade, ...prev]);
+                    setCapital(prev => prev + pnl);
+
+                    // 3. Update Journal State
+                    setJournalData(prevData => {
+                        if (!prevData) return prevData;
+                        const todayStr = getToday();
+                        let dayUpdated = false;
+                        
+                        const newMonths = prevData.months.map(month => {
+                            const newDays = month.days.map(day => {
+                                if (day.date === todayStr) {
+                                    dayUpdated = true;
+                                    const currentActual = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0);
+                                    const newActual = currentActual + pnl;
+                                    
+                                    day.actual = String(Math.abs(newActual));
+                                    day.pnlSign = newActual >= 0 ? '+' : '-';
+                                    
+                                    if (pnl > 0) day.winningTrades = (Number(day.winningTrades) || 0) + 1;
+                                    else if (pnl < 0) day.losingTrades = (Number(day.losingTrades) || 0) + 1;
+                                    
+                                    day.achieved = newActual >= (day.profit || 0);
+                                }
+                                return day;
+                            });
+                            return { ...month, days: newDays };
+                        });
+
+                        if (dayUpdated) {
+                            let updatedData = { ...prevData, months: newMonths };
+                            updatedData.months = recalculatePlan(updatedData); // Recalculate future plan
+                            return updatedData;
+                        }
+                        return prevData;
+                    });
+                }
+            }, [recalculatePlan]); // Removed openPositions from dependency
 
 
             // --- SL/TP Ticker Effect ---
             useEffect(() => {
                 const price = parseFloat(simPrice);
-                if (!price || isNaN(price)) return;
+                if (!price || isNaN(price) || openPositions.length === 0) return;
 
-                const positionsToClose = [];
-
-                for (const pos of openPositions) {
+                // We must iterate over a snapshot of openPositions
+                // because closePosition will modify it asynchronously
+                const currentPositions = [...openPositions];
+                for (const pos of currentPositions) {
                     const { id, type, sl, tp } = pos;
                     if (type === "BUY") {
-                        if (sl && price <= sl) positionsToClose.push({ id, price: sl });
-                        else if (tp && price >= tp) positionsToClose.push({ id, price: tp });
+                        if (sl && price <= sl) { closePosition(id, sl); }
+                        else if (tp && price >= tp) { closePosition(id, tp); }
                     } else if (type === "SELL") {
-                        if (sl && price >= sl) positionsToClose.push({ id, price: sl });
-                        else if (tp && price <= tp) positionsToClose.push({ id, price: tp });
-                    }
-                }
-                
-                // Batch close positions
-                if (positionsToClose.length > 0) {
-                    // Need to use the functional update form of setOpenPositions
-                    // to get the latest state if multiple positions close at once.
-                    // But `closePosition` already handles this by filtering.
-                    // We must call `closePosition` for each one.
-                    for (const { id, price } of positionsToClose) {
-                        closePosition(id, price);
+                        if (sl && price >= sl) { closePosition(id, sl); }
+                        else if (tp && price <= tp) { closePosition(id, tp); }
                     }
                 }
             }, [simPrice, openPositions, closePosition]);
 
             // --- Terminal Actions ---
             const executeTrade = () => {
-                if (!entryPrice || !quantity) {
-                    alert("Please enter Price and Quantity.");
+                if (!simPrice || !quantity) {
+                    alert("Please enter a price in the 'SIM Price Ticker' and a Quantity to execute a market order.");
                     return;
                 }
                 const newPosition = { 
                     id: generateId(), 
                     symbol: symbol.toUpperCase(), 
                     type: orderType, 
-                    entryPrice: parseFloat(entryPrice), 
+                    entryPrice: parseFloat(simPrice), // Use SIM price as entry
                     quantity: parseFloat(quantity), 
                     sl: parseFloat(stopLoss) || null,
                     tp: parseFloat(targetProfit) || null,
@@ -458,7 +454,6 @@
                 };
                 setOpenPositions([newPosition, ...openPositions]);
                 // Clear inputs
-                setEntryPrice("");
                 setStopLoss("");
                 setTargetProfit("");
             };
@@ -484,6 +479,7 @@
             const goToPrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
             const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
 
+            // --- Theme-aware Classes ---
             const glassPanelClass = theme === 'dark' ? 'glass-panel-dark' : 'glass-panel-light';
             const neonBorderClass = theme === 'dark' ? 'neon-border-dark' : 'neon-border-light';
             const inputClass = "w-full bg-gray-200 dark:bg-gray-900 border border-gray-400 dark:border-gray-700 rounded p-2 text-gray-900 dark:text-white focus:border-cyan-500 outline-none transition-colors";
@@ -543,7 +539,6 @@
                                 <button onClick={()=>setOrderType("SELL")} className={`flex-1 py-2 rounded font-bold transition-all ${orderType==='SELL' ? 'bg-red-600 text-white shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white'}`}>SHORT</button>
                             </div>
                             <div className="space-y-3">
-                                <div><label className={labelClass}>Price</label><input type="number" value={entryPrice} onChange={e=>setEntryPrice(e.target.value)} className={inputClass} placeholder="Entry Price" /></div>
                                 <div><label className={labelClass}>Quantity</label><input type="number" value={quantity} onChange={e=>setQuantity(e.target.value)} className={inputClass} placeholder="1" /></div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <div><label className={labelClass}>Stop Loss (Optional)</label><input type="number" value={stopLoss} onChange={e=>setStopLoss(e.target.value)} className={inputClass} placeholder="SL Price" /></div>
@@ -700,7 +695,7 @@
             const[t,st]=useState(()=>localStorage.getItem("theme")||"dark");
             const[m,sm]=useState('loading');
             
-            useEffect(()=>{document.documentElement.className=t;},[t]);
+            useEffect(()=>{document.documentElement.className = t;},[t]);
             
             useEffect(()=>{
                 try{ const spc=localStorage.getItem('devTraderPasscode'); sm(spc?'login':'setup'); }

@@ -2,10 +2,10 @@
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ProTrader Journal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevTrader Trading Journal</title>
     
-    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3crect width='100' height='100' rx='20' fill='%230f172a'/%3e%3cpath d='M30 70 L50 40 L70 70' fill='none' stroke='%233b82f6' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e">
+    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3cdefs%3e%3cfilter id='glow' x='-50%25' y='-50%25' width='200%25' height='200%25'%3e%3cfeGaussianBlur stdDeviation='5' result='blur'/%3e%3cfeMerge%3e%3cfeMergeNode in='blur'/%3e%3cfeMergeNode in='SourceGraphic'/%3e%3c/feMerge%3e%3c/filter%3e%3c/defs%3e%3crect width='100' height='100' fill='%23000'/%3e%3ctext x='50' y='55' font-family='Orbitron, sans-serif' font-size='38' fill='%2300ffff' text-anchor='middle' dominant-baseline='middle' filter='url(%23glow)'%3eDTJ%3c/text%3e%3c/svg%3e">
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -15,68 +15,47 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        slate: { 850: '#172033', 900: '#0f172a', 950: '#020617' },
-                        primary: { 500: '#3b82f6', 600: '#2563eb' },
-                        success: '#10b981',
-                        danger: '#ef4444',
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        /* Professional Reset */
-        body { background-color: #0f172a; color: #e2e8f0; -webkit-tap-highlight-color: transparent; }
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-
-        /* Input Autofill Fix */
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover, 
-        input:-webkit-autofill:focus {
-            -webkit-text-fill-color: white;
-            -webkit-box-shadow: 0 0 0px 1000px #1e293b inset;
-            transition: background-color 5000s ease-in-out 0s;
-        }
-        
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.05); }
-        .card-hover { transition: all 0.2s ease; }
-        .card-hover:active { transform: scale(0.98); }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Orbitron', sans-serif; overscroll-behavior-y: none; cursor: default; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .perspective-container { perspective: 1500px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        @keyframes pulse-glow-cyber { 0%, 100% { box-shadow: 0 0 10px 3px rgba(128, 128, 128, 0.8), inset 0 0 5px 1px rgba(128, 128, 128, 0.5); } 50% { box-shadow: 0 0 20px 6px rgba(128, 128, 128, 0.5), inset 0 0 10px 2px rgba(128, 128, 128, 0.3); } }
+        .today-highlight { animation: pulse-glow-cyber 2.5s infinite; }
+        .day-container { cursor: grab; }
+        .is-dragging { animation: none !important; cursor: grabbing; }
+        .scanlines::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: -1; background-size: 100% 3px, 4px 100%; pointer-events: none; animation: flicker 0.15s infinite; opacity: 0; }
+        .dark .scanlines::before { opacity: 1; }
+        @keyframes flicker { 0% { opacity: 0.8; } 50% { opacity: 0.9; } 100% { opacity: 0.8; } }
+        .bg-dark-cyber { background-color: #0a0a14; background-image: radial-gradient(ellipse at center, rgba(0, 50, 100, 0.3) 0%, transparent 70%), linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px); background-size: 100% 100%, 35px 35px, 35px 35px; }
+        .bg-light-chart { background-color: white; }
+        .fab { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 40; }
+        .scrollbar-thin { scrollbar-width: thin; scrollbar-color: #0891b2 #1f2937; }
+        .scrollbar-thin::-webkit-scrollbar { width: 8px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px;}
+        .scrollbar-thin::-webkit-scrollbar-thumb { background-color: #0891b2; border-radius: 4px; border: 2px solid #1f2937; }
     </style>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
 </head>
-<body>
+<body class="bg-white dark:bg-black">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
-        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
 
-        // ----------------------------------------------------------------
-        // 🔥 CONFIGURATION AREA 🔥
-        // ----------------------------------------------------------------
-        
-        // 1. PASTE YOUR FIREBASE CONFIG HERE
+        // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyDi8RF59y1nwso78Zi3Wu8uxjc00yPRSQY",
             authDomain: "dev-trader-ac3ce.firebaseapp.com",
@@ -88,514 +67,305 @@
             measurementId: "G-LZHWCYY6ZG"
         };
 
-        // 2. GEMINI API KEY
-        const GEMINI_API_KEY = "AIzaSyCL1goQPGdTFp_IizpTteU9ZTvcTQG3kzM";
-
-        // --- APP CONSTANTS ---
-        const DEFAULT_CAPITAL = 50000;
-        const DEFAULT_TARGET = 1000000;
-        const DEFAULT_TENURE = 66;
-        const DAYS_PER_PAGE = 10;
-
-        const DEFAULT_RULES = [
-            { id: 1, text: "Adhered to Plan", checked: false },
-            { id: 2, text: "Risk < 2%", checked: false },
-            { id: 3, text: "Stop Loss Set", checked: false },
-            { id: 4, text: "Clean Setup", checked: false },
-            { id: 5, text: "Right Mindset", checked: false },
-        ];
-
-        // --- INITIALIZE FIREBASE ---
-        try {
-            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        } catch (e) { console.error("Firebase Init Error", e); }
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
 
-        // --- ICONS (SVG Components) ---
-        const Icons = {
-            Home: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>,
-            Journal: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>,
-            Chart: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>,
-            Robot: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>,
-            Settings: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>,
-            ArrowLeft: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>,
-            ArrowRight: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>,
-            Logout: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>,
-            Send: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-        };
+        // --- GEMINI API CONFIGURATION ---
+        const GEMINI_API_KEY = "AIzaSyCL1goQPGdTFp_IizpTteU9ZTvcTQG3kzM"; 
+        
+        const DEFAULT_INITIAL_CAPITAL = 50000;
+        const DEFAULT_FINAL_TARGET = 1000000;
+        const DEFAULT_TENURE_DAYS = 66; 
+        const TRADING_DAYS_PER_MONTH = 22;
+        const DAYS_PER_PAGE = 10; 
+        
+        const DEFAULT_RULES = [ { text: "MAINTAIN DISCIPLINE: ADHERE TO THE PLAN", checked: false }, { text: "VALIDATE STRATEGY: CONFIRM ENTRY/EXIT CRITERIA", checked: false }, { text: "ASSESS MACRO TREND: CONSULT HIGHER TIMEFRAMES", checked: false }, { text: "RISK PROTOCOL: MAX 2% CAPITAL PER ENGAGEMENT", checked: false }, { text: "PROTECT CAPITAL: NEVER SHIFT STOP-LOSS MID-TRADE", checked: false }, { text: "DEFINE LOSS LIMITS: SET DAILY DRAWDOWN THRESHOLD", checked: false }, { text: "AVOID EMOTIONAL TRADING: NO REVENGE/OVER-TRADING", checked: false }, { text: "MAINTAIN OBJECTIVITY: LOGIC OVER FEAR/GREED", checked: false }, { text: "POST-TRADE ANALYSIS: LOG & REVIEW ALL EXECUTIONS", checked: false }, { text: "OPERATOR STATUS: CONFIRM PEAK MENTAL & PHYSICAL STATE", checked: false }, ];
+        
+        const getNextTradingDay = (date) => { const nextDay = new Date(date); nextDay.setDate(nextDay.getDate() + 1); while (nextDay.getDay() === 0 || nextDay.getDay() === 6) { nextDay.setDate(nextDay.getDate() + 1); } return nextDay; };
+        const getTodayDateString = () => new Date().toISOString().split('T')[0];
+        const getCurrentFormattedDate = () => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const formatNumber = (num, showSign = false) => { const number = Number(num); if (isNaN(number)) return '0'; let prefix = ''; if (showSign) { if (number > 0) prefix = '+'; if (number < 0) prefix = '-'; } const absNum = Math.abs(number); let formattedValue; if (absNum >= 10000000) { formattedValue = (absNum / 10000000).toFixed(2).replace(/\.00$/, '') + ' CR'; } else if (absNum >= 100000) { formattedValue = (absNum / 100000).toFixed(2).replace(/\.00$/, '') + ' L'; } else if (absNum >= 1000) { formattedValue = (absNum / 1000).toFixed(2).replace(/\.00$/, '') + ' K'; } else { formattedValue = absNum.toLocaleString('en-IN'); } return prefix + (number < 0 ? '-' : '') + formattedValue; };
 
-        // --- HELPERS ---
-        const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
-        const formatPercent = (val) => (val * 100).toFixed(2) + '%';
+        const Logo = ({ size = "36" }) => ( <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 100 100" className="opacity-80"><defs><filter id="text-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="blur"></feGaussianBlur><feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter></defs><text x="50" y="55" fontFamily="Orbitron, sans-serif" fontSize="38" fill="#00ffff" textAnchor="middle" dominantBaseline="middle" filter="url(#text-glow)">DTJ</text></svg> );
+        
+        const MonthlyStatement = ({ monthData, startCapital, onClose }) => { const stats = useMemo(() => { let pnl = 0, profitDays = 0, lossDays = 0, longestStreak = 0, currentStreak = 0, mostProfitable = 0, largestLoss = 0, completedDays = 0; for (const day of monthData.days) { if (day.actual === "" || day.actual === null) continue; completedDays++; const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); pnl += value; if (value > 0) { profitDays++; currentStreak++; mostProfitable = Math.max(mostProfitable, value); } else if (value < 0) { lossDays++; currentStreak = 0; largestLoss = Math.min(largestLoss, value); } else { currentStreak = 0; } longestStreak = Math.max(longestStreak, currentStreak); } const endCapital = startCapital + pnl; return { pnl, profitDays, lossDays, longestStreak, mostProfitable, largestLoss, endCapital, completedDays }; }, [monthData, startCapital]); const StatCard = ({ title, value, colorClass = "text-black dark:text-gray-200" }) => ( <div className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-3 border border-fuchsia-700/30 dark:border-fuchsia-500/50"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-lg sm:text-xl font-bold ${colorClass}`}>{value}</p></div> ); return ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}><div className="w-full max-w-2xl bg-white/80 dark:bg-black/80 p-4 sm:p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}><h3 className="text-xl sm:text-2xl font-bold mb-4 text-cyan-600 dark:text-cyan-400">STATEMENT: {monthData.monthName}</h3><div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 text-center"><StatCard title="START CAPITAL" value={`₹${formatNumber(startCapital)}`} /> <StatCard title="END CAPITAL" value={`₹${formatNumber(stats.endCapital)}`} /><StatCard title="NET P&L" value={`₹${formatNumber(stats.pnl, true)}`} colorClass={stats.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}/></div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">P&L CALENDAR</h4><div className="grid grid-cols-7 gap-1 sm:gap-2 mb-4 p-2 bg-white/30 dark:bg-black/50 border border-cyan-700/20 dark:border-cyan-500/30">{monthData.days.map((day) => { const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); let bgColor = "bg-gray-200 dark:bg-gray-700/80"; if (day.actual !== "" && value > 0) bgColor = "bg-green-500 dark:bg-green-600"; if (day.actual !== "" && value < 0) bgColor = "bg-red-500 dark:bg-red-600"; if (day.actual !== "" && value === 0) bgColor = "bg-gray-400 dark:bg-gray-500"; return (<div key={day.day} className={`w-full h-8 sm:h-12 ${bgColor} flex items-center justify-center text-white font-bold text-xs sm:text-sm`} title={`Day ${day.day}: ₹${formatNumber(value, true)}`}>{day.day}</div>); })}</div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">MONTHLY ANALYSIS</h4><div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 text-center"><StatCard title="PROFIT DAYS" value={stats.profitDays} colorClass="text-green-600 dark:text-green-400" /> <StatCard title="LOSS DAYS" value={stats.lossDays} colorClass="text-red-600 dark:text-red-400" /><StatCard title="LONGEST STREAK" value={`${stats.longestStreak} Days`} colorClass="text-cyan-600 dark:text-cyan-400" /> <StatCard title="MOST PROFITABLE" value={`₹${formatNumber(stats.mostProfitable, true)}`} colorClass="text-green-600 dark:text-green-400" /><StatCard title="LARGEST LOSS" value={`₹${formatNumber(stats.largestLoss, true)}`} colorClass="text-red-600 dark:text-red-400" /> <StatCard title="DAYS TRADED" value={stats.completedDays} /></div><button onClick={onClose} className="w-full px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">Close</button></div></div> ); };
+        
+        const GeminiAnalysisPopup = ({ onClose, tradingData }) => {
+            const [prompt, setPrompt] = useState("Analyze my recent trading performance based on the provided data. Give me 3 actionable insights."); 
+            const [isLoading, setIsLoading] = useState(false);
+            const [response, setResponse] = useState("");
 
-        // --- COMPONENTS ---
-
-        // 1. Auth Screen
-        const AuthScreen = ({ onLogin, onRegister }) => {
-            const [email, setEmail] = useState('');
-            const [password, setPassword] = useState('');
-            const [isRegister, setIsRegister] = useState(false);
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                isRegister ? onRegister(email, password) : onLogin(email, password);
-            };
-
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
-                    <div className="w-full max-w-md bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl">
-                        <div className="flex justify-center mb-6">
-                            <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center">
-                                <span className="text-2xl font-bold text-white">PT</span>
-                            </div>
-                        </div>
-                        <h2 className="text-2xl font-bold text-center text-white mb-2">ProTrader Access</h2>
-                        <p className="text-slate-400 text-center text-sm mb-8">Secure Journaling Environment</p>
-                        
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="text-xs uppercase font-bold text-slate-500 ml-1">Email</label>
-                                <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition-all" placeholder="trader@example.com"/>
-                            </div>
-                            <div>
-                                <label className="text-xs uppercase font-bold text-slate-500 ml-1">Password</label>
-                                <input type="password" required value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition-all" placeholder="••••••••"/>
-                            </div>
-                            <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all transform active:scale-95">
-                                {isRegister ? 'Initialize Account' : 'Access Terminal'}
-                            </button>
-                        </form>
-                        <div className="mt-6 text-center">
-                            <button onClick={()=>setIsRegister(!isRegister)} className="text-sm text-slate-400 hover:text-blue-400 transition-colors">
-                                {isRegister ? "Have an account? Login" : "New trader? Register"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // 2. AI Analyst Panel (Slide-over)
-        const AIAnalyst = ({ isOpen, onClose, data }) => {
-            const [messages, setMessages] = useState([{role: 'ai', text: "Market analysis ready. Upload your trade data context automatically?"}]);
-            const [input, setInput] = useState('');
-            const [loading, setLoading] = useState(false);
-            const scrollRef = useRef(null);
-
-            useEffect(() => {
-                if(scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-            }, [messages]);
-
-            const sendToGemini = async () => {
-                if(!input.trim()) return;
-                const userMsg = input;
-                setMessages(prev => [...prev, {role: 'user', text: userMsg}]);
-                setInput('');
-                setLoading(true);
+             const callGeminiAPI = async (userPrompt, data) => {
+                const key = GEMINI_API_KEY; 
+                setIsLoading(true); setResponse(""); 
 
                 try {
-                    const context = data ? JSON.stringify(data.slice(0, 20).map(d => ({
-                        day: d.day, date: d.date, pnl: d.actual, rules: d.rules.filter(r=>r.checked).length
-                    }))) : "No data";
+                     const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`;
+                     const dataSummary = data.map(d => ({ day: d.day, date: d.date, pnl: (d.pnlSign === '+' ? 1 : -1) * (Number(d.actual) || 0), wins: d.winningTrades, losses: d.losingTrades })).filter(d => d.pnl !== 0 || d.wins || d.losses);
+                     const requestBody = { contents: [{ parts: [{ text: `${userPrompt}\n\nHere is my recent trading data:\n${JSON.stringify(dataSummary, null, 2)}` }] }] };
+                     
+                     const res = await fetch(apiEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
+                     if (!res.ok) { const errorData = await res.json(); throw new Error(`API Error ${res.status}: ${errorData?.error?.message || 'Unknown error'}`); }
+                     const responseData = await res.json();
+                     const textResponse = responseData?.candidates?.[0]?.content?.parts?.[0]?.text || "No valid response text received from API.";
+                     setResponse(textResponse);
+                 } catch (error) { setResponse(`Error: ${error.message}\n\nCheck console. Ensure API key is valid.`);
+                 } finally { setIsLoading(false); }
+             };
 
-                    const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
-                    const payload = { contents: [{ parts: [{ text: `Context: User is a trader. Recent Data: ${context}. User Question: ${userMsg}. Keep it brief and professional.` }] }] };
-                    
-                    const res = await fetch(apiEndpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                    const json = await res.json();
-                    const aiText = json.candidates?.[0]?.content?.parts?.[0]?.text || "Analysis failed.";
-                    
-                    setMessages(prev => [...prev, {role: 'ai', text: aiText}]);
-                } catch (e) {
-                    setMessages(prev => [...prev, {role: 'ai', text: "Connection Error."}]);
-                } finally {
-                    setLoading(false);
-                }
+            const handleSubmit = () => { callGeminiAPI(prompt, tradingData); };
+
+            return ( <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={onClose}><div className="w-full max-w-lg bg-black/80 border-2 border-cyan-500/70 shadow-[0_0_25px_rgba(0,255,255,0.5)] p-6 max-h-[90vh] flex flex-col rounded-lg" onClick={(e) => e.stopPropagation()}><h3 className="text-2xl font-bold mb-4 text-cyan-400 flex-shrink-0" style={{textShadow: '0 0 8px #00ffff'}}>⚡ AI Trade Analysis ⚡</h3><textarea placeholder="Ask Gemini about your trading performance..." value={prompt} onChange={(e) => setPrompt(e.target.value)} className="w-full h-24 p-3 mb-4 bg-gray-900/80 border border-fuchsia-500/50 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 text-sm flex-shrink-0 text-gray-200 placeholder-gray-500 rounded-md"></textarea><div className="flex-grow overflow-y-auto bg-gray-950/70 p-4 mb-4 border border-cyan-700/50 min-h-[150px] rounded-md scrollbar-thin">{isLoading ? (<p className="text-center text-cyan-400 animate-pulse">🧠 Accessing Neural Link...</p>) : (<pre className="text-xs sm:text-sm whitespace-pre-wrap text-green-400 font-mono">{response || "Awaiting Analysis..."}</pre>)}</div><div className="flex justify-end gap-3 flex-shrink-0"><button onClick={onClose} disabled={isLoading} className="px-4 py-2 rounded-lg bg-gray-600/80 hover:bg-gray-500/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all text-sm disabled:opacity-50">Cancel</button><button onClick={handleSubmit} disabled={isLoading} className="px-4 py-2 rounded-lg bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white font-bold transition-all text-sm disabled:opacity-50 shadow-[0_0_10px_rgba(0,255,255,0.5)]"> {isLoading ? "Processing..." : "Engage AI"} </button></div></div></div> );
+        };
+
+        const AnalogClock = ({ position, variant = 'cyber', theme }) => {
+            const [time, setTime] = useState(new Date());
+            useEffect(() => { const timerId = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(timerId); }, []);
+            const seconds = time.getSeconds(); const minutes = time.getMinutes(); const hours = time.getHours();
+            const secondDeg = (seconds / 60) * 360; const minuteDeg = (minutes / 60) * 360 + (seconds / 60) * 6; const hourDeg = (hours / 12) * 360 + (minutes / 60) * 30;
+            const isLight = theme === 'light';
+            const colors = {
+                cyber: { hour: isLight ? '#374151' : '#00ffff', minute: isLight ? '#4b5563' : '#00ffff', second: isLight ? '#ef4444' : '#f0f', tickHour: isLight ? 'rgba(55, 65, 81, 0.8)' : 'rgba(0, 255, 255, 0.7)', tickMinute: isLight ? 'rgba(55, 65, 81, 0.3)' : 'rgba(0, 255, 255, 0.3)', circle: isLight ? 'rgba(55, 65, 81, 0.2)' : 'rgba(0, 255, 255, 0.3)' },
+                luxury: { hour: isLight ? '#374151' : '#f0f', minute: isLight ? '#4b5563' : '#f0f', second: isLight ? '#0891b2' : '#00ffff', tickHour: isLight ? 'rgba(55, 65, 81, 0.8)' : 'rgba(255, 0, 255, 0.8)', tickMinute: isLight ? 'rgba(55, 65, 81, 0.3)' : 'rgba(255, 0, 255, 0.4)', circle: isLight ? 'rgba(55, 65, 81, 0.2)' : 'rgba(255, 0, 255, 0.3)' }
             };
+            const c = colors[variant];
+            const ticks = Array.from({ length: 60 }).map((_, i) => {
+                const isHourMark = (i) % 5 === 0; let stroke = isHourMark ? c.tickHour : c.tickMinute; let strokeWidth = isHourMark ? (variant === 'cyber' ? 1.5 : 2) : 0.5; let y1 = isHourMark ? (variant === 'cyber' ? 2 : 2) : 2; let y2 = isHourMark ? (variant === 'cyber' ? 6 : 8) : (variant === 'cyber' ? 4 : 5);
+                return <line key={i} x1="50" y1={y1} x2="50" y2={y2} stroke={stroke} strokeWidth={strokeWidth} style={{ transform: `rotate(${i * 6}deg)`, transformOrigin: '50% 50%' }} />;
+            });
+            return ( <div className={`absolute top-20 ${position} w-24 h-24 sm:w-32 sm:h-32 z-20 opacity-80 hidden lg:block`}><svg viewBox="0 0 100 100" className="w-full h-full"><defs><filter id={`hand-glow-${variant}`} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs><circle cx="50" cy="50" r="48" fill="none" stroke={c.circle} strokeWidth="1" />{variant === 'luxury' && <circle cx="50" cy="50" r="45" fill="none" stroke={c.circle} strokeWidth="0.5" />}{ticks}<line x1="50" y1="50" x2="50" y2="28" stroke={c.hour} strokeWidth={variant === 'cyber' ? 3 : 2.5} strokeLinecap="round" style={{ transform: `rotate(${hourDeg}deg)`, transformOrigin: '50% 50%' }} filter={`url(#hand-glow-${variant})`} /><line x1="50" y1="50" x2="50" y2="18" stroke={c.minute} strokeWidth={variant === 'cyber' ? 2 : 1.5} strokeLinecap="round" style={{ transform: `rotate(${minuteDeg}deg)`, transformOrigin: '50% 50%' }} filter={`url(#hand-glow-${variant})`} /><line x1="50" y1="50" x2="50" y2="15" stroke={c.second} strokeWidth={1} style={{ transform: `rotate(${secondDeg}deg)`, transformOrigin: '50% 50%' }} /><circle cx="50" cy="50" r="2" fill={c.hour} /></svg></div> );
+        };
+        
+        const ScrollToTopButton = () => { const [isVisible, setIsVisible] = useState(false); const toggleVisibility = () => { if (window.pageYOffset > 300) { setIsVisible(true); } else { setIsVisible(false); } }; const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { window.addEventListener('scroll', toggleVisibility); return () => window.removeEventListener('scroll', toggleVisibility); }, []); return ( <button onClick={scrollToTop} className={`fixed bottom-6 left-6 z-40 p-3 bg-cyan-500/80 text-white rounded-full shadow-lg transition-opacity duration-300 hover:bg-cyan-400 ${isVisible ? 'opacity-100' : 'opacity-0'}`} title="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button> ); };
 
-            if (!isOpen) return null;
+        function App({ user, onLogout }) {
+             const [data, setData] = useState(null); 
+             const [activeMonthIndex, setActiveMonthIndex] = useState(0); 
+             const [todayString, setTodayString] = useState(getTodayDateString()); 
+             const [currentDateString, setCurrentDateString] = useState(getCurrentFormattedDate()); 
+             const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString()); 
+             const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark"); 
+             const [isAccountPopupVisible, setAccountPopupVisible] = useState(false); 
+             const [isResetPopupVisible, setResetPopupVisible] = useState(false); 
+             const [resetPasswordInput, setResetPasswordInput] = useState(""); 
+             const [resetError, setResetError] = useState(""); 
+             const [isStatementVisible, setStatementVisible] = useState(false); 
+             const [currentPage, setCurrentPage] = useState(1); 
+             const [isGeminiPopupVisible, setGeminiPopupVisible] = useState(false);
+             const [inputCapital, setInputCapital] = useState(DEFAULT_INITIAL_CAPITAL.toString()); 
+             const [inputTarget, setInputTarget] = useState(DEFAULT_FINAL_TARGET.toString()); 
+             const [inputTenure, setInputTenure] = useState(DEFAULT_TENURE_DAYS.toString()); 
+             
+             const journalContainerRef = useRef(null); const topOfPageRef = useRef(null); const dragInfo = useRef(null); 
+             
+             useEffect(() => { const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000); return () => clearInterval(timer); }, []);
+             useEffect(() => { if (currentPage === 1 && activeMonthIndex === 0) return; journalContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [currentPage, activeMonthIndex]);
 
+             const generatePlanStructure = useCallback((tenure, oldMonths = []) => { const oldDaysMap = new Map(); oldMonths.forEach(month => month.days.forEach(day => oldDaysMap.set(day.date, day))); let months = []; let currentDate = new Date(); let dayCounter = 0; while (dayCounter < tenure) { const monthIndex = Math.floor(dayCounter / TRADING_DAYS_PER_MONTH); if (!months[monthIndex]) { months[monthIndex] = { id: monthIndex + 1, monthName: currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }), days: [] }; } const dateStr = currentDate.toISOString().split('T')[0]; const existingDayData = oldDaysMap.get(dateStr); months[monthIndex].days.push({ day: dayCounter + 1, date: dateStr, capital: 0, target: 0, profit: 0, dailyRate: 0, achieved: existingDayData?.achieved ?? false, pnlSign: existingDayData?.pnlSign ?? "+", actual: existingDayData?.actual ?? "", winningTrades: existingDayData?.winningTrades ?? "", losingTrades: existingDayData?.losingTrades ?? "", logic: existingDayData?.logic ?? "", rules: existingDayData?.rules ?? JSON.parse(JSON.stringify(DEFAULT_RULES)), }); currentDate = getNextTradingDay(currentDate); dayCounter++; } return months; }, []);
+             
+             const recalculatePlan = useCallback((fullData) => { const { initialCapital, finalTarget, tenure } = fullData; const newMonths = JSON.parse(JSON.stringify(fullData.months)); const allDays = newMonths.flatMap(m => m.days); let actualCapital = initialCapital; let daysRemaining = tenure; for (let day of allDays) { day.capital = Math.round(actualCapital); let requiredDailyRate = 0; if (actualCapital > 0 && daysRemaining > 0 && finalTarget > actualCapital) { requiredDailyRate = Math.pow(finalTarget / actualCapital, 1 / daysRemaining) - 1; } else if (actualCapital > 0 && daysRemaining > 0 && finalTarget <= actualCapital) { requiredDailyRate = 0; } day.dailyRate = requiredDailyRate; day.profit = Math.round(actualCapital * requiredDailyRate); day.target = Math.round(actualCapital + day.profit); if (day.actual !== "") { const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); actualCapital += signedProfit; } else { actualCapital = day.target; } daysRemaining--; } return newMonths; }, []);
+             
+             const initializeAndSetData = useCallback(() => { 
+                 const months = generatePlanStructure(DEFAULT_TENURE_DAYS); 
+                 let initialData = { initialCapital: DEFAULT_INITIAL_CAPITAL, finalTarget: DEFAULT_FINAL_TARGET, tenure: DEFAULT_TENURE_DAYS, months }; 
+                 initialData.months = recalculatePlan(initialData); 
+                 setData(initialData); 
+                 setInputCapital(DEFAULT_INITIAL_CAPITAL.toString()); 
+                 setInputTarget(DEFAULT_FINAL_TARGET.toString()); 
+                 setInputTenure(DEFAULT_TENURE_DAYS.toString()); 
+                 setActiveMonthIndex(0); 
+                 setCurrentPage(1); 
+                 topOfPageRef.current?.scrollIntoView({ behavior: 'smooth' }); 
+                 db.ref('users/' + user.uid + '/journal').set(initialData);
+             }, [generatePlanStructure, recalculatePlan, user.uid]);
+
+             // Initial Load from Firebase
+             useEffect(() => {
+                 db.ref('users/' + user.uid + '/journal').once('value', (snapshot) => {
+                     const savedData = snapshot.val();
+                     if (savedData) {
+                         setData(savedData);
+                         setInputCapital(savedData.initialCapital.toString());
+                         setInputTarget(savedData.finalTarget.toString());
+                         setInputTenure(savedData.tenure.toString());
+                     } else {
+                         initializeAndSetData();
+                     }
+                 });
+             }, [user.uid, initializeAndSetData]);
+
+             useEffect(() => { document.documentElement.classList.toggle("dark", theme === "dark"); localStorage.setItem("theme", theme); }, [theme]);
+             
+             // Debounce Save to Firebase
+             useEffect(() => {
+                 if (data) {
+                     const timer = setTimeout(() => {
+                         db.ref('users/' + user.uid + '/journal').set(data);
+                     }, 1000); // Autosave after 1 second of inactivity
+                     return () => clearTimeout(timer);
+                 }
+             }, [data, user.uid]);
+
+             const handleUpdateTargets = () => { const newInitialCapital = parseInt(inputCapital, 10) || DEFAULT_INITIAL_CAPITAL; const newFinalTarget = parseInt(inputTarget, 10) || DEFAULT_FINAL_TARGET; const newTenure = parseInt(inputTenure, 10) || DEFAULT_TENURE_DAYS; setData(prevData => { const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, initialCapital: newInitialCapital, finalTarget: newFinalTarget, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); setActiveMonthIndex(0); setCurrentPage(1); return updatedData; }); };
+             
+             const handleDataChange = (monthIndex, dayIndex, field, value) => { setData(prevData => { const newData = JSON.parse(JSON.stringify(prevData)); const day = newData.months[monthIndex].days[dayIndex]; day[field] = value; const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); day.achieved = signedProfit >= day.profit; newData.months = recalculatePlan(newData); return newData; }); };
+             
+             const handleConfirmReset = () => { if (resetPasswordInput === '1111') { initializeAndSetData(); setResetPopupVisible(false); } else { setResetError("Incorrect Password. Reset Aborted."); } };
+             const handleAddNewMonth = () => { setData(prevData => { const newTenure = prevData.tenure + TRADING_DAYS_PER_MONTH; const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); setInputTenure(newTenure.toString()); return updatedData; }); };
+             const openResetPopup = () => { setResetPasswordInput(""); setResetError(""); setResetPopupVisible(true); };
+             const toggleTheme = () => { setTheme(prev => { const newTheme = prev === "dark" ? "light" : "dark"; localStorage.setItem("theme", newTheme); return newTheme; }); }; 
+             const handleMouseMove = useCallback((e) => { if (!dragInfo.current) return; const { element, startX, startY } = dragInfo.current; const deltaX = e.clientX - startX; const deltaY = e.clientY - startY; element.style.transform = `rotateX(${-deltaY * 0.2}deg) rotateY(${deltaX * 0.2}deg) scale3d(1.05, 1.05, 1.05)`; }, []);
+             const handleMouseUp = useCallback(() => { if (!dragInfo.current) return; dragInfo.current.element.classList.remove('is-dragging'); dragInfo.current.element.style.transform = ''; window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); dragInfo.current = null; }, [handleMouseMove]);
+             const handleMouseDown = useCallback((e) => { if (e.button !== 0 || ['INPUT', 'TEXTAREA', 'LABEL', 'BUTTON'].includes(e.target.tagName) || e.target.closest('label')) return; e.currentTarget.classList.add('is-dragging'); dragInfo.current = { element: e.currentTarget, startX: e.clientX, startY: e.clientY }; window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); }, [handleMouseMove, handleMouseUp]);
+             const analysis = useMemo(() => { if (!data || !data.months[activeMonthIndex]) return { pnl: 0, profitDays: 0, lossDays: 0, winningTrades: 0, losingTrades: 0 }; const month = data.months[activeMonthIndex]; const completedDays = month.days.filter(d => d.actual !== ""); const pnl = completedDays.reduce((acc, d) => acc + (d.pnlSign === '+' ? 1 : -1) * (Number(d.actual) || 0), 0); const profitDays = completedDays.filter(d => (d.pnlSign === '+' && d.actual !== '0')).length; const lossDays = completedDays.filter(d => (d.pnlSign === '-' && d.actual !== '0')).length; const winningTrades = completedDays.reduce((acc, d) => acc + (Number(d.winningTrades) || 0), 0); const losingTrades = completedDays.reduce((acc, d) => acc + (Number(d.losingTrades) || 0), 0); return { pnl, profitDays, lossDays, winningTrades, losingTrades }; }, [data, activeMonthIndex]);
+             const startCapitalForMonth = useMemo(() => { if (!data || activeMonthIndex === 0) return data ? data.initialCapital : 0; const allDays = data.months.flatMap(m => m.days); const firstDayOfMonthIndex = activeMonthIndex * TRADING_DAYS_PER_MONTH; return allDays[firstDayOfMonthIndex]?.capital ?? 0; }, [data, activeMonthIndex]);
+             const currentMonthDays = data ? data.months[activeMonthIndex]?.days || [] : [];
+             const totalPages = Math.ceil(currentMonthDays.length / DAYS_PER_PAGE);
+             const startIndex = (currentPage - 1) * DAYS_PER_PAGE;
+             const endIndex = startIndex + DAYS_PER_PAGE;
+             const displayedDays = currentMonthDays.slice(startIndex, endIndex);
+             const goToPrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
+             const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
+             const handleAnalyzeWithAI = () => { setGeminiPopupVisible(true); };
+             
+            if (!data) { return <div className="min-h-screen flex items-center justify-center text-cyan-400"><p>LOADING NEURAL INTERFACE...</p></div>; }
+            const currentMonthData = data.months[activeMonthIndex]; 
+            const totalGainPercent = data.initialCapital > 0 ? ((data.finalTarget / data.initialCapital) - 1) * 100 : 0;
+            
             return (
-                <div className="fixed inset-0 z-50 flex justify-end">
-                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
-                    <div className="relative w-full max-w-md bg-slate-900 border-l border-slate-800 h-full flex flex-col shadow-2xl animate-fade-in">
-                        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                <h3 className="font-bold text-white">AI Analyst</h3>
-                            </div>
-                            <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950" ref={scrollRef}>
-                            {messages.map((m, i) => (
-                                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[85%] p-3 rounded-lg text-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>
-                                        {m.text}
-                                    </div>
+                <div ref={topOfPageRef} className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center pb-16 pt-20 px-4 sm:px-6 transition-colors duration-500 ${theme === 'dark' ? 'bg-dark-cyber scanlines' : 'bg-white'}`}>
+                    
+                    {/* ... (Modals: Account, Reset, Gemini, MonthlyStatement) same as before ... */}
+                    {isAccountPopupVisible && ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setAccountPopupVisible(false)}><div className="bg-white/80 dark:bg-black/80 p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] text-center" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-4">ACCOUNT</h3><p className="mb-6">User: <span className="font-bold text-cyan-600 dark:text-cyan-400">{user.email || 'Anonymous'}</span></p><div className="flex flex-col gap-4"><button onClick={() => { setStatementVisible(true); setAccountPopupVisible(false); }} className="px-6 py-2 rounded-lg bg-fuchsia-600/80 hover:bg-fuchsia-500/80 border border-fuchsia-400 backdrop-blur-sm text-white font-bold transition-all">Monthly Statement</button><button onClick={onLogout} className="px-6 py-2 rounded-lg bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all">LOGOUT</button><button onClick={() => setAccountPopupVisible(false)} className="px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">Back</button></div></div></div> )}
+                    {isResetPopupVisible && ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setResetPopupVisible(false)}><div className="bg-white/80 dark:bg-black/80 p-8 border border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.5)] text-center" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-4 text-red-500">CONFIRM DATA PURGE</h3><p className="text-xs text-gray-700 dark:text-gray-400 mb-6">This action is irreversible...</p><input type="password" value={resetPasswordInput} onChange={(e) => setResetPasswordInput(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-red-500 mb-4" placeholder="****"/>{resetError && <p className="text-red-500 text-xs text-center mb-4">{resetError}</p>}<div className="flex justify-center gap-4"><button onClick={() => { setResetPopupVisible(false); }} className="bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white px-6 py-2 font-bold transition-all">CANCEL</button><button onClick={handleConfirmReset} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all">CONFIRM PURGE</button></div></div></div> )}
+                    {isStatementVisible && <MonthlyStatement monthData={currentMonthData} startCapital={startCapitalForMonth} onClose={() => setStatementVisible(false)} />}
+                    {isGeminiPopupVisible && <GeminiAnalysisPopup onClose={() => setGeminiPopupVisible(false)} tradingData={currentMonthDays} />} 
+                    
+                    <AnalogClock position="left-4" variant="cyber" theme={theme} />
+                    <AnalogClock position="right-4" variant="luxury" theme={theme} />
+                    <ScrollToTopButton />
+
+                    {/* ... Header and Content Sections ... */}
+                    <div className="fixed top-0 left-0 right-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b-2 border-cyan-500/50 shadow-[0_5px_15px_-5px_rgba(0,255,255,0.4)]">
+                        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-16 flex justify-between items-center">
+                            <a href="https://cryptobubbles.net/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400" title="Market Bubbles"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-600 dark:text-cyan-400"> <circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"></line><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"></line><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"></line><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"></line> </svg></a>
+                            <div className="flex items-center gap-2 sm:gap-4">
+                                <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                    <span>{currentDateString}</span>
+                                    <span className="text-cyan-500">|</span>
+                                    <span>{currentTime}</span>
                                 </div>
-                            ))}
-                            {loading && <div className="text-xs text-slate-500 ml-2">Analyst is typing...</div>}
-                        </div>
-                        <div className="p-4 bg-slate-900 border-t border-slate-800 flex gap-2">
-                            <input 
-                                type="text" 
-                                value={input} 
-                                onChange={e=>setInput(e.target.value)}
-                                onKeyPress={e=>e.key==='Enter' && sendToGemini()}
-                                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none"
-                                placeholder="Ask about your performance..."
-                            />
-                            <button onClick={sendToGemini} className="p-3 bg-blue-600 rounded-lg text-white hover:bg-blue-500">
-                                <Icons.Send />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // 3. Main Dashboard (Stats & Overview)
-        const DashboardView = ({ data }) => {
-            if (!data) return null;
-            const allDays = data.months.flatMap(m => m.days).filter(d => d.actual !== "");
-            const currentEquity = allDays.length > 0 ? allDays[allDays.length - 1].capital : data.initialCapital;
-            const totalPnl = currentEquity - data.initialCapital;
-            const pnlColor = totalPnl >= 0 ? 'text-success' : 'text-danger';
-
-            // Chart Data Preparation
-            const chartData = [{ name: 'Start', equity: data.initialCapital }, ...allDays.map(d => ({ name: `D${d.day}`, equity: d.capital }))];
-
-            return (
-                <div className="space-y-6 animate-fade-in pb-20">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
-                            <p className="text-xs text-slate-400 uppercase font-bold">Current Equity</p>
-                            <h2 className="text-2xl font-mono font-bold text-white mt-1">{formatCurrency(currentEquity)}</h2>
-                        </div>
-                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
-                            <p className="text-xs text-slate-400 uppercase font-bold">Net P&L</p>
-                            <h2 className={`text-2xl font-mono font-bold mt-1 ${pnlColor}`}>{formatCurrency(totalPnl)}</h2>
-                        </div>
-                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
-                            <p className="text-xs text-slate-400 uppercase font-bold">Trades Taken</p>
-                            <h2 className="text-2xl font-mono font-bold text-white mt-1">{allDays.length}</h2>
-                        </div>
-                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
-                            <p className="text-xs text-slate-400 uppercase font-bold">Target</p>
-                            <h2 className="text-2xl font-mono font-bold text-blue-400 mt-1">{formatCurrency(data.finalTarget)}</h2>
-                        </div>
-                    </div>
-
-                    {/* Equity Chart */}
-                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 h-64 md:h-80 w-full">
-                        <h3 className="text-sm font-bold text-slate-300 mb-4">Performance Curve</h3>
-                        <ResponsiveContainer width="100%" height="90%">
-                            <LineChart data={chartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                                <XAxis dataKey="name" hide />
-                                <YAxis domain={['auto', 'auto']} stroke="#94a3b8" fontSize={10} />
-                                <Tooltip contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', color: '#fff'}} />
-                                <Line type="monotone" dataKey="equity" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            );
-        };
-
-        // 4. Journal View (The Trade Blotter)
-        const JournalView = ({ data, updateData, activeMonth, setMonth }) => {
-            const [page, setPage] = useState(1);
-            const currentMonthData = data.months[activeMonth];
-            const startIndex = (page - 1) * DAYS_PER_PAGE;
-            const displayDays = currentMonthData.days.slice(startIndex, startIndex + DAYS_PER_PAGE);
-            const totalPages = Math.ceil(currentMonthData.days.length / DAYS_PER_PAGE);
-
-            return (
-                <div className="animate-fade-in pb-20">
-                    {/* Month Selector */}
-                    <div className="flex overflow-x-auto gap-2 mb-6 pb-2">
-                        {data.months.map((m, idx) => (
-                            <button 
-                                key={idx} 
-                                onClick={() => { setMonth(idx); setPage(1); }}
-                                className={`px-4 py-2 text-xs font-bold uppercase rounded-md whitespace-nowrap transition-all ${activeMonth === idx ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
-                            >
-                                {m.monthName}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Trade Cards */}
-                    <div className="space-y-4">
-                        {displayDays.map((day, i) => {
-                            const globalIndex = startIndex + i;
-                            const pnlVal = Number(day.actual);
-                            const pnlColor = day.pnlSign === '+' ? 'text-success' : 'text-danger';
-                            const borderClass = day.pnlSign === '+' && pnlVal > 0 ? 'border-l-4 border-l-success' : (day.pnlSign === '-' && pnlVal > 0 ? 'border-l-4 border-l-danger' : 'border-l-4 border-l-slate-600');
-
-                            return (
-                                <div key={day.date} className={`bg-slate-800 rounded-lg border border-slate-700 shadow-sm overflow-hidden ${borderClass}`}>
-                                    {/* Header */}
-                                    <div className="p-3 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-slate-500 font-mono font-bold text-xs">DAY {day.day}</span>
-                                            <span className="text-slate-300 font-semibold text-sm">{new Date(day.date).toLocaleDateString()}</span>
-                                        </div>
-                                        <div className="flex items-center bg-slate-900 rounded border border-slate-700">
-                                            <button 
-                                                className={`px-3 py-1 text-sm font-bold ${day.pnlSign === '+' ? 'text-success' : 'text-slate-500'}`}
-                                                onClick={() => updateData(activeMonth, globalIndex, 'pnlSign', '+')}
-                                            >+</button>
-                                            <input 
-                                                type="number" 
-                                                className="w-24 bg-transparent text-center font-mono text-white outline-none text-sm"
-                                                placeholder="0"
-                                                value={day.actual}
-                                                onChange={(e) => updateData(activeMonth, globalIndex, 'actual', e.target.value)}
-                                            />
-                                            <button 
-                                                className={`px-3 py-1 text-sm font-bold ${day.pnlSign === '-' ? 'text-danger' : 'text-slate-500'}`}
-                                                onClick={() => updateData(activeMonth, globalIndex, 'pnlSign', '-')}
-                                            >-</button>
-                                        </div>
-                                    </div>
-
-                                    {/* Details Grid */}
-                                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <div className="flex justify-between mb-2">
-                                                <span className="text-xs text-slate-500 uppercase">Projected</span>
-                                                <span className="text-xs font-mono text-slate-300">{formatCurrency(day.target)}</span>
-                                            </div>
-                                            <div className="flex justify-between mb-2">
-                                                <span className="text-xs text-slate-500 uppercase">Actual Equity</span>
-                                                <span className="text-xs font-mono text-white">{formatCurrency(day.capital)}</span>
-                                            </div>
-                                            <textarea 
-                                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-300 mt-2 resize-none focus:border-blue-600 outline-none"
-                                                rows="3"
-                                                placeholder="Trade notes, setup, emotions..."
-                                                value={day.logic}
-                                                onChange={(e) => updateData(activeMonth, globalIndex, 'logic', e.target.value)}
-                                            ></textarea>
-                                        </div>
-                                        <div className="border-t md:border-t-0 md:border-l border-slate-700 pt-4 md:pt-0 md:pl-4">
-                                            <p className="text-xs text-slate-500 uppercase mb-2">Execution Checklist</p>
-                                            <div className="grid grid-cols-1 gap-1">
-                                                {day.rules.map((rule, rIdx) => (
-                                                    <label key={rIdx} className="flex items-center gap-2 cursor-pointer">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            className="rounded bg-slate-700 border-slate-600 text-blue-600 focus:ring-0"
-                                                            checked={rule.checked}
-                                                            onChange={(e) => {
-                                                                const newRules = [...day.rules];
-                                                                newRules[rIdx].checked = e.target.checked;
-                                                                updateData(activeMonth, globalIndex, 'rules', newRules);
-                                                            }}
-                                                        />
-                                                        <span className={`text-xs ${rule.checked ? 'text-blue-400' : 'text-slate-400'}`}>{rule.text}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Pagination */}
-                    <div className="flex justify-between items-center mt-6 px-2">
-                        <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="text-slate-400 hover:text-white disabled:opacity-30 flex items-center gap-1 text-sm"><Icons.ArrowLeft /> Prev</button>
-                        <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
-                        <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="text-slate-400 hover:text-white disabled:opacity-30 flex items-center gap-1 text-sm">Next <Icons.ArrowRight /></button>
-                    </div>
-                </div>
-            );
-        };
-
-        // --- MAIN APP CONTAINER ---
-        const App = ({ user, onLogout }) => {
-            const [view, setView] = useState('dashboard'); // 'dashboard' | 'journal'
-            const [data, setData] = useState(null);
-            const [activeMonth, setActiveMonth] = useState(0);
-            const [aiOpen, setAiOpen] = useState(false);
-
-            // Data Initialization Logic (Same calculations as before)
-            const initDataModel = useCallback(() => {
-                const months = []; 
-                let d = new Date();
-                let count = 0;
-                // Simple loop to generate days
-                while(count < DEFAULT_TENURE_DAYS) {
-                    const mIdx = Math.floor(count / TRADING_DAYS_PER_MONTH);
-                    if(!months[mIdx]) months[mIdx] = { id: mIdx, monthName: d.toLocaleString('default', {month:'long'}), days: [] };
-                    
-                    let dateStr = d.toISOString().split('T')[0];
-                    months[mIdx].days.push({
-                        day: count + 1, date: dateStr, capital: 0, target: 0, profit: 0, dailyRate: 0,
-                        pnlSign: '+', actual: '', logic: '', rules: JSON.parse(JSON.stringify(DEFAULT_RULES))
-                    });
-                    
-                    // Next trading day logic
-                    d.setDate(d.getDate() + 1);
-                    while(d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-                    count++;
-                }
-                
-                // Initial Calc
-                let cap = DEFAULT_INITIAL_CAPITAL;
-                let daysLeft = DEFAULT_TENURE_DAYS;
-                months.forEach(m => m.days.forEach(day => {
-                     const rate = (Math.pow(DEFAULT_FINAL_TARGET/DEFAULT_INITIAL_CAPITAL, 1/DEFAULT_TENURE_DAYS) - 1);
-                     day.capital = Math.round(cap);
-                     day.dailyRate = rate;
-                     day.target = Math.round(cap * (1 + rate));
-                     cap = day.target;
-                }));
-
-                return { initialCapital: DEFAULT_INITIAL_CAPITAL, finalTarget: DEFAULT_FINAL_TARGET, tenure: DEFAULT_TENURE_DAYS, months };
-            }, []);
-
-            const recalculate = (currentData) => {
-                let cap = Number(currentData.initialCapital);
-                let daysLeft = Number(currentData.tenure);
-                const target = Number(currentData.finalTarget);
-                
-                // Deep copy to avoid mutation issues
-                const newData = JSON.parse(JSON.stringify(currentData));
-                
-                newData.months.forEach(m => {
-                    m.days.forEach(day => {
-                        day.capital = Math.round(cap);
-                        // Dynamic Rate Calculation
-                        let rate = 0;
-                        if(cap > 0 && daysLeft > 0 && target > cap) {
-                            rate = Math.pow(target / cap, 1 / daysLeft) - 1;
-                        }
-                        
-                        day.dailyRate = rate;
-                        day.profit = Math.round(cap * rate);
-                        day.target = Math.round(cap + day.profit);
-                        
-                        if (day.actual !== "") {
-                            const val = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual);
-                            cap += val;
-                        } else {
-                            cap = day.target;
-                        }
-                        daysLeft--;
-                    });
-                });
-                return newData;
-            };
-
-            // Load Data
-            useEffect(() => {
-                db.ref(`users/${user.uid}/journal`).once('value', snapshot => {
-                    if (snapshot.exists()) {
-                        setData(snapshot.val());
-                    } else {
-                        const newData = initDataModel();
-                        setData(newData);
-                        db.ref(`users/${user.uid}/journal`).set(newData);
-                    }
-                });
-            }, [user]);
-
-            // Update Helper
-            const updateData = (mIdx, dIdx, field, val) => {
-                setData(prev => {
-                    const copy = JSON.parse(JSON.stringify(prev));
-                    copy.months[mIdx].days[dIdx][field] = val;
-                    const recalculated = recalculate(copy);
-                    // Autosave to firebase
-                    db.ref(`users/${user.uid}/journal`).set(recalculated);
-                    return recalculated;
-                });
-            };
-
-            if (!data) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-blue-500">Loading Profile...</div>;
-
-            return (
-                <div className="flex min-h-screen bg-slate-950 text-slate-200 font-sans">
-                    {/* DESKTOP SIDEBAR */}
-                    <aside className="hidden md:flex flex-col w-20 bg-slate-900 border-r border-slate-800 fixed h-full z-20 items-center py-6">
-                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white mb-8">PT</div>
-                        <nav className="flex flex-col gap-6 w-full items-center">
-                            <button onClick={() => setView('dashboard')} className={`p-3 rounded-xl transition-all ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-800'}`}><Icons.Home /></button>
-                            <button onClick={() => setView('journal')} className={`p-3 rounded-xl transition-all ${view === 'journal' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-800'}`}><Icons.Journal /></button>
-                            <button onClick={() => setAiOpen(true)} className="p-3 rounded-xl text-slate-500 hover:bg-slate-800"><Icons.Robot /></button>
-                        </nav>
-                        <div className="mt-auto pb-4">
-                            <button onClick={onLogout} className="p-3 rounded-xl text-slate-500 hover:text-red-500 hover:bg-slate-800"><Icons.Logout /></button>
-                        </div>
-                    </aside>
-
-                    {/* MAIN CONTENT */}
-                    <main className="flex-1 md:ml-20 p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto w-full">
-                        {/* Top Bar */}
-                        <header className="flex justify-between items-center mb-8">
-                            <div>
-                                <h1 className="text-2xl font-bold text-white">{view === 'dashboard' ? 'Market Overview' : 'Trade Journal'}</h1>
-                                <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest">Account: {user.email}</p>
+                                <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400" title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}>{theme === 'dark' ? ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg> ) : ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> )}</button>
+                                <button onClick={() => setAccountPopupVisible(true)} className="p-2 rounded-lg hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400" title="Account"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700 dark:text-gray-300"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></button>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <a href="https://cryptobubbles.net" target="_blank" className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-700 rounded text-sm hover:border-blue-500 transition-colors">
-                                    <Icons.Chart /> <span>Bubbles</span>
-                                </a>
-                            </div>
-                        </header>
+                        </div>
+                    </div>
 
-                        {/* Content Switching */}
-                        {view === 'dashboard' && <DashboardView data={data} />}
-                        {view === 'journal' && <JournalView data={data} updateData={updateData} activeMonth={activeMonth} setMonth={setActiveMonth} />}
-                    </main>
+                    <header className="text-center w-full max-w-7xl z-10 pt-8 sm:pt-8 mb-4"> <div className="flex justify-center mb-2"><Logo size="64" /></div><h1 className="text-2xl sm:text-4xl font-black text-cyan-600 dark:text-cyan-400" style={{textShadow: '0 0 10px #00ffff'}}>DevTrader Trading Journal</h1><p className="font-bold tracking-wider text-gray-700 dark:text-gray-300 mt-2 drop-shadow text-xs sm:text-base"> OBJECTIVE: ₹{formatNumber(data.initialCapital, false)} → ₹{formatNumber(data.finalTarget, false)} in {data.tenure} days <br className="sm:hidden" /> <span className="text-cyan-600 dark:text-cyan-400 sm:ml-2">({totalGainPercent.toFixed(2)}% GAIN)</span> </p></header>
+                    
+                    <div className="w-full max-w-5xl my-4 p-4 z-10 bg-white/50 dark:bg-black/70 backdrop-blur-sm border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]"><div className="flex flex-col sm:flex-row justify-center items-center gap-4"><div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">START CAPITAL</label><div className="flex items-center bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-40"><span className="px-2 text-gray-600 dark:text-gray-500">₹</span><input type="number" value={inputCapital} onChange={e => setInputCapital(e.target.value)} className="bg-transparent text-center p-2 w-full focus:outline-none" /></div></div><div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">OVERALL TARGET</label><div className="flex items-center bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-40"><span className="px-2 text-gray-600 dark:text-gray-500">₹</span><input type="number" value={inputTarget} onChange={e => setInputTarget(e.target.value)} className="bg-transparent text-center p-2 w-full focus:outline-none" /></div></div><div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">TENURE (DAYS)</label><input type="number" value={inputTenure} onChange={e => setInputTenure(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-cyan-400" /></div><button onClick={handleUpdateTargets} className="w-full sm:w-auto bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-6 py-2 mt-2 sm:mt-5 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all">SET & RECALCULATE</button></div></div>
+                    
+                    <div ref={journalContainerRef} className="w-full max-w-7xl mb-4 bg-white/50 dark:bg-black/70 backdrop-blur-sm rounded-t-lg z-10 border-t border-x border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]"> <div className="flex overflow-x-auto">{data.months.map((month, index) => (<button key={month.id} onClick={() => { setActiveMonthIndex(index); setCurrentPage(1); }} className={`px-4 py-2 text-xs sm:text-sm font-bold transition-all whitespace-nowrap border-b-2 ${activeMonthIndex === index ? 'border-cyan-500 text-cyan-600 dark:border-cyan-400 dark:text-cyan-400' : 'border-transparent text-gray-700 dark:text-gray-400 hover:text-cyan-700 dark:hover:text-cyan-400 hover:bg-cyan-900/20'}`}>&gt; {month.monthName || `Month ${month.id}`}</button>))}</div> </div>
+                    
+                    <div className="w-full max-w-7xl grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4 mb-4 text-center z-10"> {['MONTH P&L', 'PROFIT DAYS', 'LOSS DAYS', 'WINNING TRADES', 'LOSING TRADES', 'MONTH START'].map((title, i) => (<div key={title} className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-3 sm:p-4 border border-fuchsia-700/30 dark:border-fuchsia-500/50 shadow-[0_0_15px_rgba(255,0,255,0.3)]"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-base sm:text-xl font-bold ${i === 0 ? (analysis.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : i === 1 || i === 3 ? 'text-green-600 dark:text-green-400' : i === 2 || i === 4 ? 'text-red-600 dark:text-red-400' : 'text-black dark:text-gray-200'}`}>{i === 0 ? `₹${formatNumber(analysis.pnl, true)}` : i === 1 ? analysis.profitDays : i === 2 ? analysis.lossDays : i === 3 ? analysis.winningTrades : i === 4 ? analysis.losingTrades : '₹' + formatNumber(Math.round(startCapitalForMonth), false) }</p></div>))} </div>
 
-                    {/* MOBILE BOTTOM NAV */}
-                    <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-900/95 backdrop-blur border-t border-slate-800 flex justify-around items-center py-3 z-40 safe-area-pb">
-                        <button onClick={() => setView('dashboard')} className={`flex flex-col items-center gap-1 ${view === 'dashboard' ? 'text-blue-500' : 'text-slate-500'}`}>
-                            <Icons.Home /> <span className="text-[10px] font-medium">Home</span>
-                        </button>
-                        <button onClick={() => setView('journal')} className={`flex flex-col items-center gap-1 ${view === 'journal' ? 'text-blue-500' : 'text-slate-500'}`}>
-                            <Icons.Journal /> <span className="text-[10px] font-medium">Journal</span>
-                        </button>
-                        <button onClick={() => setAiOpen(true)} className="flex flex-col items-center gap-1 text-slate-500">
-                            <Icons.Robot /> <span className="text-[10px] font-medium">AI</span>
-                        </button>
-                        <button onClick={onLogout} className="flex flex-col items-center gap-1 text-slate-500">
-                            <Icons.Logout /> <span className="text-[10px] font-medium">Exit</span>
-                        </button>
-                    </nav>
+                    <div className="w-full max-w-7xl perspective-container z-10">
+                        <div className="space-y-6">
+                            {displayedDays.map((row) => { const originalIndex = currentMonthDays.findIndex(day => day.date === row.date); const isToday = row.date === todayString; const pnlValue = Number(row.actual) || 0; const isProfit = row.pnlSign === '+' && pnlValue > 0; const isLoss = row.pnlSign === '-' && pnlValue > 0; return ( <div key={row.date} className={`day-container p-4 border transition-all duration-300 transform-style-3d hover:scale-[1.02] ${isProfit ? 'hover:!bg-green-400/20 dark:hover:!bg-green-900/50' : isLoss ? 'hover:!bg-red-400/20 dark:hover:!bg-red-900/50' : 'hover:!bg-gray-400/20 dark:hover:!bg-gray-800/40'} ${isToday ? 'today-highlight border-gray-500/80' : 'border-cyan-700/20 dark:border-cyan-500/30'} ${isProfit ? "bg-green-200/30 dark:bg-green-800/30 backdrop-blur-md" : isLoss ? "bg-red-200/30 dark:bg-red-800/30 backdrop-blur-md" : "bg-white/50 dark:bg-black/70 backdrop-blur-md" }`} onMouseDown={handleMouseDown}><div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-4 items-center text-center"><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">DAY</span><span className="font-black text-lg">{row.day}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">DATE</span><span className="font-bold text-xs sm:text-sm">{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span></div><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">CAPITAL</span><span className="font-mono font-bold text-sm">₹{formatNumber(row.capital, false)}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">TARGET %</span><span className={`font-mono font-bold text-sm ${row.dailyRate > 0 ? 'text-cyan-700 dark:text-cyan-400' : 'text-gray-500'}`}>{(row.dailyRate * 100).toFixed(2)}%</span></div><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">PROFIT GOAL</span><span className="font-mono text-yellow-600 dark:text-yellow-400 font-bold text-sm">₹{formatNumber(row.profit, false)}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">TARGET AMT</span><span className="font-mono font-bold text-sm">₹{formatNumber(row.target, false)}</span></div><div className="flex flex-col items-center"><span className="text-xs text-gray-600 dark:text-gray-400 mb-1">WIN</span><input type="number" placeholder="W" value={row.winningTrades} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'winningTrades', e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-1.5 w-16 sm:w-20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/></div><div className="flex flex-col items-center"><span className="text-xs text-gray-600 dark:text-gray-400 mb-1">LOSS</span><input type="number" placeholder="L" value={row.losingTrades} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'losingTrades', e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-1.5 w-16 sm:w-20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/></div><div className="flex flex-col items-center col-span-2 sm:col-span-4 lg:col-span-1"><span className="text-xs text-gray-600 dark:text-gray-400 mb-1">YOUR P&L</span><div className="flex items-center w-full max-w-xs"><button onClick={() => handleDataChange(activeMonthIndex, originalIndex, 'pnlSign', '+')} className={`px-2 py-1 border ${row.pnlSign === '+' ? 'bg-green-500 text-white border-green-500' : 'bg-transparent border-gray-500'}`}>+</button><input type="number" placeholder="₹" value={row.actual} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'actual', e.target.value)} className="bg-white/50 dark:bg-black/50 border-y border-cyan-700/30 dark:border-cyan-500/50 text-center p-1.5 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400" /><button onClick={() => handleDataChange(activeMonthIndex, originalIndex, 'pnlSign', '-')} className={`px-2 py-1 border ${row.pnlSign === '-' ? 'bg-red-500 text-white border-red-500' : 'bg-transparent border-gray-500'}`}>-</button></div></div></div><div className="mt-4 pt-4 border-t border-cyan-700/20 dark:border-cyan-500/30"><div className="flex flex-col md:flex-row gap-6"><div className="flex-1 md:w-1/2"><h3 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">DAILY PROTOCOLS</h3><div className="space-y-2 text-left">{row.rules.map((rule, ruleIndex) => (<label key={ruleIndex} className="flex items-center text-xs sm:text-sm cursor-pointer group"><input type="checkbox" checked={rule.checked} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'rules', row.rules.map((r,idx) => idx === ruleIndex ? {...r, checked: e.target.checked} : r))} className="h-4 w-4 rounded-none border-2 border-fuchsia-700/50 dark:border-fuchsia-500/50 text-fuchsia-500 focus:ring-fuchsia-500 bg-transparent" /><span className="ml-3 text-gray-700 dark:text-gray-300 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-colors">{rule.text}</span></label>))}</div></div><div className="flex-1 md:w-1/2"><h3 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">EXECUTION LOG</h3><textarea value={row.logic} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'logic', e.target.value)} placeholder={`// LOG FOR DAY ${row.day}...`} className="w-full h-48 md:h-full min-h-[200px] p-2 bg-white/30 dark:bg-black/50 border border-fuchsia-700/30 dark:border-fuchsia-500/50 text-green-700 dark:text-green-400 rounded-none focus:outline-none focus:ring-2 focus:ring-fuchsia-500"></textarea></div></div></div></div> ) })}
+                        </div>
 
-                    {/* AI SLIDE OVER */}
-                    <AIAnalyst isOpen={aiOpen} onClose={() => setAiOpen(false)} tradingData={data.months.flatMap(m => m.days)} />
+                         {totalPages > 1 && ( <div className="mt-6 flex justify-between items-center w-full max-w-xl mx-auto z-10"> <button onClick={goToPrevPage} disabled={currentPage === 1} className="px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">&lt; Previous {DAYS_PER_PAGE} Days</button> <span className="font-bold text-sm text-gray-700 dark:text-gray-300">Days {startIndex + 1}-{Math.min(endIndex, currentMonthDays.length)}</span> <button onClick={goToNextPage} disabled={currentPage === totalPages} className="px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">Next {DAYS_PER_PAGE} Days &gt;</button> </div> )}
+                    </div>
+                    
+                    <div className="w-full max-w-7xl mt-6 flex flex-wrap justify-center gap-4 z-10"> 
+                        <button onClick={handleAddNewMonth} className="bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base">ADD 1 MONTH ({TRADING_DAYS_PER_MONTH} DAYS)</button>
+                        <button onClick={openResetPopup} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base">PURGE & RESET</button>
+                    </div>
+
+                    <button onClick={handleAnalyzeWithAI} className="fab bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 py-2 rounded-full font-semibold shadow-lg transition-all text-sm flex items-center gap-2" title="Analyze with AI">Analyze with AI ✨</button>
                 </div>
             );
-        };
+        }
 
-        // --- ROOT AUTH CHECK ---
-        const Root = () => {
-            const [user, setUser] = useState(null);
+        function AuthWrapper() { 
+            const [user, setUser] = useState(null); 
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
-                return auth.onAuthStateChanged(u => { setUser(u); setLoading(false); });
+                const unsubscribe = auth.onAuthStateChanged((user) => {
+                    setUser(user);
+                    setLoading(false);
+                });
+                return unsubscribe;
             }, []);
 
-            const handleLogin = (e, p) => auth.signInWithEmailAndPassword(e, p).catch(err => alert(err.message));
-            const handleRegister = (e, p) => auth.createUserWithEmailAndPassword(e, p).catch(err => alert(err.message));
+            const handleLogin = (email, password) => {
+                auth.signInWithEmailAndPassword(email, password)
+                    .catch((error) => alert(error.message));
+            };
 
-            if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-blue-500 animate-pulse font-bold tracking-widest">INITIALIZING...</div>;
+            const handleRegister = (email, password) => {
+                auth.createUserWithEmailAndPassword(email, password)
+                    .catch((error) => alert(error.message));
+            };
 
-            return user ? <App user={user} onLogout={() => auth.signOut()} /> : <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />;
-        };
+            const handleLogout = () => {
+                auth.signOut();
+            };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<Root />);
+            if (loading) return <div className="min-h-screen flex items-center justify-center text-cyan-400"><p>LOADING NEURAL INTERFACE...</p></div>;
+            if (!user) { return <LoginScreen onLogin={handleLogin} onRegister={handleRegister} />; } 
+            return <App user={user} onLogout={handleLogout} />; 
+        }
+
+        function LoginScreen({ onLogin, onRegister }) { 
+            const [email, setEmail] = useState(""); 
+            const [password, setPassword] = useState(""); 
+            const [isRegistering, setIsRegistering] = useState(false);
+            const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark"); 
+            
+            useEffect(() => { document.documentElement.className = theme; }, [theme]); 
+            
+            const handleSubmit = (e) => { 
+                e.preventDefault(); 
+                if (isRegistering) {
+                    onRegister(email, password);
+                } else {
+                    onLogin(email, password);
+                }
+            }; 
+            
+            return ( 
+                <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-dark-cyber scanlines' : 'bg-white'}`}>
+                    <div className="relative z-10 w-full max-w-sm p-8 bg-white/50 dark:bg-black/70 backdrop-blur-xl border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]">
+                        <div className="flex flex-col items-center mb-6">
+                            <Logo size="64" />
+                            <p className="font-bold text-lg mt-2 text-cyan-600 dark:text-cyan-400">DevTrader</p>
+                        </div>
+                        <form onSubmit={handleSubmit}>
+                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Email</label>
+                            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-4" placeholder="email@example.com" required />
+                            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Password</label>
+                            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-4" placeholder="••••••" required />
+                            
+                            <button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all mb-4">
+                                {isRegistering ? "Register" : "Login"}
+                            </button>
+                            
+                            <p className="text-center text-xs text-gray-600 dark:text-gray-400 cursor-pointer hover:underline" onClick={() => setIsRegistering(!isRegistering)}>
+                                {isRegistering ? "Already have an account? Login" : "Need an account? Register"}
+                            </p>
+                        </form>
+                    </div>
+                </div> 
+            ); 
+        }
+
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<AuthWrapper />);
     </script>
 </body>
 </html>

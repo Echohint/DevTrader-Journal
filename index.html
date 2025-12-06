@@ -1,40 +1,82 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProTrader Lite</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ProTrader Journal</title>
     
+    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3crect width='100' height='100' rx='20' fill='%230f172a'/%3e%3cpath d='M30 70 L50 40 L70 70' fill='none' stroke='%233b82f6' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e">
+
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
 
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: { 850: '#172033', 900: '#0f172a', 950: '#020617' },
+                        primary: { 500: '#3b82f6', 600: '#2563eb' },
+                        success: '#10b981',
+                        danger: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { background-color: #0f172a; color: #e2e8f0; font-family: system-ui, -apple-system, sans-serif; }
+        /* Professional Reset */
+        body { background-color: #0f172a; color: #e2e8f0; -webkit-tap-highlight-color: transparent; }
+        
         /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1e293b; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Input Autofill Fix */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus {
+            -webkit-text-fill-color: white;
+            -webkit-box-shadow: 0 0 0px 1000px #1e293b inset;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+        
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.05); }
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback, useMemo } = React;
+        const { useState, useEffect, useCallback, useMemo, useRef } = React;
         const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
 
-        // --- CONFIGURATION ---
+        // ----------------------------------------------------------------
+        // 🔥 CONFIGURATION AREA 🔥
+        // ----------------------------------------------------------------
+        
+        // 1. PASTE YOUR FIREBASE CONFIG HERE
         const firebaseConfig = {
             apiKey: "AIzaSyDi8RF59y1nwso78Zi3Wu8uxjc00yPRSQY",
             authDomain: "dev-trader-ac3ce.firebaseapp.com",
@@ -45,309 +87,511 @@
             appId: "1:61667328586:web:4a3ae80c7012335c461cb3",
             measurementId: "G-LZHWCYY6ZG"
         };
+
+        // 2. GEMINI API KEY
         const GEMINI_API_KEY = "AIzaSyCL1goQPGdTFp_IizpTteU9ZTvcTQG3kzM";
 
-        // Init Firebase
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        // --- APP CONSTANTS ---
+        const DEFAULT_CAPITAL = 50000;
+        const DEFAULT_TARGET = 1000000;
+        const DEFAULT_TENURE = 66;
+        const DAYS_PER_PAGE = 10;
+
+        const DEFAULT_RULES = [
+            { id: 1, text: "Adhered to Plan", checked: false },
+            { id: 2, text: "Risk < 2%", checked: false },
+            { id: 3, text: "Stop Loss Set", checked: false },
+            { id: 4, text: "Clean Setup", checked: false },
+            { id: 5, text: "Right Mindset", checked: false },
+        ];
+
+        // --- INITIALIZE FIREBASE ---
+        try {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        } catch (e) { console.error("Firebase Init Error", e); }
         const auth = firebase.auth();
         const db = firebase.database();
 
-        // --- CONSTANTS ---
-        const DEFAULT_RULES = [
-            { text: "Followed Plan", checked: false },
-            { text: "Risk Managed", checked: false },
-            { text: "No Tilt", checked: false },
-        ];
-
-        // --- ICONS ---
+        // --- ICONS (SVG Components) ---
         const Icons = {
-            Lock: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>,
-            Check: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg>,
-            ChevronDown: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"/></svg>,
-            ChevronUp: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7"/></svg>,
-            Robot: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            Home: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>,
+            Journal: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>,
+            Chart: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>,
+            Robot: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>,
+            Settings: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>,
+            ArrowLeft: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>,
+            ArrowRight: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>,
+            Logout: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>,
+            Send: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
         };
 
-        // --- UTILS ---
+        // --- HELPERS ---
         const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+        const formatPercent = (val) => (val * 100).toFixed(2) + '%';
 
         // --- COMPONENTS ---
 
         // 1. Auth Screen
-        const Auth = ({ onLogin }) => {
+        const AuthScreen = ({ onLogin, onRegister }) => {
             const [email, setEmail] = useState('');
-            const [pass, setPass] = useState('');
-            const [isReg, setIsReg] = useState(false);
+            const [password, setPassword] = useState('');
+            const [isRegister, setIsRegister] = useState(false);
 
             const handleSubmit = (e) => {
                 e.preventDefault();
-                const action = isReg ? auth.createUserWithEmailAndPassword(email, pass) : auth.signInWithEmailAndPassword(email, pass);
-                action.then(onLogin).catch(e => alert(e.message));
+                isRegister ? onRegister(email, password) : onLogin(email, password);
             };
 
             return (
-                <div className="min-h-screen flex items-center justify-center p-4">
-                    <div className="w-full max-w-sm bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700">
-                        <h2 className="text-2xl font-bold text-white mb-6 text-center">{isReg ? 'Create Account' : 'Trader Login'}</h2>
+                <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+                    <div className="w-full max-w-md bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl">
+                        <div className="flex justify-center mb-6">
+                            <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center">
+                                <span className="text-2xl font-bold text-white">PT</span>
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold text-center text-white mb-2">ProTrader Access</h2>
+                        <p className="text-slate-400 text-center text-sm mb-8">Secure Journaling Environment</p>
+                        
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            <input className="w-full bg-slate-900 border border-slate-700 p-3 rounded text-white" type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} />
-                            <input className="w-full bg-slate-900 border border-slate-700 p-3 rounded text-white" type="password" placeholder="Password" value={pass} onChange={e=>setPass(e.target.value)} />
-                            <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold p-3 rounded">{isReg ? 'Register' : 'Login'}</button>
+                            <div>
+                                <label className="text-xs uppercase font-bold text-slate-500 ml-1">Email</label>
+                                <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition-all" placeholder="trader@example.com"/>
+                            </div>
+                            <div>
+                                <label className="text-xs uppercase font-bold text-slate-500 ml-1">Password</label>
+                                <input type="password" required value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition-all" placeholder="••••••••"/>
+                            </div>
+                            <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all transform active:scale-95">
+                                {isRegister ? 'Initialize Account' : 'Access Terminal'}
+                            </button>
                         </form>
-                        <button onClick={()=>setIsReg(!isReg)} className="w-full mt-4 text-sm text-slate-400 hover:text-white">
-                            {isReg ? 'Have an account? Login' : 'Need an account? Register'}
-                        </button>
+                        <div className="mt-6 text-center">
+                            <button onClick={()=>setIsRegister(!isRegister)} className="text-sm text-slate-400 hover:text-blue-400 transition-colors">
+                                {isRegister ? "Have an account? Login" : "New trader? Register"}
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
         };
 
-        // 2. Simple AI Modal
-        const AIModal = ({ isOpen, close, data }) => {
-            const [response, setResponse] = useState('');
+        // 2. AI Analyst Panel (Slide-over)
+        const AIAnalyst = ({ isOpen, onClose, data }) => {
+            const [messages, setMessages] = useState([{role: 'ai', text: "Market analysis ready. Upload your trade data context automatically?"}]);
+            const [input, setInput] = useState('');
             const [loading, setLoading] = useState(false);
+            const scrollRef = useRef(null);
 
             useEffect(() => {
-                if(isOpen && !response) {
-                    setLoading(true);
-                    const prompt = `Analyze these last 5 trades: ${JSON.stringify(data.slice(-5))}. Give 1 short advice.`;
-                    fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    })
-                    .then(res => res.json())
-                    .then(json => setResponse(json.candidates?.[0]?.content?.parts?.[0]?.text || "No insights."))
-                    .catch(() => setResponse("AI Error."))
-                    .finally(() => setLoading(false));
-                }
-            }, [isOpen]);
+                if(scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            }, [messages]);
 
-            if(!isOpen) return null;
+            const sendToGemini = async () => {
+                if(!input.trim()) return;
+                const userMsg = input;
+                setMessages(prev => [...prev, {role: 'user', text: userMsg}]);
+                setInput('');
+                setLoading(true);
+
+                try {
+                    const context = data ? JSON.stringify(data.slice(0, 20).map(d => ({
+                        day: d.day, date: d.date, pnl: d.actual, rules: d.rules.filter(r=>r.checked).length
+                    }))) : "No data";
+
+                    const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+                    const payload = { contents: [{ parts: [{ text: `Context: User is a trader. Recent Data: ${context}. User Question: ${userMsg}. Keep it brief and professional.` }] }] };
+                    
+                    const res = await fetch(apiEndpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                    const json = await res.json();
+                    const aiText = json.candidates?.[0]?.content?.parts?.[0]?.text || "Analysis failed.";
+                    
+                    setMessages(prev => [...prev, {role: 'ai', text: aiText}]);
+                } catch (e) {
+                    setMessages(prev => [...prev, {role: 'ai', text: "Connection Error."}]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            if (!isOpen) return null;
+
             return (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={close}>
-                    <div className="bg-slate-800 p-6 rounded-xl max-w-lg w-full border border-slate-700" onClick={e => e.stopPropagation()}>
-                        <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Icons.Robot /> AI Insight</h3>
-                        <div className="text-slate-300 min-h-[100px]">
-                            {loading ? "Analyzing your journal..." : response}
+                <div className="fixed inset-0 z-50 flex justify-end">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
+                    <div className="relative w-full max-w-md bg-slate-900 border-l border-slate-800 h-full flex flex-col shadow-2xl animate-fade-in">
+                        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <h3 className="font-bold text-white">AI Analyst</h3>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
                         </div>
-                        <button onClick={close} className="mt-4 w-full bg-slate-700 hover:bg-slate-600 py-2 rounded text-white">Close</button>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950" ref={scrollRef}>
+                            {messages.map((m, i) => (
+                                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[85%] p-3 rounded-lg text-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>
+                                        {m.text}
+                                    </div>
+                                </div>
+                            ))}
+                            {loading && <div className="text-xs text-slate-500 ml-2">Analyst is typing...</div>}
+                        </div>
+                        <div className="p-4 bg-slate-900 border-t border-slate-800 flex gap-2">
+                            <input 
+                                type="text" 
+                                value={input} 
+                                onChange={e=>setInput(e.target.value)}
+                                onKeyPress={e=>e.key==='Enter' && sendToGemini()}
+                                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                placeholder="Ask about your performance..."
+                            />
+                            <button onClick={sendToGemini} className="p-3 bg-blue-600 rounded-lg text-white hover:bg-blue-500">
+                                <Icons.Send />
+                            </button>
+                        </div>
                     </div>
                 </div>
             );
         };
 
-        // 3. Main App
-        const App = ({ user }) => {
+        // 3. Main Dashboard (Stats & Overview)
+        const DashboardView = ({ data }) => {
+            if (!data) return null;
+            const allDays = data.months.flatMap(m => m.days).filter(d => d.actual !== "");
+            const currentEquity = allDays.length > 0 ? allDays[allDays.length - 1].capital : data.initialCapital;
+            const totalPnl = currentEquity - data.initialCapital;
+            const pnlColor = totalPnl >= 0 ? 'text-success' : 'text-danger';
+
+            // Chart Data Preparation
+            const chartData = [{ name: 'Start', equity: data.initialCapital }, ...allDays.map(d => ({ name: `D${d.day}`, equity: d.capital }))];
+
+            return (
+                <div className="space-y-6 animate-fade-in pb-20">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <p className="text-xs text-slate-400 uppercase font-bold">Current Equity</p>
+                            <h2 className="text-2xl font-mono font-bold text-white mt-1">{formatCurrency(currentEquity)}</h2>
+                        </div>
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <p className="text-xs text-slate-400 uppercase font-bold">Net P&L</p>
+                            <h2 className={`text-2xl font-mono font-bold mt-1 ${pnlColor}`}>{formatCurrency(totalPnl)}</h2>
+                        </div>
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <p className="text-xs text-slate-400 uppercase font-bold">Trades Taken</p>
+                            <h2 className="text-2xl font-mono font-bold text-white mt-1">{allDays.length}</h2>
+                        </div>
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <p className="text-xs text-slate-400 uppercase font-bold">Target</p>
+                            <h2 className="text-2xl font-mono font-bold text-blue-400 mt-1">{formatCurrency(data.finalTarget)}</h2>
+                        </div>
+                    </div>
+
+                    {/* Equity Chart */}
+                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 h-64 md:h-80 w-full">
+                        <h3 className="text-sm font-bold text-slate-300 mb-4">Performance Curve</h3>
+                        <ResponsiveContainer width="100%" height="90%">
+                            <LineChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                <XAxis dataKey="name" hide />
+                                <YAxis domain={['auto', 'auto']} stroke="#94a3b8" fontSize={10} />
+                                <Tooltip contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', color: '#fff'}} />
+                                <Line type="monotone" dataKey="equity" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. Journal View (The Trade Blotter)
+        const JournalView = ({ data, updateData, activeMonth, setMonth }) => {
+            const [page, setPage] = useState(1);
+            const currentMonthData = data.months[activeMonth];
+            const startIndex = (page - 1) * DAYS_PER_PAGE;
+            const displayDays = currentMonthData.days.slice(startIndex, startIndex + DAYS_PER_PAGE);
+            const totalPages = Math.ceil(currentMonthData.days.length / DAYS_PER_PAGE);
+
+            return (
+                <div className="animate-fade-in pb-20">
+                    {/* Month Selector */}
+                    <div className="flex overflow-x-auto gap-2 mb-6 pb-2">
+                        {data.months.map((m, idx) => (
+                            <button 
+                                key={idx} 
+                                onClick={() => { setMonth(idx); setPage(1); }}
+                                className={`px-4 py-2 text-xs font-bold uppercase rounded-md whitespace-nowrap transition-all ${activeMonth === idx ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
+                            >
+                                {m.monthName}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Trade Cards */}
+                    <div className="space-y-4">
+                        {displayDays.map((day, i) => {
+                            const globalIndex = startIndex + i;
+                            const pnlVal = Number(day.actual);
+                            const pnlColor = day.pnlSign === '+' ? 'text-success' : 'text-danger';
+                            const borderClass = day.pnlSign === '+' && pnlVal > 0 ? 'border-l-4 border-l-success' : (day.pnlSign === '-' && pnlVal > 0 ? 'border-l-4 border-l-danger' : 'border-l-4 border-l-slate-600');
+
+                            return (
+                                <div key={day.date} className={`bg-slate-800 rounded-lg border border-slate-700 shadow-sm overflow-hidden ${borderClass}`}>
+                                    {/* Header */}
+                                    <div className="p-3 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-slate-500 font-mono font-bold text-xs">DAY {day.day}</span>
+                                            <span className="text-slate-300 font-semibold text-sm">{new Date(day.date).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="flex items-center bg-slate-900 rounded border border-slate-700">
+                                            <button 
+                                                className={`px-3 py-1 text-sm font-bold ${day.pnlSign === '+' ? 'text-success' : 'text-slate-500'}`}
+                                                onClick={() => updateData(activeMonth, globalIndex, 'pnlSign', '+')}
+                                            >+</button>
+                                            <input 
+                                                type="number" 
+                                                className="w-24 bg-transparent text-center font-mono text-white outline-none text-sm"
+                                                placeholder="0"
+                                                value={day.actual}
+                                                onChange={(e) => updateData(activeMonth, globalIndex, 'actual', e.target.value)}
+                                            />
+                                            <button 
+                                                className={`px-3 py-1 text-sm font-bold ${day.pnlSign === '-' ? 'text-danger' : 'text-slate-500'}`}
+                                                onClick={() => updateData(activeMonth, globalIndex, 'pnlSign', '-')}
+                                            >-</button>
+                                        </div>
+                                    </div>
+
+                                    {/* Details Grid */}
+                                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <div className="flex justify-between mb-2">
+                                                <span className="text-xs text-slate-500 uppercase">Projected</span>
+                                                <span className="text-xs font-mono text-slate-300">{formatCurrency(day.target)}</span>
+                                            </div>
+                                            <div className="flex justify-between mb-2">
+                                                <span className="text-xs text-slate-500 uppercase">Actual Equity</span>
+                                                <span className="text-xs font-mono text-white">{formatCurrency(day.capital)}</span>
+                                            </div>
+                                            <textarea 
+                                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-300 mt-2 resize-none focus:border-blue-600 outline-none"
+                                                rows="3"
+                                                placeholder="Trade notes, setup, emotions..."
+                                                value={day.logic}
+                                                onChange={(e) => updateData(activeMonth, globalIndex, 'logic', e.target.value)}
+                                            ></textarea>
+                                        </div>
+                                        <div className="border-t md:border-t-0 md:border-l border-slate-700 pt-4 md:pt-0 md:pl-4">
+                                            <p className="text-xs text-slate-500 uppercase mb-2">Execution Checklist</p>
+                                            <div className="grid grid-cols-1 gap-1">
+                                                {day.rules.map((rule, rIdx) => (
+                                                    <label key={rIdx} className="flex items-center gap-2 cursor-pointer">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            className="rounded bg-slate-700 border-slate-600 text-blue-600 focus:ring-0"
+                                                            checked={rule.checked}
+                                                            onChange={(e) => {
+                                                                const newRules = [...day.rules];
+                                                                newRules[rIdx].checked = e.target.checked;
+                                                                updateData(activeMonth, globalIndex, 'rules', newRules);
+                                                            }}
+                                                        />
+                                                        <span className={`text-xs ${rule.checked ? 'text-blue-400' : 'text-slate-400'}`}>{rule.text}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Pagination */}
+                    <div className="flex justify-between items-center mt-6 px-2">
+                        <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="text-slate-400 hover:text-white disabled:opacity-30 flex items-center gap-1 text-sm"><Icons.ArrowLeft /> Prev</button>
+                        <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
+                        <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="text-slate-400 hover:text-white disabled:opacity-30 flex items-center gap-1 text-sm">Next <Icons.ArrowRight /></button>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP CONTAINER ---
+        const App = ({ user, onLogout }) => {
+            const [view, setView] = useState('dashboard'); // 'dashboard' | 'journal'
             const [data, setData] = useState(null);
-            const [tab, setTab] = useState('dashboard'); // 'dashboard' | 'journal'
-            const [expandedDay, setExpandedDay] = useState(null);
+            const [activeMonth, setActiveMonth] = useState(0);
             const [aiOpen, setAiOpen] = useState(false);
 
-            // Data Init
-            useEffect(() => {
-                db.ref(`users/${user.uid}/journal`).once('value', snap => {
-                    if(snap.exists()) setData(snap.val());
-                    else {
-                        // Create default structure
-                        const months = [];
-                        let d = new Date();
-                        for(let i=0; i<3; i++) { // Generate 3 months
-                            const days = [];
-                            for(let j=0; j<20; j++) { // 20 trading days
-                                days.push({
-                                    id: `${i}-${j}`, day: j+1, date: d.toISOString().split('T')[0],
-                                    actual: '', pnlSign: '+', logic: '', rules: [...DEFAULT_RULES],
-                                    capital: 0, target: 0
-                                });
-                                d.setDate(d.getDate() + 1);
-                            }
-                            months.push({ name: d.toLocaleString('default',{month:'long'}), days });
+            // Data Initialization Logic (Same calculations as before)
+            const initDataModel = useCallback(() => {
+                const months = []; 
+                let d = new Date();
+                let count = 0;
+                // Simple loop to generate days
+                while(count < DEFAULT_TENURE_DAYS) {
+                    const mIdx = Math.floor(count / TRADING_DAYS_PER_MONTH);
+                    if(!months[mIdx]) months[mIdx] = { id: mIdx, monthName: d.toLocaleString('default', {month:'long'}), days: [] };
+                    
+                    let dateStr = d.toISOString().split('T')[0];
+                    months[mIdx].days.push({
+                        day: count + 1, date: dateStr, capital: 0, target: 0, profit: 0, dailyRate: 0,
+                        pnlSign: '+', actual: '', logic: '', rules: JSON.parse(JSON.stringify(DEFAULT_RULES))
+                    });
+                    
+                    // Next trading day logic
+                    d.setDate(d.getDate() + 1);
+                    while(d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+                    count++;
+                }
+                
+                // Initial Calc
+                let cap = DEFAULT_INITIAL_CAPITAL;
+                let daysLeft = DEFAULT_TENURE_DAYS;
+                months.forEach(m => m.days.forEach(day => {
+                     const rate = (Math.pow(DEFAULT_FINAL_TARGET/DEFAULT_INITIAL_CAPITAL, 1/DEFAULT_TENURE_DAYS) - 1);
+                     day.capital = Math.round(cap);
+                     day.dailyRate = rate;
+                     day.target = Math.round(cap * (1 + rate));
+                     cap = day.target;
+                }));
+
+                return { initialCapital: DEFAULT_INITIAL_CAPITAL, finalTarget: DEFAULT_FINAL_TARGET, tenure: DEFAULT_TENURE_DAYS, months };
+            }, []);
+
+            const recalculate = (currentData) => {
+                let cap = Number(currentData.initialCapital);
+                let daysLeft = Number(currentData.tenure);
+                const target = Number(currentData.finalTarget);
+                
+                // Deep copy to avoid mutation issues
+                const newData = JSON.parse(JSON.stringify(currentData));
+                
+                newData.months.forEach(m => {
+                    m.days.forEach(day => {
+                        day.capital = Math.round(cap);
+                        // Dynamic Rate Calculation
+                        let rate = 0;
+                        if(cap > 0 && daysLeft > 0 && target > cap) {
+                            rate = Math.pow(target / cap, 1 / daysLeft) - 1;
                         }
-                        const initData = { initialCapital: 50000, finalTarget: 1000000, months };
-                        setData(initData);
-                        db.ref(`users/${user.uid}/journal`).set(initData);
+                        
+                        day.dailyRate = rate;
+                        day.profit = Math.round(cap * rate);
+                        day.target = Math.round(cap + day.profit);
+                        
+                        if (day.actual !== "") {
+                            const val = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual);
+                            cap += val;
+                        } else {
+                            cap = day.target;
+                        }
+                        daysLeft--;
+                    });
+                });
+                return newData;
+            };
+
+            // Load Data
+            useEffect(() => {
+                db.ref(`users/${user.uid}/journal`).once('value', snapshot => {
+                    if (snapshot.exists()) {
+                        setData(snapshot.val());
+                    } else {
+                        const newData = initDataModel();
+                        setData(newData);
+                        db.ref(`users/${user.uid}/journal`).set(newData);
                     }
                 });
             }, [user]);
 
-            // Save Data
-            const saveData = (newData) => {
-                setData(newData);
-                db.ref(`users/${user.uid}/journal`).set(newData);
-            };
-
-            const updateDay = (mIdx, dIdx, field, val) => {
-                const newData = {...data};
-                newData.months[mIdx].days[dIdx][field] = val;
-                
-                // Recalculate Equity
-                let cap = newData.initialCapital;
-                newData.months.forEach(m => {
-                    m.days.forEach(day => {
-                        const pnl = day.actual ? parseFloat(day.actual) * (day.pnlSign === '+' ? 1 : -1) : 0;
-                        cap += pnl;
-                        day.capital = cap;
-                    });
+            // Update Helper
+            const updateData = (mIdx, dIdx, field, val) => {
+                setData(prev => {
+                    const copy = JSON.parse(JSON.stringify(prev));
+                    copy.months[mIdx].days[dIdx][field] = val;
+                    const recalculated = recalculate(copy);
+                    // Autosave to firebase
+                    db.ref(`users/${user.uid}/journal`).set(recalculated);
+                    return recalculated;
                 });
-                saveData(newData);
             };
 
-            if(!data) return <div className="text-center mt-20 text-blue-400">Loading Journal...</div>;
-
-            // Derived Stats
-            const allDays = data.months.flatMap(m => m.days);
-            const tradedDays = allDays.filter(d => d.actual !== '');
-            const currentEquity = tradedDays.length > 0 ? tradedDays[tradedDays.length-1].capital : data.initialCapital;
-            const netPnl = currentEquity - data.initialCapital;
-            const wins = tradedDays.filter(d => d.pnlSign === '+' && parseFloat(d.actual) > 0).length;
-            const winRate = tradedDays.length ? ((wins / tradedDays.length) * 100).toFixed(0) : 0;
-            const chartData = [{name:'Start', val: data.initialCapital}, ...tradedDays.map(d => ({name: `D${d.day}`, val: d.capital}))];
+            if (!data) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-blue-500">Loading Profile...</div>;
 
             return (
-                <div className="max-w-4xl mx-auto p-4 pb-20">
-                    {/* Header */}
-                    <div className="flex justify-between items-center mb-6">
-                        <h1 className="text-xl font-bold text-white tracking-tight">ProTrader<span className="text-blue-500">Lite</span></h1>
-                        <button onClick={() => auth.signOut()} className="text-xs text-slate-500 hover:text-red-400">Logout</button>
-                    </div>
-
-                    {/* Navigation Tabs */}
-                    <div className="flex gap-2 mb-6 p-1 bg-slate-800 rounded-lg w-fit">
-                        <button onClick={()=>setTab('dashboard')} className={`px-4 py-2 rounded-md text-sm font-medium transition ${tab==='dashboard' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>Dashboard</button>
-                        <button onClick={()=>setTab('journal')} className={`px-4 py-2 rounded-md text-sm font-medium transition ${tab==='journal' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}>Journal</button>
-                    </div>
-
-                    {/* DASHBOARD VIEW */}
-                    {tab === 'dashboard' && (
-                        <div className="space-y-6 animate-fade-in">
-                            {/* Stats Grid */}
-                            <div className="grid grid-cols-3 gap-4">
-                                <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                                    <div className="text-slate-500 text-xs uppercase font-bold">Equity</div>
-                                    <div className="text-xl font-mono text-white mt-1 font-bold">{formatCurrency(currentEquity)}</div>
-                                </div>
-                                <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                                    <div className="text-slate-500 text-xs uppercase font-bold">Net P&L</div>
-                                    <div className={`text-xl font-mono mt-1 font-bold ${netPnl>=0?'text-green-400':'text-red-400'}`}>{formatCurrency(netPnl)}</div>
-                                </div>
-                                <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                                    <div className="text-slate-500 text-xs uppercase font-bold">Win Rate</div>
-                                    <div className="text-xl font-mono text-blue-400 mt-1 font-bold">{winRate}%</div>
-                                </div>
-                            </div>
-
-                            {/* Chart */}
-                            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 h-64">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={chartData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                                        <Tooltip contentStyle={{backgroundColor: '#1e293b', borderColor: '#334155'}} />
-                                        <Line type="monotone" dataKey="val" stroke="#3b82f6" strokeWidth={3} dot={false} />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </div>
-                            
-                            <button onClick={()=>setAiOpen(true)} className="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl text-white font-bold shadow-lg">
-                                Ask AI Coach Analysis
-                            </button>
+                <div className="flex min-h-screen bg-slate-950 text-slate-200 font-sans">
+                    {/* DESKTOP SIDEBAR */}
+                    <aside className="hidden md:flex flex-col w-20 bg-slate-900 border-r border-slate-800 fixed h-full z-20 items-center py-6">
+                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white mb-8">PT</div>
+                        <nav className="flex flex-col gap-6 w-full items-center">
+                            <button onClick={() => setView('dashboard')} className={`p-3 rounded-xl transition-all ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-800'}`}><Icons.Home /></button>
+                            <button onClick={() => setView('journal')} className={`p-3 rounded-xl transition-all ${view === 'journal' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-800'}`}><Icons.Journal /></button>
+                            <button onClick={() => setAiOpen(true)} className="p-3 rounded-xl text-slate-500 hover:bg-slate-800"><Icons.Robot /></button>
+                        </nav>
+                        <div className="mt-auto pb-4">
+                            <button onClick={onLogout} className="p-3 rounded-xl text-slate-500 hover:text-red-500 hover:bg-slate-800"><Icons.Logout /></button>
                         </div>
-                    )}
+                    </aside>
 
-                    {/* JOURNAL VIEW (Simple List) */}
-                    {tab === 'journal' && (
-                        <div className="space-y-4">
-                            {data.months.map((month, mIdx) => (
-                                <div key={mIdx} className="space-y-2">
-                                    <h3 className="text-slate-400 text-xs font-bold uppercase ml-1 mt-4">{month.name}</h3>
-                                    {month.days.map((day, dIdx) => {
-                                        const isExpanded = expandedDay === day.id;
-                                        const hasData = day.actual !== '';
-                                        const pnlVal = parseFloat(day.actual || 0);
-                                        const color = hasData ? (day.pnlSign === '+' && pnlVal > 0 ? 'text-green-400' : (day.pnlSign === '-' && pnlVal > 0 ? 'text-red-400' : 'text-slate-400')) : 'text-slate-600';
+                    {/* MAIN CONTENT */}
+                    <main className="flex-1 md:ml-20 p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto w-full">
+                        {/* Top Bar */}
+                        <header className="flex justify-between items-center mb-8">
+                            <div>
+                                <h1 className="text-2xl font-bold text-white">{view === 'dashboard' ? 'Market Overview' : 'Trade Journal'}</h1>
+                                <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest">Account: {user.email}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <a href="https://cryptobubbles.net" target="_blank" className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-700 rounded text-sm hover:border-blue-500 transition-colors">
+                                    <Icons.Chart /> <span>Bubbles</span>
+                                </a>
+                            </div>
+                        </header>
 
-                                        return (
-                                            <div key={day.id} className="bg-slate-800 border border-slate-700 rounded-lg overflow-hidden transition-all">
-                                                {/* Header Row */}
-                                                <div 
-                                                    onClick={() => setExpandedDay(isExpanded ? null : day.id)}
-                                                    className="flex items-center justify-between p-3 cursor-pointer hover:bg-slate-750"
-                                                >
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="font-mono text-xs text-slate-500 bg-slate-900 px-2 py-1 rounded">D{day.day}</span>
-                                                        <span className="text-sm text-slate-300">{day.date}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className={`font-mono font-bold text-sm ${color}`}>
-                                                            {hasData ? (day.pnlSign + formatCurrency(day.actual)) : '---'}
-                                                        </span>
-                                                        {isExpanded ? <Icons.ChevronUp /> : <Icons.ChevronDown />}
-                                                    </div>
-                                                </div>
+                        {/* Content Switching */}
+                        {view === 'dashboard' && <DashboardView data={data} />}
+                        {view === 'journal' && <JournalView data={data} updateData={updateData} activeMonth={activeMonth} setMonth={setActiveMonth} />}
+                    </main>
 
-                                                {/* Expanded Details */}
-                                                {isExpanded && (
-                                                    <div className="p-4 bg-slate-900/50 border-t border-slate-700 grid gap-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <button 
-                                                                className={`px-3 py-1 rounded font-bold ${day.pnlSign === '+' ? 'bg-green-600 text-white' : 'bg-slate-700 text-slate-400'}`}
-                                                                onClick={()=>updateDay(mIdx, dIdx, 'pnlSign', '+')}
-                                                            >+</button>
-                                                            <input 
-                                                                type="number" 
-                                                                className="flex-1 bg-slate-900 border border-slate-700 p-2 rounded text-white font-mono"
-                                                                placeholder="Enter P&L"
-                                                                value={day.actual}
-                                                                onChange={(e)=>updateDay(mIdx, dIdx, 'actual', e.target.value)}
-                                                            />
-                                                            <button 
-                                                                className={`px-3 py-1 rounded font-bold ${day.pnlSign === '-' ? 'bg-red-600 text-white' : 'bg-slate-700 text-slate-400'}`}
-                                                                onClick={()=>updateDay(mIdx, dIdx, 'pnlSign', '-')}
-                                                            >-</button>
-                                                        </div>
+                    {/* MOBILE BOTTOM NAV */}
+                    <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-900/95 backdrop-blur border-t border-slate-800 flex justify-around items-center py-3 z-40 safe-area-pb">
+                        <button onClick={() => setView('dashboard')} className={`flex flex-col items-center gap-1 ${view === 'dashboard' ? 'text-blue-500' : 'text-slate-500'}`}>
+                            <Icons.Home /> <span className="text-[10px] font-medium">Home</span>
+                        </button>
+                        <button onClick={() => setView('journal')} className={`flex flex-col items-center gap-1 ${view === 'journal' ? 'text-blue-500' : 'text-slate-500'}`}>
+                            <Icons.Journal /> <span className="text-[10px] font-medium">Journal</span>
+                        </button>
+                        <button onClick={() => setAiOpen(true)} className="flex flex-col items-center gap-1 text-slate-500">
+                            <Icons.Robot /> <span className="text-[10px] font-medium">AI</span>
+                        </button>
+                        <button onClick={onLogout} className="flex flex-col items-center gap-1 text-slate-500">
+                            <Icons.Logout /> <span className="text-[10px] font-medium">Exit</span>
+                        </button>
+                    </nav>
 
-                                                        <textarea 
-                                                            className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-slate-300"
-                                                            rows="2"
-                                                            placeholder="Notes: Setup, emotions..."
-                                                            value={day.logic}
-                                                            onChange={(e)=>updateDay(mIdx, dIdx, 'logic', e.target.value)}
-                                                        />
-
-                                                        <div className="grid grid-cols-2 gap-2">
-                                                            {day.rules.map((r, rIdx) => (
-                                                                <div key={rIdx} 
-                                                                    onClick={() => {
-                                                                        const newRules = [...day.rules];
-                                                                        newRules[rIdx].checked = !newRules[rIdx].checked;
-                                                                        updateDay(mIdx, dIdx, 'rules', newRules);
-                                                                    }}
-                                                                    className={`cursor-pointer p-2 rounded border text-xs flex items-center gap-2 ${r.checked ? 'border-blue-500 bg-blue-900/20 text-blue-300' : 'border-slate-700 text-slate-500'}`}
-                                                                >
-                                                                    {r.checked ? <Icons.Check /> : <div className="w-4 h-4 border border-slate-600 rounded"></div>}
-                                                                    {r.text}
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    <AIModal isOpen={aiOpen} close={()=>setAiOpen(false)} data={tradedDays} />
+                    {/* AI SLIDE OVER */}
+                    <AIAnalyst isOpen={aiOpen} onClose={() => setAiOpen(false)} tradingData={data.months.flatMap(m => m.days)} />
                 </div>
             );
         };
 
+        // --- ROOT AUTH CHECK ---
         const Root = () => {
             const [user, setUser] = useState(null);
-            useEffect(() => auth.onAuthStateChanged(setUser), []);
-            return user ? <App user={user} /> : <Auth onLogin={setUser} />;
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                return auth.onAuthStateChanged(u => { setUser(u); setLoading(false); });
+            }, []);
+
+            const handleLogin = (e, p) => auth.signInWithEmailAndPassword(e, p).catch(err => alert(err.message));
+            const handleRegister = (e, p) => auth.createUserWithEmailAndPassword(e, p).catch(err => alert(err.message));
+
+            if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-blue-500 animate-pulse font-bold tracking-widest">INITIALIZING...</div>;
+
+            return user ? <App user={user} onLogout={() => auth.signOut()} /> : <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />;
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));

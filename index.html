@@ -3,85 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ProTrader Terminal | Exchange</title>
+    <title>ProTrader Journal</title>
     
-    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3crect width='100' height='100' rx='20' fill='%230f172a'/%3e%3cpath d='M50 20 L80 80 L20 80' fill='%2310b981'/%3e%3c/svg%3e">
+    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3crect width='100' height='100' rx='20' fill='%230f172a'/%3e%3cpath d='M30 70 L50 40 L70 70' fill='none' stroke='%233b82f6' stroke-width='8' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e">
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
                     colors: {
-                        bg: { main: '#0b0e11', panel: '#15191e', input: '#2a2e39' },
-                        trade: { buy: '#0ecb81', sell: '#f6465d', text: '#b7bdc6' }
+                        slate: { 850: '#172033', 900: '#0f172a', 950: '#020617' },
+                        primary: { 500: '#3b82f6', 600: '#2563eb' },
+                        success: '#10b981',
+                        danger: '#ef4444',
                     }
                 }
             }
         }
     </script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
-
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
     <style>
-        body { background-color: #0b0e11; color: #b7bdc6; overflow: hidden; }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: #0b0e11; }
-        ::-webkit-scrollbar-thumb { background: #2a2e39; border-radius: 2px; }
-        ::-webkit-scrollbar-thumb:hover { background: #474d57; }
+        /* Professional Reset */
+        body { background-color: #0f172a; color: #e2e8f0; -webkit-tap-highlight-color: transparent; }
         
-        .text-up { color: #0ecb81; }
-        .text-down { color: #f6465d; }
-        .bg-up { background-color: #0ecb81; color: black; }
-        .bg-down { background-color: #f6465d; color: white; }
-        
-        /* Layout Grid */
-        .app-grid {
-            display: grid;
-            grid-template-columns: 280px 1fr 320px;
-            grid-template-rows: 60px 1fr 300px;
-            height: 100vh;
-            width: 100vw;
-        }
-        .header { grid-column: 1 / -1; grid-row: 1; }
-        .watchlist { grid-column: 1; grid-row: 2 / -1; }
-        .chart-area { grid-column: 2; grid-row: 2; }
-        .order-panel { grid-column: 3; grid-row: 2; }
-        .bottom-panel { grid-column: 2 / -1; grid-row: 3; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-        @media (max-width: 1024px) {
-            .app-grid { display: flex; flex-direction: column; height: auto; overflow-y: auto; }
-            .watchlist, .chart-area, .order-panel, .bottom-panel { width: 100%; height: auto; min-height: 300px; }
-            .chart-area { height: 400px; }
-            body { overflow: auto; }
+        /* Input Autofill Fix */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus {
+            -webkit-text-fill-color: white;
+            -webkit-box-shadow: 0 0 0px 1000px #1e293b inset;
+            transition: background-color 5000s ease-in-out 0s;
         }
+        
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.05); }
+        .card-hover { transition: all 0.2s ease; }
+        .card-hover:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback, useRef } = React;
-        
-        // Safe access to Recharts
-        const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } = window.Recharts || {};
+        const { useState, useEffect, useCallback, useMemo, useRef } = React;
+        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
 
-        // --------------------------------------------------------
-        // 🔥 CONFIGURATION
-        // --------------------------------------------------------
+        // ----------------------------------------------------------------
+        // 🔥 CONFIGURATION AREA 🔥
+        // ----------------------------------------------------------------
+        
+        // 1. PASTE YOUR FIREBASE CONFIG HERE
         const firebaseConfig = {
             apiKey: "AIzaSyDi8RF59y1nwso78Zi3Wu8uxjc00yPRSQY",
             authDomain: "dev-trader-ac3ce.firebaseapp.com",
@@ -93,331 +88,510 @@
             measurementId: "G-LZHWCYY6ZG"
         };
 
+        // 2. GEMINI API KEY
         const GEMINI_API_KEY = "AIzaSyCL1goQPGdTFp_IizpTteU9ZTvcTQG3kzM";
 
-        // Init Firebase
-        try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); } catch (e) { console.error(e); }
+        // --- APP CONSTANTS ---
+        const DEFAULT_CAPITAL = 50000;
+        const DEFAULT_TARGET = 1000000;
+        const DEFAULT_TENURE = 66;
+        const DAYS_PER_PAGE = 10;
+
+        const DEFAULT_RULES = [
+            { id: 1, text: "Adhered to Plan", checked: false },
+            { id: 2, text: "Risk < 2%", checked: false },
+            { id: 3, text: "Stop Loss Set", checked: false },
+            { id: 4, text: "Clean Setup", checked: false },
+            { id: 5, text: "Right Mindset", checked: false },
+        ];
+
+        // --- INITIALIZE FIREBASE ---
+        try {
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        } catch (e) { console.error("Firebase Init Error", e); }
         const auth = firebase.auth();
         const db = firebase.database();
 
+        // --- ICONS (SVG Components) ---
+        const Icons = {
+            Home: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>,
+            Journal: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>,
+            Chart: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>,
+            Robot: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.384-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>,
+            Settings: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>,
+            ArrowLeft: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>,
+            ArrowRight: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>,
+            Logout: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>,
+            Send: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+        };
+
+        // --- HELPERS ---
+        const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+        const formatPercent = (val) => (val * 100).toFixed(2) + '%';
+
         // --- COMPONENTS ---
 
-        // 1. Header
-        const Header = ({ user, onLogout }) => (
-            <header className="header bg-bg-panel border-b border-gray-800 flex justify-between items-center px-4 z-50">
-                <div className="flex items-center gap-4">
-                    <div className="text-[#f0b90b] font-black text-xl tracking-tighter">BINANCE<span className="text-white">PRO</span></div>
-                    <div className="hidden md:flex gap-4 text-xs font-mono text-gray-400">
-                        <div>BTC/USDT <span className="text-up">64,230.50</span></div>
-                        <div>ETH/USDT <span className="text-down">3,450.20</span></div>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3 text-xs font-medium">
-                    <span className="text-gray-400">{user.email}</span>
-                    <button onClick={onLogout} className="bg-gray-800 hover:bg-gray-700 px-3 py-1 rounded text-gray-300">Log Out</button>
-                </div>
-            </header>
-        );
+        // 1. Auth Screen
+        const AuthScreen = ({ onLogin, onRegister }) => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [isRegister, setIsRegister] = useState(false);
 
-        // 2. Watchlist
-        const Watchlist = ({ onSelectSymbol }) => {
-            const [pairs, setPairs] = useState([
-                { symbol: "BTC/USDT", price: 64230.50, change: 1.2 },
-                { symbol: "ETH/USDT", price: 3450.20, change: -0.5 },
-                { symbol: "EUR/USD", price: 1.0850, change: 0.1 },
-                { symbol: "XAU/USD", price: 2035.10, change: 0.8 },
-                { symbol: "GBP/USD", price: 1.2640, change: -0.2 },
-            ]);
-
-            useEffect(() => {
-                const interval = setInterval(() => {
-                    setPairs(prev => prev.map(p => ({
-                        ...p,
-                        price: p.price * (1 + (Math.random() * 0.002 - 0.001)),
-                        change: p.change + (Math.random() * 0.1 - 0.05)
-                    })));
-                }, 2000);
-                return () => clearInterval(interval);
-            }, []);
-
-            return (
-                <aside className="watchlist bg-bg-panel border-r border-gray-800 flex flex-col">
-                    <div className="p-2 border-b border-gray-800 text-xs font-bold text-gray-500 uppercase">Market Watch</div>
-                    <div className="flex-1 overflow-y-auto">
-                        <table className="w-full text-xs text-left">
-                            <thead>
-                                <tr className="text-gray-600">
-                                    <th className="p-2">Pair</th>
-                                    <th className="p-2 text-right">Price</th>
-                                    <th className="p-2 text-right">Chg%</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {pairs.map(p => (
-                                    <tr key={p.symbol} onClick={() => onSelectSymbol(p.symbol)} className="hover:bg-gray-800 cursor-pointer border-b border-gray-800/50 transition-colors">
-                                        <td className="p-2 font-bold text-gray-300">{p.symbol}</td>
-                                        <td className={`p-2 text-right font-mono ${p.change >= 0 ? 'text-up' : 'text-down'}`}>{p.price.toFixed(p.price < 10 ? 4 : 2)}</td>
-                                        <td className={`p-2 text-right font-mono ${p.change >= 0 ? 'text-up' : 'text-down'}`}>{p.change.toFixed(2)}%</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </aside>
-            );
-        };
-
-        // 3. Chart
-        const ChartArea = ({ symbol }) => {
-            const container = useRef();
-            const cleanSymbol = symbol.replace('/', ''); 
-
-            useEffect(() => {
-                if(container.current) {
-                    container.current.innerHTML = "";
-                    const script = document.createElement("script");
-                    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
-                    script.type = "text/javascript";
-                    script.async = true;
-                    script.innerHTML = JSON.stringify({
-                        "autosize": true,
-                        "symbol": `FX:${cleanSymbol}`,
-                        "interval": "D",
-                        "timezone": "Etc/UTC",
-                        "theme": "dark",
-                        "style": "1",
-                        "locale": "en",
-                        "enable_publishing": false,
-                        "backgroundColor": "rgba(11, 14, 17, 1)",
-                        "gridColor": "rgba(42, 46, 57, 0.5)",
-                        "hide_top_toolbar": false,
-                        "save_image": false,
-                        "calendar": false,
-                        "support_host": "https://www.tradingview.com"
-                    });
-                    container.current.appendChild(script);
-                }
-            }, [symbol]);
-
-            return <div className="chart-area bg-bg-main relative" ref={container}></div>;
-        };
-
-        // 4. Order Panel
-        const OrderPanel = ({ symbol, onExecuteTrade }) => {
-            const [side, setSide] = useState('buy');
-            const [lots, setLots] = useState(1.0);
-            const [notes, setNotes] = useState("");
-            const [pnl, setPnl] = useState("");
-
-            return (
-                <div className="order-panel bg-bg-panel border-l border-gray-800 p-4 flex flex-col">
-                    <div className="text-sm font-bold text-white mb-4 border-b border-gray-800 pb-2">Order Entry</div>
-                    
-                    <div className="flex bg-gray-900 p-1 rounded mb-4">
-                        <button onClick={() => setSide('buy')} className={`flex-1 py-2 rounded text-xs font-bold uppercase transition-all ${side === 'buy' ? 'bg-up text-black' : 'text-gray-500 hover:text-white'}`}>Buy</button>
-                        <button onClick={() => setSide('sell')} className={`flex-1 py-2 rounded text-xs font-bold uppercase transition-all ${side === 'sell' ? 'bg-down text-white' : 'text-gray-500 hover:text-white'}`}>Sell</button>
-                    </div>
-
-                    <div className="space-y-4 mb-6">
-                        <div>
-                            <label className="text-xs text-gray-500">Symbol</label>
-                            <div className="w-full bg-bg-input border border-gray-700 rounded p-2 text-sm font-bold text-white">{symbol}</div>
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500">Amount (Lots)</label>
-                            <input type="number" value={lots} onChange={e=>setLots(e.target.value)} className="w-full bg-bg-input border border-gray-700 rounded p-2 text-sm text-white font-mono" />
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500">Actual P&L (For Journal)</label>
-                            <input type="number" value={pnl} onChange={e=>setPnl(e.target.value)} placeholder="0.00" className="w-full bg-bg-input border border-gray-700 rounded p-2 text-sm text-white font-mono" />
-                        </div>
-                         <div>
-                            <label className="text-xs text-gray-500">Notes</label>
-                            <textarea value={notes} onChange={e=>setNotes(e.target.value)} className="w-full bg-bg-input border border-gray-700 rounded p-2 text-xs text-white h-20 resize-none" placeholder="Strategy, emotion..."></textarea>
-                        </div>
-                    </div>
-
-                    <div className="mt-auto">
-                        <button onClick={() => onExecuteTrade({ symbol, type: side.toUpperCase(), lots, notes, pnl, openTime: new Date().toISOString() })} className={`w-full py-3 rounded font-bold text-sm uppercase ${side === 'buy' ? 'bg-up text-black' : 'bg-down text-white'}`}>
-                            {side} {symbol}
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-
-        // 5. Bottom Panel
-        const BottomPanel = ({ history, closePosition }) => {
-            const [activeTab, setActiveTab] = useState('journal');
-            const [aiPrompt, setAiPrompt] = useState("");
-            const [aiResponse, setAiResponse] = useState("");
-            const [aiLoading, setAiLoading] = useState(false);
-            const [balance, setBalance] = useState(50000);
-
-            const equityCurve = useMemo(() => {
-                let current = 50000;
-                return [{name: 'Start', val: current}, ...history.map((t, i) => {
-                    current += Number(t.pnl || 0);
-                    return { name: i, val: current };
-                })];
-            }, [history]);
-
-            const askAI = async () => {
-                if(!aiPrompt) return;
-                setAiLoading(true);
-                try {
-                    const api = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
-                    const context = JSON.stringify(history.slice(-5)); 
-                    const prompt = `Context: Recent trades ${context}. Question: ${aiPrompt}`;
-                    const res = await fetch(api, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
-                    const data = await res.json();
-                    setAiResponse(data.candidates[0].content.parts[0].text);
-                } catch(e) { setAiResponse("AI Error: Could not analyze."); }
-                setAiLoading(false);
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                isRegister ? onRegister(email, password) : onLogin(email, password);
             };
 
             return (
-                <div className="bottom-panel bg-bg-panel border-t border-gray-800 flex flex-col h-full">
-                    <div className="flex border-b border-gray-800">
-                        {['journal', 'analytics', 'ai_assistant'].map(tab => (
+                <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
+                    <div className="w-full max-w-md bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-2xl">
+                        <div className="flex justify-center mb-6">
+                            <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center">
+                                <span className="text-2xl font-bold text-white">PT</span>
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold text-center text-white mb-2">ProTrader Access</h2>
+                        <p className="text-slate-400 text-center text-sm mb-8">Secure Journaling Environment</p>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="text-xs uppercase font-bold text-slate-500 ml-1">Email</label>
+                                <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition-all" placeholder="trader@example.com"/>
+                            </div>
+                            <div>
+                                <label className="text-xs uppercase font-bold text-slate-500 ml-1">Password</label>
+                                <input type="password" required value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition-all" placeholder="••••••••"/>
+                            </div>
+                            <button className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all transform active:scale-95">
+                                {isRegister ? 'Initialize Account' : 'Access Terminal'}
+                            </button>
+                        </form>
+                        <div className="mt-6 text-center">
+                            <button onClick={()=>setIsRegister(!isRegister)} className="text-sm text-slate-400 hover:text-blue-400 transition-colors">
+                                {isRegister ? "Have an account? Login" : "New trader? Register"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 2. AI Analyst Panel (Slide-over)
+        const AIAnalyst = ({ isOpen, onClose, data }) => {
+            const [messages, setMessages] = useState([{role: 'ai', text: "Market analysis ready. Upload your trade data context automatically?"}]);
+            const [input, setInput] = useState('');
+            const [loading, setLoading] = useState(false);
+            const scrollRef = useRef(null);
+
+            useEffect(() => {
+                if(scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            }, [messages]);
+
+            const sendToGemini = async () => {
+                if(!input.trim()) return;
+                const userMsg = input;
+                setMessages(prev => [...prev, {role: 'user', text: userMsg}]);
+                setInput('');
+                setLoading(true);
+
+                try {
+                    const context = data ? JSON.stringify(data.slice(0, 20).map(d => ({
+                        day: d.day, date: d.date, pnl: d.actual, rules: d.rules.filter(r=>r.checked).length
+                    }))) : "No data";
+
+                    const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
+                    const payload = { contents: [{ parts: [{ text: `Context: User is a trader. Recent Data: ${context}. User Question: ${userMsg}. Keep it brief and professional.` }] }] };
+                    
+                    const res = await fetch(apiEndpoint, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                    const json = await res.json();
+                    const aiText = json.candidates?.[0]?.content?.parts?.[0]?.text || "Analysis failed.";
+                    
+                    setMessages(prev => [...prev, {role: 'ai', text: aiText}]);
+                } catch (e) {
+                    setMessages(prev => [...prev, {role: 'ai', text: "Connection Error."}]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            if (!isOpen) return null;
+
+            return (
+                <div className="fixed inset-0 z-50 flex justify-end">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose}></div>
+                    <div className="relative w-full max-w-md bg-slate-900 border-l border-slate-800 h-full flex flex-col shadow-2xl animate-fade-in">
+                        <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <h3 className="font-bold text-white">AI Analyst</h3>
+                            </div>
+                            <button onClick={onClose} className="text-slate-400 hover:text-white">✕</button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950" ref={scrollRef}>
+                            {messages.map((m, i) => (
+                                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[85%] p-3 rounded-lg text-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-200 border border-slate-700'}`}>
+                                        {m.text}
+                                    </div>
+                                </div>
+                            ))}
+                            {loading && <div className="text-xs text-slate-500 ml-2">Analyst is typing...</div>}
+                        </div>
+                        <div className="p-4 bg-slate-900 border-t border-slate-800 flex gap-2">
+                            <input 
+                                type="text" 
+                                value={input} 
+                                onChange={e=>setInput(e.target.value)}
+                                onKeyPress={e=>e.key==='Enter' && sendToGemini()}
+                                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                                placeholder="Ask about your performance..."
+                            />
+                            <button onClick={sendToGemini} className="p-3 bg-blue-600 rounded-lg text-white hover:bg-blue-500">
+                                <Icons.Send />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Main Dashboard (Stats & Overview)
+        const DashboardView = ({ data }) => {
+            if (!data) return null;
+            const allDays = data.months.flatMap(m => m.days).filter(d => d.actual !== "");
+            const currentEquity = allDays.length > 0 ? allDays[allDays.length - 1].capital : data.initialCapital;
+            const totalPnl = currentEquity - data.initialCapital;
+            const pnlColor = totalPnl >= 0 ? 'text-success' : 'text-danger';
+
+            // Chart Data Preparation
+            const chartData = [{ name: 'Start', equity: data.initialCapital }, ...allDays.map(d => ({ name: `D${d.day}`, equity: d.capital }))];
+
+            return (
+                <div className="space-y-6 animate-fade-in pb-20">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <p className="text-xs text-slate-400 uppercase font-bold">Current Equity</p>
+                            <h2 className="text-2xl font-mono font-bold text-white mt-1">{formatCurrency(currentEquity)}</h2>
+                        </div>
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <p className="text-xs text-slate-400 uppercase font-bold">Net P&L</p>
+                            <h2 className={`text-2xl font-mono font-bold mt-1 ${pnlColor}`}>{formatCurrency(totalPnl)}</h2>
+                        </div>
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <p className="text-xs text-slate-400 uppercase font-bold">Trades Taken</p>
+                            <h2 className="text-2xl font-mono font-bold text-white mt-1">{allDays.length}</h2>
+                        </div>
+                        <div className="bg-slate-800 p-5 rounded-xl border border-slate-700">
+                            <p className="text-xs text-slate-400 uppercase font-bold">Target</p>
+                            <h2 className="text-2xl font-mono font-bold text-blue-400 mt-1">{formatCurrency(data.finalTarget)}</h2>
+                        </div>
+                    </div>
+
+                    {/* Equity Chart */}
+                    <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 h-64 md:h-80 w-full">
+                        <h3 className="text-sm font-bold text-slate-300 mb-4">Performance Curve</h3>
+                        <ResponsiveContainer width="100%" height="90%">
+                            <LineChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                <XAxis dataKey="name" hide />
+                                <YAxis domain={['auto', 'auto']} stroke="#94a3b8" fontSize={10} />
+                                <Tooltip contentStyle={{backgroundColor: '#1e293b', border: '1px solid #334155', color: '#fff'}} />
+                                <Line type="monotone" dataKey="equity" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            );
+        };
+
+        // 4. Journal View (The Trade Blotter)
+        const JournalView = ({ data, updateData, activeMonth, setMonth }) => {
+            const [page, setPage] = useState(1);
+            const currentMonthData = data.months[activeMonth];
+            const startIndex = (page - 1) * DAYS_PER_PAGE;
+            const displayDays = currentMonthData.days.slice(startIndex, startIndex + DAYS_PER_PAGE);
+            const totalPages = Math.ceil(currentMonthData.days.length / DAYS_PER_PAGE);
+
+            return (
+                <div className="animate-fade-in pb-20">
+                    {/* Month Selector */}
+                    <div className="flex overflow-x-auto gap-2 mb-6 pb-2">
+                        {data.months.map((m, idx) => (
                             <button 
-                                key={tab} 
-                                onClick={() => setActiveTab(tab)} 
-                                className={`px-6 py-2 text-xs font-bold uppercase border-t-2 ${activeTab === tab ? 'border-[#f0b90b] text-white bg-gray-800' : 'border-transparent text-gray-500 hover:text-white'}`}
+                                key={idx} 
+                                onClick={() => { setMonth(idx); setPage(1); }}
+                                className={`px-4 py-2 text-xs font-bold uppercase rounded-md whitespace-nowrap transition-all ${activeMonth === idx ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                             >
-                                {tab.replace('_', ' ')}
+                                {m.monthName}
                             </button>
                         ))}
                     </div>
 
-                    <div className="flex-1 overflow-auto p-0 h-full relative">
-                        
-                        {activeTab === 'journal' && (
-                            <table className="w-full text-xs text-left h-full">
-                                <thead className="text-gray-500 bg-gray-900 sticky top-0">
-                                    <tr><th className="p-2">Date</th><th className="p-2">Symbol</th><th className="p-2">Type</th><th className="p-2">Lots</th><th className="p-2">P&L</th><th className="p-2">Notes</th></tr>
-                                </thead>
-                                <tbody>
-                                    {history.slice().reverse().map((t, i) => (
-                                        <tr key={i} className="border-b border-gray-800 hover:bg-gray-800">
-                                            <td className="p-2 text-gray-400">{new Date(t.openTime).toLocaleString()}</td>
-                                            <td className="p-2 font-bold text-white">{t.symbol}</td>
-                                            <td className={`p-2 ${t.type === 'BUY' ? 'text-up' : 'text-down'}`}>{t.type}</td>
-                                            <td className="p-2 text-white">{t.lots}</td>
-                                            <td className={`p-2 font-mono font-bold ${Number(t.pnl) >= 0 ? 'text-up' : 'text-down'}`}>{t.pnl}</td>
-                                            <td className="p-2 text-gray-400 italic truncate max-w-xs">{t.notes}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
+                    {/* Trade Cards */}
+                    <div className="space-y-4">
+                        {displayDays.map((day, i) => {
+                            const globalIndex = startIndex + i;
+                            const pnlVal = Number(day.actual);
+                            const pnlColor = day.pnlSign === '+' ? 'text-success' : 'text-danger';
+                            const borderClass = day.pnlSign === '+' && pnlVal > 0 ? 'border-l-4 border-l-success' : (day.pnlSign === '-' && pnlVal > 0 ? 'border-l-4 border-l-danger' : 'border-l-4 border-l-slate-600');
 
-                        {activeTab === 'analytics' && LineChart && (
-                             <div className="w-full h-full p-4">
-                                <h4 className="text-xs text-gray-500 mb-2">Equity Curve</h4>
-                                <ResponsiveContainer width="100%" height="90%">
-                                    <LineChart data={equityCurve}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#2a2e39" />
-                                        <XAxis dataKey="name" hide />
-                                        <YAxis domain={['auto', 'auto']} stroke="#474d57" fontSize={10} />
-                                        <Tooltip contentStyle={{backgroundColor: '#15191e', border: '1px solid #2a2e39'}} />
-                                        <Line type="monotone" dataKey="val" stroke="#f0b90b" dot={false} />
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </div>
-                        )}
+                            return (
+                                <div key={day.date} className={`bg-slate-800 rounded-lg border border-slate-700 shadow-sm overflow-hidden ${borderClass}`}>
+                                    {/* Header */}
+                                    <div className="p-3 bg-slate-800/50 border-b border-slate-700 flex justify-between items-center">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-slate-500 font-mono font-bold text-xs">DAY {day.day}</span>
+                                            <span className="text-slate-300 font-semibold text-sm">{new Date(day.date).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="flex items-center bg-slate-900 rounded border border-slate-700">
+                                            <button 
+                                                className={`px-3 py-1 text-sm font-bold ${day.pnlSign === '+' ? 'text-success' : 'text-slate-500'}`}
+                                                onClick={() => updateData(activeMonth, globalIndex, 'pnlSign', '+')}
+                                            >+</button>
+                                            <input 
+                                                type="number" 
+                                                className="w-24 bg-transparent text-center font-mono text-white outline-none text-sm"
+                                                placeholder="0"
+                                                value={day.actual}
+                                                onChange={(e) => updateData(activeMonth, globalIndex, 'actual', e.target.value)}
+                                            />
+                                            <button 
+                                                className={`px-3 py-1 text-sm font-bold ${day.pnlSign === '-' ? 'text-danger' : 'text-slate-500'}`}
+                                                onClick={() => updateData(activeMonth, globalIndex, 'pnlSign', '-')}
+                                            >-</button>
+                                        </div>
+                                    </div>
 
-                        {activeTab === 'ai_assistant' && (
-                            <div className="p-4 flex flex-col h-full">
-                                <div className="flex-1 overflow-y-auto mb-4 bg-gray-900 rounded p-4 text-sm text-gray-300 font-mono whitespace-pre-wrap border border-gray-800">
-                                    {aiResponse || "I am your AI Trade Assistant. Ask me to analyze your journal..."}
+                                    {/* Details Grid */}
+                                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <div className="flex justify-between mb-2">
+                                                <span className="text-xs text-slate-500 uppercase">Projected</span>
+                                                <span className="text-xs font-mono text-slate-300">{formatCurrency(day.target)}</span>
+                                            </div>
+                                            <div className="flex justify-between mb-2">
+                                                <span className="text-xs text-slate-500 uppercase">Actual Equity</span>
+                                                <span className="text-xs font-mono text-white">{formatCurrency(day.capital)}</span>
+                                            </div>
+                                            <textarea 
+                                                className="w-full bg-slate-900 border border-slate-700 rounded p-2 text-xs text-slate-300 mt-2 resize-none focus:border-blue-600 outline-none"
+                                                rows="3"
+                                                placeholder="Trade notes, setup, emotions..."
+                                                value={day.logic}
+                                                onChange={(e) => updateData(activeMonth, globalIndex, 'logic', e.target.value)}
+                                            ></textarea>
+                                        </div>
+                                        <div className="border-t md:border-t-0 md:border-l border-slate-700 pt-4 md:pt-0 md:pl-4">
+                                            <p className="text-xs text-slate-500 uppercase mb-2">Execution Checklist</p>
+                                            <div className="grid grid-cols-1 gap-1">
+                                                {day.rules.map((rule, rIdx) => (
+                                                    <label key={rIdx} className="flex items-center gap-2 cursor-pointer">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            className="rounded bg-slate-700 border-slate-600 text-blue-600 focus:ring-0"
+                                                            checked={rule.checked}
+                                                            onChange={(e) => {
+                                                                const newRules = [...day.rules];
+                                                                newRules[rIdx].checked = e.target.checked;
+                                                                updateData(activeMonth, globalIndex, 'rules', newRules);
+                                                            }}
+                                                        />
+                                                        <span className={`text-xs ${rule.checked ? 'text-blue-400' : 'text-slate-400'}`}>{rule.text}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2">
-                                    <input value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} className="flex-1 bg-bg-input border border-gray-700 rounded p-2 text-white text-sm" placeholder="Ask AI..." />
-                                    <button onClick={askAI} disabled={aiLoading} className="bg-[#f0b90b] text-black font-bold px-4 rounded hover:bg-yellow-500">{aiLoading ? '...' : 'Send'}</button>
-                                </div>
-                            </div>
-                        )}
+                            );
+                        })}
+                    </div>
+
+                    {/* Pagination */}
+                    <div className="flex justify-between items-center mt-6 px-2">
+                        <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="text-slate-400 hover:text-white disabled:opacity-30 flex items-center gap-1 text-sm"><Icons.ArrowLeft /> Prev</button>
+                        <span className="text-xs text-slate-500">Page {page} of {totalPages}</span>
+                        <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)} className="text-slate-400 hover:text-white disabled:opacity-30 flex items-center gap-1 text-sm">Next <Icons.ArrowRight /></button>
                     </div>
                 </div>
             );
         };
 
-        // --- APP LOGIC ---
-        const TradingTerminal = ({ user, onLogout }) => {
-            const [selectedSymbol, setSelectedSymbol] = useState('BTC/USDT');
-            const [history, setHistory] = useState([]);
+        // --- MAIN APP CONTAINER ---
+        const App = ({ user, onLogout }) => {
+            const [view, setView] = useState('dashboard'); // 'dashboard' | 'journal'
+            const [data, setData] = useState(null);
+            const [activeMonth, setActiveMonth] = useState(0);
+            const [aiOpen, setAiOpen] = useState(false);
+
+            // Data Initialization Logic (Same calculations as before)
+            const initDataModel = useCallback(() => {
+                const months = []; 
+                let d = new Date();
+                let count = 0;
+                // Simple loop to generate days
+                while(count < DEFAULT_TENURE_DAYS) {
+                    const mIdx = Math.floor(count / TRADING_DAYS_PER_MONTH);
+                    if(!months[mIdx]) months[mIdx] = { id: mIdx, monthName: d.toLocaleString('default', {month:'long'}), days: [] };
+                    
+                    let dateStr = d.toISOString().split('T')[0];
+                    months[mIdx].days.push({
+                        day: count + 1, date: dateStr, capital: 0, target: 0, profit: 0, dailyRate: 0,
+                        pnlSign: '+', actual: '', logic: '', rules: JSON.parse(JSON.stringify(DEFAULT_RULES))
+                    });
+                    
+                    // Next trading day logic
+                    d.setDate(d.getDate() + 1);
+                    while(d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+                    count++;
+                }
+                
+                // Initial Calc
+                let cap = DEFAULT_INITIAL_CAPITAL;
+                let daysLeft = DEFAULT_TENURE_DAYS;
+                months.forEach(m => m.days.forEach(day => {
+                     const rate = (Math.pow(DEFAULT_FINAL_TARGET/DEFAULT_INITIAL_CAPITAL, 1/DEFAULT_TENURE_DAYS) - 1);
+                     day.capital = Math.round(cap);
+                     day.dailyRate = rate;
+                     day.target = Math.round(cap * (1 + rate));
+                     cap = day.target;
+                }));
+
+                return { initialCapital: DEFAULT_INITIAL_CAPITAL, finalTarget: DEFAULT_FINAL_TARGET, tenure: DEFAULT_TENURE_DAYS, months };
+            }, []);
+
+            const recalculate = (currentData) => {
+                let cap = Number(currentData.initialCapital);
+                let daysLeft = Number(currentData.tenure);
+                const target = Number(currentData.finalTarget);
+                
+                // Deep copy to avoid mutation issues
+                const newData = JSON.parse(JSON.stringify(currentData));
+                
+                newData.months.forEach(m => {
+                    m.days.forEach(day => {
+                        day.capital = Math.round(cap);
+                        // Dynamic Rate Calculation
+                        let rate = 0;
+                        if(cap > 0 && daysLeft > 0 && target > cap) {
+                            rate = Math.pow(target / cap, 1 / daysLeft) - 1;
+                        }
+                        
+                        day.dailyRate = rate;
+                        day.profit = Math.round(cap * rate);
+                        day.target = Math.round(cap + day.profit);
+                        
+                        if (day.actual !== "") {
+                            const val = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual);
+                            cap += val;
+                        } else {
+                            cap = day.target;
+                        }
+                        daysLeft--;
+                    });
+                });
+                return newData;
+            };
 
             // Load Data
             useEffect(() => {
-                db.ref(`users/${user.uid}/journal`).on('value', snap => {
-                    const val = snap.val();
-                    if(val) setHistory(val || []);
+                db.ref(`users/${user.uid}/journal`).once('value', snapshot => {
+                    if (snapshot.exists()) {
+                        setData(snapshot.val());
+                    } else {
+                        const newData = initDataModel();
+                        setData(newData);
+                        db.ref(`users/${user.uid}/journal`).set(newData);
+                    }
                 });
             }, [user]);
 
-            const handleExecute = (trade) => {
-                const newHistory = [...history, trade];
-                setHistory(newHistory);
-                db.ref(`users/${user.uid}/journal`).set(newHistory);
+            // Update Helper
+            const updateData = (mIdx, dIdx, field, val) => {
+                setData(prev => {
+                    const copy = JSON.parse(JSON.stringify(prev));
+                    copy.months[mIdx].days[dIdx][field] = val;
+                    const recalculated = recalculate(copy);
+                    // Autosave to firebase
+                    db.ref(`users/${user.uid}/journal`).set(recalculated);
+                    return recalculated;
+                });
             };
 
+            if (!data) return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-blue-500">Loading Profile...</div>;
+
             return (
-                <div className="app-grid">
-                    <div className="header">
-                        <Header user={user} onLogout={onLogout} />
-                    </div>
-                    
-                    <div className="watchlist">
-                        <Watchlist onSelectSymbol={setSelectedSymbol} />
-                    </div>
-                    
-                    <div className="chart-area">
-                        <ChartArea symbol={selectedSymbol} />
-                    </div>
-                    
-                    <div className="order-panel">
-                        <OrderPanel symbol={selectedSymbol} onExecuteTrade={handleExecute} />
-                    </div>
-                    
-                    <div className="bottom-panel">
-                        <BottomPanel history={history} user={user} />
-                    </div>
+                <div className="flex min-h-screen bg-slate-950 text-slate-200 font-sans">
+                    {/* DESKTOP SIDEBAR */}
+                    <aside className="hidden md:flex flex-col w-20 bg-slate-900 border-r border-slate-800 fixed h-full z-20 items-center py-6">
+                        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white mb-8">PT</div>
+                        <nav className="flex flex-col gap-6 w-full items-center">
+                            <button onClick={() => setView('dashboard')} className={`p-3 rounded-xl transition-all ${view === 'dashboard' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-800'}`}><Icons.Home /></button>
+                            <button onClick={() => setView('journal')} className={`p-3 rounded-xl transition-all ${view === 'journal' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-800'}`}><Icons.Journal /></button>
+                            <button onClick={() => setAiOpen(true)} className="p-3 rounded-xl text-slate-500 hover:bg-slate-800"><Icons.Robot /></button>
+                        </nav>
+                        <div className="mt-auto pb-4">
+                            <button onClick={onLogout} className="p-3 rounded-xl text-slate-500 hover:text-red-500 hover:bg-slate-800"><Icons.Logout /></button>
+                        </div>
+                    </aside>
+
+                    {/* MAIN CONTENT */}
+                    <main className="flex-1 md:ml-20 p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto w-full">
+                        {/* Top Bar */}
+                        <header className="flex justify-between items-center mb-8">
+                            <div>
+                                <h1 className="text-2xl font-bold text-white">{view === 'dashboard' ? 'Market Overview' : 'Trade Journal'}</h1>
+                                <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest">Account: {user.email}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <a href="https://cryptobubbles.net" target="_blank" className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-700 rounded text-sm hover:border-blue-500 transition-colors">
+                                    <Icons.Chart /> <span>Bubbles</span>
+                                </a>
+                            </div>
+                        </header>
+
+                        {/* Content Switching */}
+                        {view === 'dashboard' && <DashboardView data={data} />}
+                        {view === 'journal' && <JournalView data={data} updateData={updateData} activeMonth={activeMonth} setMonth={setActiveMonth} />}
+                    </main>
+
+                    {/* MOBILE BOTTOM NAV */}
+                    <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-900/95 backdrop-blur border-t border-slate-800 flex justify-around items-center py-3 z-40 safe-area-pb">
+                        <button onClick={() => setView('dashboard')} className={`flex flex-col items-center gap-1 ${view === 'dashboard' ? 'text-blue-500' : 'text-slate-500'}`}>
+                            <Icons.Home /> <span className="text-[10px] font-medium">Home</span>
+                        </button>
+                        <button onClick={() => setView('journal')} className={`flex flex-col items-center gap-1 ${view === 'journal' ? 'text-blue-500' : 'text-slate-500'}`}>
+                            <Icons.Journal /> <span className="text-[10px] font-medium">Journal</span>
+                        </button>
+                        <button onClick={() => setAiOpen(true)} className="flex flex-col items-center gap-1 text-slate-500">
+                            <Icons.Robot /> <span className="text-[10px] font-medium">AI</span>
+                        </button>
+                        <button onClick={onLogout} className="flex flex-col items-center gap-1 text-slate-500">
+                            <Icons.Logout /> <span className="text-[10px] font-medium">Exit</span>
+                        </button>
+                    </nav>
+
+                    {/* AI SLIDE OVER */}
+                    <AIAnalyst isOpen={aiOpen} onClose={() => setAiOpen(false)} tradingData={data.months.flatMap(m => m.days)} />
                 </div>
             );
         };
 
-        // --- AUTH ---
-        const AuthScreen = ({ onLogin }) => {
-            const [email, setEmail] = useState('');
-            const [password, setPassword] = useState('');
-            return (
-                <div className="min-h-screen flex items-center justify-center bg-bg-main">
-                    <div className="bg-bg-panel p-8 rounded-lg shadow-lg w-96 border border-gray-800">
-                        <h2 className="text-2xl font-bold text-white mb-6 text-center">ProTrader Login</h2>
-                        <input type="email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full bg-bg-input p-3 rounded mb-3 text-white" placeholder="Email" />
-                        <input type="password" value={password} onChange={e=>setPassword(e.target.value)} className="w-full bg-bg-input p-3 rounded mb-6 text-white" placeholder="Password" />
-                        <button onClick={() => onLogin(email, password)} className="w-full bg-[#f0b90b] hover:bg-yellow-500 text-black font-bold py-3 rounded">ENTER TERMINAL</button>
-                    </div>
-                </div>
-            );
-        };
-
+        // --- ROOT AUTH CHECK ---
         const Root = () => {
             const [user, setUser] = useState(null);
             const [loading, setLoading] = useState(true);
 
-            useEffect(() => auth.onAuthStateChanged(u => { setUser(u); setLoading(false); }), []);
+            useEffect(() => {
+                return auth.onAuthStateChanged(u => { setUser(u); setLoading(false); });
+            }, []);
 
-            const handleLogin = (e, p) => {
-                auth.signInWithEmailAndPassword(e, p).catch(err => {
-                    auth.createUserWithEmailAndPassword(e, p).catch(regErr => alert(regErr.message));
-                });
-            };
+            const handleLogin = (e, p) => auth.signInWithEmailAndPassword(e, p).catch(err => alert(err.message));
+            const handleRegister = (e, p) => auth.createUserWithEmailAndPassword(e, p).catch(err => alert(err.message));
 
-            if(loading) return <div className="h-screen bg-bg-main flex items-center justify-center text-gray-500">Connecting to Exchange...</div>;
+            if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-blue-500 animate-pulse font-bold tracking-widest">INITIALIZING...</div>;
 
-            return user ? <TradingTerminal user={user} onLogout={() => auth.signOut()} /> : <AuthScreen onLogin={handleLogin} />;
+            return user ? <App user={user} onLogout={() => auth.signOut()} /> : <AuthScreen onLogin={handleLogin} onRegister={handleRegister} />;
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));

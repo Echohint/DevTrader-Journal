@@ -1,477 +1,268 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DevTrader: Real-World Terminal</title>
-    <meta name="theme-color" content="#ffffff">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevTrader Trading Journal</title>
     
+    <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3cdefs%3e%3cfilter id='glow' x='-50%25' y='-50%25' width='200%25' height='200%25'%3e%3cfeGaussianBlur stdDeviation='5' result='blur'/%3e%3cfeMerge%3e%3cfeMergeNode in='blur'/%3e%3cfeMergeNode in='SourceGraphic'/%3e%3c/feMerge%3e%3c/filter%3e%3c/defs%3e%3crect width='100' height='100' fill='%23000'/%3e%3ctext x='50' y='55' font-family='Orbitron, sans-serif' font-size='38' fill='%2300ffff' text-anchor='middle' dominant-baseline='middle' filter='url(%23glow)'%3eDTJ%3c/text%3e%3c/svg%3e">
+
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/framer-motion@10.16.4/dist/framer-motion.js"></script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: #f8fafc; 
-            color: #0f172a; 
-            overflow: hidden; 
-            -webkit-tap-highlight-color: transparent;
-            user-select: none;
-        }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        .dark body { background-color: #0b0e11; color: #e2e8f0; }
-
-        /* Smooth Ticker Updates */
-        .price-tick { transition: color 0.3s ease; will-change: transform; }
-        .tick-up { color: #10b981; }
-        .tick-down { color: #ef4444; }
-
-        /* Glass UI */
-        .glass { background: rgba(255,255,255,0.95); border: 1px solid #e2e8f0; }
-        .dark .glass { background: rgba(21, 26, 34, 0.95); border: 1px solid #2a323d; }
-
-        /* Loaders */
-        .spinner { border: 2px solid rgba(255,255,255,0.3); border-left-color: #fff; border-radius: 50%; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Layout Grid */
-        .app-shell { display: flex; flex-direction: column; height: 100vh; }
-        @media (min-width: 1024px) {
-            .app-shell { display: grid; grid-template-columns: 280px 1fr 320px; grid-template-rows: 60px 1fr 280px; }
-            .area-nav { grid-column: 1 / -1; grid-row: 1; }
-            .area-side { grid-column: 1; grid-row: 2; display: block !important; }
-            .area-main { grid-column: 2; grid-row: 2; }
-            .area-panel { grid-column: 3; grid-row: 2; display: block !important; }
-            .area-bot { grid-column: 1 / -1; grid-row: 3; display: flex !important; }
-        }
-        @media (max-width: 1023px) {
-            .area-side, .area-panel, .area-bot { display: none; }
-            .mobile-active { display: flex !important; flex: 1; flex-direction: column; overflow: hidden; }
-        }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Orbitron', sans-serif; overscroll-behavior-y: none; cursor: default; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        #bg-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .perspective-container { perspective: 1500px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        @keyframes pulse-glow-cyber { 0%, 100% { box-shadow: 0 0 10px 3px rgba(128, 128, 128, 0.8), inset 0 0 5px 1px rgba(128, 128, 128, 0.5); } 50% { box-shadow: 0 0 20px 6px rgba(128, 128, 128, 0.5), inset 0 0 10px 2px rgba(128, 128, 128, 0.3); } }
+        .today-highlight { animation: pulse-glow-cyber 2.5s infinite; }
+        .day-container { cursor: grab; }
+        .is-dragging { animation: none !important; cursor: grabbing; }
+        .scanlines::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); z-index: -1; background-size: 100% 3px, 4px 100%; pointer-events: none; animation: flicker 0.15s infinite; opacity: 0; }
+        .dark .scanlines::before { opacity: 1; }
+        @keyframes flicker { 0% { opacity: 0.8; } 50% { opacity: 0.9; } 100% { opacity: 0.8; } }
+        .bg-dark-cyber { background-color: #0a0a14; background-image: radial-gradient(ellipse at center, rgba(0, 50, 100, 0.3) 0%, transparent 70%), linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px); background-size: 100% 100%, 35px 35px, 35px 35px; }
+        .bg-light-chart { background-color: white; }
+        .fab { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 40; }
+        .scrollbar-thin { scrollbar-width: thin; scrollbar-color: #0891b2 #1f2937; }
+        .scrollbar-thin::-webkit-scrollbar { width: 8px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: #1f2937; border-radius: 4px;}
+        .scrollbar-thin::-webkit-scrollbar-thumb { background-color: #0891b2; border-radius: 4px; border: 2px solid #1f2937; }
     </style>
-    <script> tailwind.config = { darkMode: 'class' } </script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+    </script>
 </head>
-<body class="light">
+<body class="bg-white dark:bg-black">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback, useMemo, useRef, memo } = React;
+        const { useState, useEffect, useCallback, useMemo, useRef } = React;
+        
+        const DEFAULT_INITIAL_CAPITAL = 50000;
+        const DEFAULT_FINAL_TARGET = 1000000;
+        const DEFAULT_TENURE_DAYS = 66; 
+        const TRADING_DAYS_PER_MONTH = 22;
+        const DAYS_PER_PAGE = 10; 
+        const GEMINI_API_KEY = "AIzaSyCL1goQPGdTFp_IizpTteU9ZTvcTQG3kzM"; 
+        
+        const DEFAULT_RULES = [ { text: "MAINTAIN DISCIPLINE: ADHERE TO THE PLAN", checked: false }, { text: "VALIDATE STRATEGY: CONFIRM ENTRY/EXIT CRITERIA", checked: false }, { text: "ASSESS MACRO TREND: CONSULT HIGHER TIMEFRAMES", checked: false }, { text: "RISK PROTOCOL: MAX 2% CAPITAL PER ENGAGEMENT", checked: false }, { text: "PROTECT CAPITAL: NEVER SHIFT STOP-LOSS MID-TRADE", checked: false }, { text: "DEFINE LOSS LIMITS: SET DAILY DRAWDOWN THRESHOLD", checked: false }, { text: "AVOID EMOTIONAL TRADING: NO REVENGE/OVER-TRADING", checked: false }, { text: "MAINTAIN OBJECTIVITY: LOGIC OVER FEAR/GREED", checked: false }, { text: "POST-TRADE ANALYSIS: LOG & REVIEW ALL EXECUTIONS", checked: false }, { text: "OPERATOR STATUS: CONFIRM PEAK MENTAL & PHYSICAL STATE", checked: false }, ];
+        
+        const getNextTradingDay = (date) => { const nextDay = new Date(date); nextDay.setDate(nextDay.getDate() + 1); while (nextDay.getDay() === 0 || nextDay.getDay() === 6) { nextDay.setDate(nextDay.getDate() + 1); } return nextDay; };
+        const getTodayDateString = () => new Date().toISOString().split('T')[0];
+        const getCurrentFormattedDate = () => new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        const formatNumber = (num, showSign = false) => { const number = Number(num); if (isNaN(number)) return '0'; let prefix = ''; if (showSign) { if (number > 0) prefix = '+'; if (number < 0) prefix = '-'; } const absNum = Math.abs(number); let formattedValue; if (absNum >= 10000000) { formattedValue = (absNum / 10000000).toFixed(2).replace(/\.00$/, '') + ' CR'; } else if (absNum >= 100000) { formattedValue = (absNum / 100000).toFixed(2).replace(/\.00$/, '') + ' L'; } else if (absNum >= 1000) { formattedValue = (absNum / 1000).toFixed(2).replace(/\.00$/, '') + ' K'; } else { formattedValue = absNum.toLocaleString('en-IN'); } return prefix + (number < 0 ? '-' : '') + formattedValue; };
 
-        // --- CONFIG ---
-        const USD_INR = 84.50;
-        const LEVERAGE = 200;
-        const WATCHLIST = ["BTCUSD", "ETHUSD", "XAUUSD", "EURUSD", "GBPUSD", "AAPL", "TSLA", "NVDA"];
+        const Logo = ({ size = "36" }) => ( <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 100 100" className="opacity-80"><defs><filter id="text-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="blur"></feGaussianBlur><feMerge><feMergeNode in="blur"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter></defs><text x="50" y="55" fontFamily="Orbitron, sans-serif" fontSize="38" fill="#00ffff" textAnchor="middle" dominantBaseline="middle" filter="url(#text-glow)">DTJ</text></svg> );
+        
+        const MonthlyStatement = ({ monthData, startCapital, onClose }) => { const stats = useMemo(() => { let pnl = 0, profitDays = 0, lossDays = 0, longestStreak = 0, currentStreak = 0, mostProfitable = 0, largestLoss = 0, completedDays = 0; for (const day of monthData.days) { if (day.actual === "" || day.actual === null) continue; completedDays++; const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); pnl += value; if (value > 0) { profitDays++; currentStreak++; mostProfitable = Math.max(mostProfitable, value); } else if (value < 0) { lossDays++; currentStreak = 0; largestLoss = Math.min(largestLoss, value); } else { currentStreak = 0; } longestStreak = Math.max(longestStreak, currentStreak); } const endCapital = startCapital + pnl; return { pnl, profitDays, lossDays, longestStreak, mostProfitable, largestLoss, endCapital, completedDays }; }, [monthData, startCapital]); const StatCard = ({ title, value, colorClass = "text-black dark:text-gray-200" }) => ( <div className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-3 border border-fuchsia-700/30 dark:border-fuchsia-500/50"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-lg sm:text-xl font-bold ${colorClass}`}>{value}</p></div> ); return ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}><div className="w-full max-w-2xl bg-white/80 dark:bg-black/80 p-4 sm:p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}><h3 className="text-xl sm:text-2xl font-bold mb-4 text-cyan-600 dark:text-cyan-400">STATEMENT: {monthData.monthName}</h3><div className="grid grid-cols-3 gap-2 sm:gap-4 mb-4 text-center"><StatCard title="START CAPITAL" value={`₹${formatNumber(startCapital)}`} /> <StatCard title="END CAPITAL" value={`₹${formatNumber(stats.endCapital)}`} /><StatCard title="NET P&L" value={`₹${formatNumber(stats.pnl, true)}`} colorClass={stats.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}/></div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">P&L CALENDAR</h4><div className="grid grid-cols-7 gap-1 sm:gap-2 mb-4 p-2 bg-white/30 dark:bg-black/50 border border-cyan-700/20 dark:border-cyan-500/30">{monthData.days.map((day) => { const value = (day.pnlSign === '+' ? 1 : -1) * Number(day.actual); let bgColor = "bg-gray-200 dark:bg-gray-700/80"; if (day.actual !== "" && value > 0) bgColor = "bg-green-500 dark:bg-green-600"; if (day.actual !== "" && value < 0) bgColor = "bg-red-500 dark:bg-red-600"; if (day.actual !== "" && value === 0) bgColor = "bg-gray-400 dark:bg-gray-500"; return (<div key={day.day} className={`w-full h-8 sm:h-12 ${bgColor} flex items-center justify-center text-white font-bold text-xs sm:text-sm`} title={`Day ${day.day}: ₹${formatNumber(value, true)}`}>{day.day}</div>); })}</div><h4 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">MONTHLY ANALYSIS</h4><div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 text-center"><StatCard title="PROFIT DAYS" value={stats.profitDays} colorClass="text-green-600 dark:text-green-400" /> <StatCard title="LOSS DAYS" value={stats.lossDays} colorClass="text-red-600 dark:text-red-400" /><StatCard title="LONGEST STREAK" value={`${stats.longestStreak} Days`} colorClass="text-cyan-600 dark:text-cyan-400" /> <StatCard title="MOST PROFITABLE" value={`₹${formatNumber(stats.mostProfitable, true)}`} colorClass="text-green-600 dark:text-green-400" /><StatCard title="LARGEST LOSS" value={`₹${formatNumber(stats.largestLoss, true)}`} colorClass="text-red-600 dark:text-red-400" /> <StatCard title="DAYS TRADED" value={stats.completedDays} /></div><button onClick={onClose} className="w-full px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">Close</button></div></div> ); };
+        
+        const GeminiAnalysisPopup = ({ onClose, tradingData }) => {
+            const [prompt, setPrompt] = useState("Analyze my recent trading performance based on the provided data. Give me 3 actionable insights."); 
+            const [isLoading, setIsLoading] = useState(false);
+            const [response, setResponse] = useState("");
 
-        // --- HELPERS ---
-        const fmt = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
-        const genId = () => Math.random().toString(36).substr(2, 9);
-        const getToday = () => new Date().toISOString().split('T')[0];
+             const callGeminiAPI = async (userPrompt, data) => {
+                const key = GEMINI_API_KEY; 
+                console.log("Attempting to call Gemini API with model gemini-1.5-flash...");
+                setIsLoading(true); setResponse(""); 
 
-        // --- NOTIFICATION SYSTEM ---
-        const ToastContext = React.createContext();
-        const ToastProvider = ({ children }) => {
-            const [toasts, setToasts] = useState([]);
-            const addToast = (msg, type='success') => {
-                const id = Date.now();
-                setToasts(p => [...p, { id, msg, type }]);
-                setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3000);
-            };
-            return (
-                <ToastContext.Provider value={addToast}>
-                    {children}
-                    <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 pointer-events-none">
-                        {toasts.map(t => (
-                            <div key={t.id} className={`px-4 py-3 rounded-lg shadow-xl text-sm font-bold text-white transform transition-all ${t.type==='error'?'bg-red-600':'bg-green-600'}`}>
-                                {t.msg}
-                            </div>
-                        ))}
-                    </div>
-                </ToastContext.Provider>
-            );
+                try {
+                     const apiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`;
+                     const dataSummary = data.map(d => ({ day: d.day, date: d.date, pnl: (d.pnlSign === '+' ? 1 : -1) * (Number(d.actual) || 0), wins: d.winningTrades, losses: d.losingTrades })).filter(d => d.pnl !== 0 || d.wins || d.losses);
+                     const requestBody = { contents: [{ parts: [{ text: `${userPrompt}\n\nHere is my recent trading data:\n${JSON.stringify(dataSummary, null, 2)}` }] }] };
+                     
+                     const res = await fetch(apiEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestBody) });
+                     if (!res.ok) { const errorData = await res.json(); throw new Error(`API Error ${res.status}: ${errorData?.error?.message || 'Unknown error'}`); }
+                     const responseData = await res.json();
+                     const textResponse = responseData?.candidates?.[0]?.content?.parts?.[0]?.text || "No valid response text received from API.";
+                     setResponse(textResponse);
+                 } catch (error) { setResponse(`Error: ${error.message}\n\nCheck console. Ensure API key is valid.`);
+                 } finally { setIsLoading(false); }
+             };
+
+            const handleSubmit = () => { callGeminiAPI(prompt, tradingData); };
+
+            return ( <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={onClose}><div className="w-full max-w-lg bg-black/80 border-2 border-cyan-500/70 shadow-[0_0_25px_rgba(0,255,255,0.5)] p-6 max-h-[90vh] flex flex-col rounded-lg" onClick={(e) => e.stopPropagation()}><h3 className="text-2xl font-bold mb-4 text-cyan-400 flex-shrink-0" style={{textShadow: '0 0 8px #00ffff'}}>⚡ AI Trade Analysis ⚡</h3><textarea placeholder="Ask Gemini about your trading performance..." value={prompt} onChange={(e) => setPrompt(e.target.value)} className="w-full h-24 p-3 mb-4 bg-gray-900/80 border border-fuchsia-500/50 focus:outline-none focus:ring-2 focus:ring-fuchsia-400 text-sm flex-shrink-0 text-gray-200 placeholder-gray-500 rounded-md"></textarea><div className="flex-grow overflow-y-auto bg-gray-950/70 p-4 mb-4 border border-cyan-700/50 min-h-[150px] rounded-md scrollbar-thin">{isLoading ? (<p className="text-center text-cyan-400 animate-pulse">🧠 Accessing Neural Link...</p>) : (<pre className="text-xs sm:text-sm whitespace-pre-wrap text-green-400 font-mono">{response || "Awaiting Analysis..."}</pre>)}</div><div className="flex justify-end gap-3 flex-shrink-0"><button onClick={onClose} disabled={isLoading} className="px-4 py-2 rounded-lg bg-gray-600/80 hover:bg-gray-500/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all text-sm disabled:opacity-50">Cancel</button><button onClick={handleSubmit} disabled={isLoading} className="px-4 py-2 rounded-lg bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white font-bold transition-all text-sm disabled:opacity-50 shadow-[0_0_10px_rgba(0,255,255,0.5)]"> {isLoading ? "Processing..." : "Engage AI"} </button></div></div></div> );
         };
 
-        // --- MARKET DATA HOOK ---
-        const useMarket = (symbol) => {
-            const [price, setPrice] = useState(0);
-            const prev = useRef(0);
-            const ws = useRef(null); 
-            const sim = useRef(null);
+        const AnalogClock = ({ position, variant = 'cyber', theme }) => {
+            const [time, setTime] = useState(new Date());
 
             useEffect(() => {
-                setPrice(0);
-                if(ws.current) ws.current.close();
-                if(sim.current) clearInterval(sim.current);
+                const timerId = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(timerId);
+            }, []);
 
-                const isCrypto = /BTC|ETH|SOL|XRP|BNB/.test(symbol);
-                
-                if (isCrypto) {
-                    const pair = symbol.toLowerCase().replace('usd','usdt');
-                    ws.current = new WebSocket(`wss://stream.binance.com:9443/ws/${pair}@trade`);
-                    ws.current.onmessage = (e) => {
-                        const p = parseFloat(JSON.parse(e.data).p);
-                        prev.current = p;
-                        setPrice(p);
-                    };
-                    ws.current.onerror = () => startSim();
-                } else {
-                    startSim();
-                }
-
-                function startSim() {
-                    let base = symbol.includes('XAU') ? 2650 : symbol.includes('AAPL') ? 230 : 150;
-                    setPrice(base);
-                    sim.current = setInterval(() => {
-                        setPrice(p => p * (1 + (Math.random()-0.5)*0.0008));
-                    }, 1000);
-                }
-                return () => { if(ws.current) ws.current.close(); if(sim.current) clearInterval(sim.current); }
-            }, [symbol]);
-
-            return price;
-        };
-
-        // --- COMPONENT: TRADING CHART (MEMOIZED) ---
-        // This is crucial. We wrap this in memo so it NEVER re-renders on price ticks.
-        const TradingChart = memo(({ symbol, theme }) => {
-            const id = useRef('tv_'+Math.random());
-            useEffect(() => {
-                const div = document.getElementById(id.current);
-                if(div) div.innerHTML = '';
-                new window.TradingView.widget({
-                    "autosize": true, "symbol": symbol, "interval": "D", "timezone": "Asia/Kolkata", 
-                    "theme": theme, "style": "1", "locale": "en", "toolbar_bg": "#f1f3f6", 
-                    "enable_publishing": false, "hide_side_toolbar": false, "allow_symbol_change": false, 
-                    "container_id": id.current,
-                    "overrides": theme==='dark' ? { "paneProperties.background": "#0b0e11" } : {}
-                });
-            }, [symbol, theme]);
-            return <div id={id.current} className="w-full h-full bg-white dark:bg-gray-900" />;
-        });
-
-        // --- COMPONENT: ORDER PANEL ---
-        const OrderPanel = memo(({ symbol, price, qty, setQty, onExecute, equity }) => {
-            const [loading, setLoading] = useState(false);
-            const margin = (price * qty * USD_INR) / LEVERAGE;
+            const seconds = time.getSeconds(); const minutes = time.getMinutes(); const hours = time.getHours();
+            const secondDeg = (seconds / 60) * 360;
+            const minuteDeg = (minutes / 60) * 360 + (seconds / 60) * 6;
+            const hourDeg = (hours / 12) * 360 + (minutes / 60) * 30;
             
-            const handleExec = async (type) => {
-                setLoading(true);
-                await new Promise(r => setTimeout(r, 500)); // Simulated network latency
-                onExecute(type);
-                setLoading(false);
+            const isLight = theme === 'light';
+            
+            // Define colors based on variant and theme (Dark = Cyan/Pink, Light = Dark Gray/Red)
+            const colors = {
+                cyber: {
+                    hour: isLight ? '#374151' : '#00ffff',
+                    minute: isLight ? '#4b5563' : '#00ffff',
+                    second: isLight ? '#ef4444' : '#f0f',
+                    tickHour: isLight ? 'rgba(55, 65, 81, 0.8)' : 'rgba(0, 255, 255, 0.7)',
+                    tickMinute: isLight ? 'rgba(55, 65, 81, 0.3)' : 'rgba(0, 255, 255, 0.3)',
+                    circle: isLight ? 'rgba(55, 65, 81, 0.2)' : 'rgba(0, 255, 255, 0.3)'
+                },
+                luxury: {
+                    hour: isLight ? '#374151' : '#f0f',
+                    minute: isLight ? '#4b5563' : '#f0f',
+                    second: isLight ? '#0891b2' : '#00ffff',
+                    tickHour: isLight ? 'rgba(55, 65, 81, 0.8)' : 'rgba(255, 0, 255, 0.8)',
+                    tickMinute: isLight ? 'rgba(55, 65, 81, 0.3)' : 'rgba(255, 0, 255, 0.4)',
+                    circle: isLight ? 'rgba(55, 65, 81, 0.2)' : 'rgba(255, 0, 255, 0.3)'
+                }
             };
+            const c = colors[variant];
+
+            const ticks = Array.from({ length: 60 }).map((_, i) => {
+                const isHourMark = (i) % 5 === 0;
+                let stroke = isHourMark ? c.tickHour : c.tickMinute;
+                let strokeWidth = isHourMark ? (variant === 'cyber' ? 1.5 : 2) : 0.5;
+                let y1 = isHourMark ? (variant === 'cyber' ? 2 : 2) : 2;
+                let y2 = isHourMark ? (variant === 'cyber' ? 6 : 8) : (variant === 'cyber' ? 4 : 5);
+                
+                return <line key={i} x1="50" y1={y1} x2="50" y2={y2} stroke={stroke} strokeWidth={strokeWidth} style={{ transform: `rotate(${i * 6}deg)`, transformOrigin: '50% 50%' }} />;
+            });
 
             return (
-                <div className="h-full bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-bold text-gray-500 dark:text-gray-400">{symbol}</span>
-                            <span className="text-[10px] bg-blue-100 text-blue-700 px-2 rounded">200x</span>
+                <div className={`absolute top-20 ${position} w-24 h-24 sm:w-32 sm:h-32 z-20 opacity-80 hidden lg:block`}>
+                    <svg viewBox="0 0 100 100" className="w-full h-full">
+                        <defs><filter id={`hand-glow-${variant}`} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter></defs>
+                        <circle cx="50" cy="50" r="48" fill="none" stroke={c.circle} strokeWidth="1" />
+                        {variant === 'luxury' && <circle cx="50" cy="50" r="45" fill="none" stroke={c.circle} strokeWidth="0.5" />}
+                        {ticks}
+                        <line x1="50" y1="50" x2="50" y2="28" stroke={c.hour} strokeWidth={variant === 'cyber' ? 3 : 2.5} strokeLinecap="round" style={{ transform: `rotate(${hourDeg}deg)`, transformOrigin: '50% 50%' }} filter={`url(#hand-glow-${variant})`} />
+                        <line x1="50" y1="50" x2="50" y2="18" stroke={c.minute} strokeWidth={variant === 'cyber' ? 2 : 1.5} strokeLinecap="round" style={{ transform: `rotate(${minuteDeg}deg)`, transformOrigin: '50% 50%' }} filter={`url(#hand-glow-${variant})`} />
+                        <line x1="50" y1="50" x2="50" y2="15" stroke={c.second} strokeWidth={1} style={{ transform: `rotate(${secondDeg}deg)`, transformOrigin: '50% 50%' }} />
+                        <circle cx="50" cy="50" r="2" fill={c.hour} />
+                    </svg>
+                </div>
+            );
+        };
+        
+        const ScrollToTopButton = () => { const [isVisible, setIsVisible] = useState(false); const toggleVisibility = () => { if (window.pageYOffset > 300) { setIsVisible(true); } else { setIsVisible(false); } }; const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); }; useEffect(() => { window.addEventListener('scroll', toggleVisibility); return () => window.removeEventListener('scroll', toggleVisibility); }, []); return ( <button onClick={scrollToTop} className={`fixed bottom-6 left-6 z-40 p-3 bg-cyan-500/80 text-white rounded-full shadow-lg transition-opacity duration-300 hover:bg-cyan-400 ${isVisible ? 'opacity-100' : 'opacity-0'}`} title="Scroll to Top"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button> ); };
+
+        function App({ user, onLogout }) {
+             const [data, setData] = useState(null); const [activeMonthIndex, setActiveMonthIndex] = useState(0); const [todayString, setTodayString] = useState(getTodayDateString()); const [currentDateString, setCurrentDateString] = useState(getCurrentFormattedDate()); const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString()); const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark"); const [isAccountPopupVisible, setAccountPopupVisible] = useState(false); const [isResetPopupVisible, setResetPopupVisible] = useState(false); const [resetPasswordInput, setResetPasswordInput] = useState(""); const [resetError, setResetError] = useState(""); const [isStatementVisible, setStatementVisible] = useState(false); const [currentPage, setCurrentPage] = useState(1); const [isGeminiPopupVisible, setGeminiPopupVisible] = useState(false);
+             const [inputCapital, setInputCapital] = useState(DEFAULT_INITIAL_CAPITAL.toString()); const [inputTarget, setInputTarget] = useState(DEFAULT_FINAL_TARGET.toString()); const [inputTenure, setInputTenure] = useState(DEFAULT_TENURE_DAYS.toString()); 
+             const journalContainerRef = useRef(null); const topOfPageRef = useRef(null); const dragInfo = useRef(null); 
+             const storageKey = `tradingChallengeData_${user}`;
+
+             useEffect(() => { const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000); return () => clearInterval(timer); }, []);
+             useEffect(() => { if (currentPage === 1 && activeMonthIndex === 0) return; journalContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [currentPage, activeMonthIndex]);
+
+             const generatePlanStructure = useCallback((tenure, oldMonths = []) => { const oldDaysMap = new Map(); oldMonths.forEach(month => month.days.forEach(day => oldDaysMap.set(day.date, day))); let months = []; let currentDate = new Date(); let dayCounter = 0; while (dayCounter < tenure) { const monthIndex = Math.floor(dayCounter / TRADING_DAYS_PER_MONTH); if (!months[monthIndex]) { months[monthIndex] = { id: monthIndex + 1, monthName: currentDate.toLocaleString('default', { month: 'long', year: 'numeric' }), days: [] }; } const dateStr = currentDate.toISOString().split('T')[0]; const existingDayData = oldDaysMap.get(dateStr); months[monthIndex].days.push({ day: dayCounter + 1, date: dateStr, capital: 0, target: 0, profit: 0, dailyRate: 0, achieved: existingDayData?.achieved ?? false, pnlSign: existingDayData?.pnlSign ?? "+", actual: existingDayData?.actual ?? "", winningTrades: existingDayData?.winningTrades ?? "", losingTrades: existingDayData?.losingTrades ?? "", logic: existingDayData?.logic ?? "", rules: existingDayData?.rules ?? JSON.parse(JSON.stringify(DEFAULT_RULES)), }); currentDate = getNextTradingDay(currentDate); dayCounter++; } return months; }, []);
+             const recalculatePlan = useCallback((fullData) => { const { initialCapital, finalTarget, tenure } = fullData; const newMonths = JSON.parse(JSON.stringify(fullData.months)); const allDays = newMonths.flatMap(m => m.days); let actualCapital = initialCapital; let daysRemaining = tenure; for (let day of allDays) { day.capital = Math.round(actualCapital); let requiredDailyRate = 0; if (actualCapital > 0 && daysRemaining > 0 && finalTarget > actualCapital) { requiredDailyRate = Math.pow(finalTarget / actualCapital, 1 / daysRemaining) - 1; } else if (actualCapital > 0 && daysRemaining > 0 && finalTarget <= actualCapital) { requiredDailyRate = 0; } day.dailyRate = requiredDailyRate; day.profit = Math.round(actualCapital * requiredDailyRate); day.target = Math.round(actualCapital + day.profit); if (day.actual !== "") { const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); actualCapital += signedProfit; } else { actualCapital = day.target; } daysRemaining--; } return newMonths; }, []);
+             const initializeAndSetData = useCallback(() => { const months = generatePlanStructure(DEFAULT_TENURE_DAYS); let initialData = { initialCapital: DEFAULT_INITIAL_CAPITAL, finalTarget: DEFAULT_FINAL_TARGET, tenure: DEFAULT_TENURE_DAYS, months }; initialData.months = recalculatePlan(initialData); setData(initialData); localStorage.setItem(storageKey, JSON.stringify(initialData)); setInputCapital(DEFAULT_INITIAL_CAPITAL.toString()); setInputTarget(DEFAULT_FINAL_TARGET.toString()); setInputTenure(DEFAULT_TENURE_DAYS.toString()); setActiveMonthIndex(0); setCurrentPage(1); topOfPageRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [generatePlanStructure, recalculatePlan, storageKey]);
+             useEffect(() => { try { const savedData = localStorage.getItem(storageKey); if (savedData) { const parsedData = JSON.parse(savedData); setData(parsedData); setInputCapital(parsedData.initialCapital.toString()); setInputTarget(parsedData.finalTarget.toString()); setInputTenure(parsedData.tenure.toString()); } else { initializeAndSetData(); } } catch (error) { console.error("Failed to initialize data:", error); initializeAndSetData(); } }, [storageKey, initializeAndSetData]);
+             useEffect(() => { document.documentElement.classList.toggle("dark", theme === "dark"); localStorage.setItem("theme", theme); }, [theme]);
+             const handleUpdateTargets = () => { const newInitialCapital = parseInt(inputCapital, 10) || DEFAULT_INITIAL_CAPITAL; const newFinalTarget = parseInt(inputTarget, 10) || DEFAULT_FINAL_TARGET; const newTenure = parseInt(inputTenure, 10) || DEFAULT_TENURE_DAYS; setData(prevData => { const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, initialCapital: newInitialCapital, finalTarget: newFinalTarget, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); localStorage.setItem(storageKey, JSON.stringify(updatedData)); setActiveMonthIndex(0); setCurrentPage(1); return updatedData; }); };
+             const handleDataChange = (monthIndex, dayIndex, field, value) => { setData(prevData => { const newData = JSON.parse(JSON.stringify(prevData)); const day = newData.months[monthIndex].days[dayIndex]; day[field] = value; const signedProfit = (day.pnlSign === '+' ? 1 : -1) * (Number(day.actual) || 0); day.achieved = signedProfit >= day.profit; newData.months = recalculatePlan(newData); localStorage.setItem(storageKey, JSON.stringify(newData)); return newData; }); };
+             const handleConfirmReset = () => { if (resetPasswordInput === '1111') { initializeAndSetData(); setResetPopupVisible(false); } else { setResetError("Incorrect Password. Reset Aborted."); } };
+             const handleAddNewMonth = () => { setData(prevData => { const newTenure = prevData.tenure + TRADING_DAYS_PER_MONTH; const newMonths = generatePlanStructure(newTenure, prevData.months); const updatedData = { ...prevData, tenure: newTenure, months: newMonths }; updatedData.months = recalculatePlan(updatedData); localStorage.setItem(storageKey, JSON.stringify(updatedData)); setInputTenure(newTenure.toString()); return updatedData; }); };
+             const openResetPopup = () => { setResetPasswordInput(""); setResetError(""); setResetPopupVisible(true); };
+             const toggleTheme = () => { setTheme(prev => { const newTheme = prev === "dark" ? "light" : "dark"; localStorage.setItem("theme", newTheme); return newTheme; }); }; 
+             const handleMouseMove = useCallback((e) => { if (!dragInfo.current) return; const { element, startX, startY } = dragInfo.current; const deltaX = e.clientX - startX; const deltaY = e.clientY - startY; element.style.transform = `rotateX(${-deltaY * 0.2}deg) rotateY(${deltaX * 0.2}deg) scale3d(1.05, 1.05, 1.05)`; }, []);
+             const handleMouseUp = useCallback(() => { if (!dragInfo.current) return; dragInfo.current.element.classList.remove('is-dragging'); dragInfo.current.element.style.transform = ''; window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); dragInfo.current = null; }, [handleMouseMove]);
+             const handleMouseDown = useCallback((e) => { if (e.button !== 0 || ['INPUT', 'TEXTAREA', 'LABEL', 'BUTTON'].includes(e.target.tagName) || e.target.closest('label')) return; e.currentTarget.classList.add('is-dragging'); dragInfo.current = { element: e.currentTarget, startX: e.clientX, startY: e.clientY }; window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); }, [handleMouseMove, handleMouseUp]);
+             const analysis = useMemo(() => { if (!data || !data.months[activeMonthIndex]) return { pnl: 0, profitDays: 0, lossDays: 0, winningTrades: 0, losingTrades: 0 }; const month = data.months[activeMonthIndex]; const completedDays = month.days.filter(d => d.actual !== ""); const pnl = completedDays.reduce((acc, d) => acc + (d.pnlSign === '+' ? 1 : -1) * (Number(d.actual) || 0), 0); const profitDays = completedDays.filter(d => (d.pnlSign === '+' && d.actual !== '0')).length; const lossDays = completedDays.filter(d => (d.pnlSign === '-' && d.actual !== '0')).length; const winningTrades = completedDays.reduce((acc, d) => acc + (Number(d.winningTrades) || 0), 0); const losingTrades = completedDays.reduce((acc, d) => acc + (Number(d.losingTrades) || 0), 0); return { pnl, profitDays, lossDays, winningTrades, losingTrades }; }, [data, activeMonthIndex]);
+             const startCapitalForMonth = useMemo(() => { if (!data || activeMonthIndex === 0) return data ? data.initialCapital : 0; const allDays = data.months.flatMap(m => m.days); const firstDayOfMonthIndex = activeMonthIndex * TRADING_DAYS_PER_MONTH; return allDays[firstDayOfMonthIndex]?.capital ?? 0; }, [data, activeMonthIndex]);
+             const currentMonthDays = data ? data.months[activeMonthIndex]?.days || [] : [];
+             const totalPages = Math.ceil(currentMonthDays.length / DAYS_PER_PAGE);
+             const startIndex = (currentPage - 1) * DAYS_PER_PAGE;
+             const endIndex = startIndex + DAYS_PER_PAGE;
+             const displayedDays = currentMonthDays.slice(startIndex, endIndex);
+             const goToPrevPage = () => setCurrentPage(prev => Math.max(1, prev - 1));
+             const goToNextPage = () => setCurrentPage(prev => Math.min(totalPages, prev + 1));
+             const handleAnalyzeWithAI = () => { setGeminiPopupVisible(true); };
+             
+            if (!data) { return <div className="min-h-screen flex items-center justify-center text-cyan-400"><p>LOADING NEURAL INTERFACE...</p></div>; }
+            const currentMonthData = data.months[activeMonthIndex]; 
+            const totalGainPercent = data.initialCapital > 0 ? ((data.finalTarget / data.initialCapital) - 1) * 100 : 0;
+            
+            return (
+                <div ref={topOfPageRef} className={`relative min-h-screen text-black dark:text-gray-200 flex flex-col items-center pb-16 pt-20 px-4 sm:px-6 transition-colors duration-500 ${theme === 'dark' ? 'bg-dark-cyber scanlines' : 'bg-white'}`}>
+                    
+                    {isAccountPopupVisible && ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setAccountPopupVisible(false)}><div className="bg-white/80 dark:bg-black/80 p-6 border border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)] text-center" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-4">ACCOUNT</h3><p className="mb-6">User: <span className="font-bold text-cyan-600 dark:text-cyan-400">{user}</span></p><div className="flex flex-col gap-4"><button onClick={() => { setStatementVisible(true); setAccountPopupVisible(false); }} className="px-6 py-2 rounded-lg bg-fuchsia-600/80 hover:bg-fuchsia-500/80 border border-fuchsia-400 backdrop-blur-sm text-white font-bold transition-all">Monthly Statement</button><button onClick={onLogout} className="px-6 py-2 rounded-lg bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all">LOGOUT</button><button onClick={() => setAccountPopupVisible(false)} className="px-6 py-2 rounded-lg bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white font-bold transition-all">Back</button></div></div></div> )}
+                    {isResetPopupVisible && ( <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setResetPopupVisible(false)}><div className="bg-white/80 dark:bg-black/80 p-8 border border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.5)] text-center" onClick={(e) => e.stopPropagation()}><h3 className="text-xl font-bold mb-4 text-red-500">CONFIRM DATA PURGE</h3><p className="text-xs text-gray-700 dark:text-gray-400 mb-6">This action is irreversible...</p><input type="password" value={resetPasswordInput} onChange={(e) => setResetPasswordInput(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-red-500 mb-4" placeholder="****"/>{resetError && <p className="text-red-500 text-xs text-center mb-4">{resetError}</p>}<div className="flex justify-center gap-4"><button onClick={() => { setResetPopupVisible(false); }} className="bg-gray-500/80 hover:bg-gray-400/80 border border-gray-400 backdrop-blur-sm text-white px-6 py-2 font-bold transition-all">CANCEL</button><button onClick={handleConfirmReset} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(239,68,68,0.5)] transition-all">CONFIRM PURGE</button></div></div></div> )}
+                    {isStatementVisible && <MonthlyStatement monthData={currentMonthData} startCapital={startCapitalForMonth} onClose={() => setStatementVisible(false)} />}
+                    {isGeminiPopupVisible && <GeminiAnalysisPopup onClose={() => setGeminiPopupVisible(false)} tradingData={currentMonthDays} />} 
+                    
+                    <AnalogClock position="left-4" variant="cyber" theme={theme} />
+                    <AnalogClock position="right-4" variant="luxury" theme={theme} />
+                    <ScrollToTopButton />
+
+                    <div className="fixed top-0 left-0 right-0 z-30 bg-white/80 dark:bg-black/80 backdrop-blur-md border-b-2 border-cyan-500/50 shadow-[0_5px_15px_-5px_rgba(0,255,255,0.4)]">
+                        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-16 flex justify-between items-center">
+                            <a href="https://cryptobubbles.net/" target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400" title="Market Bubbles"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyan-600 dark:text-cyan-400"> <circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"></line><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"></line><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"></line><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"></line> </svg></a>
+                            <div className="flex items-center gap-2 sm:gap-4">
+                                <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-400">
+                                    <span>{currentDateString}</span>
+                                    <span className="text-cyan-500">|</span>
+                                    <span>{currentTime}</span>
+                                </div>
+                                <button onClick={toggleTheme} className="p-2 rounded-lg hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400" title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}>{theme === 'dark' ? ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-yellow-400"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg> ) : ( <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> )}</button>
+                                <button onClick={() => setAccountPopupVisible(true)} className="p-2 rounded-lg hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400" title="Account"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-700 dark:text-gray-300"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></button>
+                            </div>
                         </div>
-                        <div className="text-3xl font-mono font-bold text-gray-900 dark:text-white">${price.toFixed(2)}</div>
+                    </div>
+
+                    <header className="text-center w-full max-w-7xl z-10 pt-8 sm:pt-8 mb-4"> <div className="flex justify-center mb-2"><Logo size="64" /></div><h1 className="text-2xl sm:text-4xl font-black text-cyan-600 dark:text-cyan-400" style={{textShadow: '0 0 10px #00ffff'}}>DevTrader Trading Journal</h1><p className="font-bold tracking-wider text-gray-700 dark:text-gray-300 mt-2 drop-shadow text-xs sm:text-base"> OBJECTIVE: ₹{formatNumber(data.initialCapital, false)} → ₹{formatNumber(data.finalTarget, false)} in {data.tenure} days <br className="sm:hidden" /> <span className="text-cyan-600 dark:text-cyan-400 sm:ml-2">({totalGainPercent.toFixed(2)}% GAIN)</span> </p></header>
+                    
+                    <div className="w-full max-w-5xl my-4 p-4 z-10 bg-white/50 dark:bg-black/70 backdrop-blur-sm border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]"><div className="flex flex-col sm:flex-row justify-center items-center gap-4"><div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">START CAPITAL</label><div className="flex items-center bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-40"><span className="px-2 text-gray-600 dark:text-gray-500">₹</span><input type="number" value={inputCapital} onChange={e => setInputCapital(e.target.value)} className="bg-transparent text-center p-2 w-full focus:outline-none" /></div></div><div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">OVERALL TARGET</label><div className="flex items-center bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 focus-within:ring-2 focus-within:ring-cyan-400 w-full sm:w-40"><span className="px-2 text-gray-600 dark:text-gray-500">₹</span><input type="number" value={inputTarget} onChange={e => setInputTarget(e.target.value)} className="bg-transparent text-center p-2 w-full focus:outline-none" /></div></div><div className="flex flex-col items-center w-full sm:w-auto"><label className="text-xs text-gray-600 dark:text-gray-400 mb-1">TENURE (DAYS)</label><input type="number" value={inputTenure} onChange={e => setInputTenure(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-cyan-400" /></div><button onClick={handleUpdateTargets} className="w-full sm:w-auto bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-6 py-2 mt-2 sm:mt-5 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all">SET & RECALCULATE</button></div></div>
+                    
+                    <div ref={journalContainerRef} className="w-full max-w-7xl mb-4 bg-white/50 dark:bg-black/70 backdrop-blur-sm rounded-t-lg z-10 border-t border-x border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_15px_rgba(0,255,255,0.3)]"> <div className="flex overflow-x-auto">{data.months.map((month, index) => (<button key={month.id} onClick={() => { setActiveMonthIndex(index); setCurrentPage(1); }} className={`px-4 py-2 text-xs sm:text-sm font-bold transition-all whitespace-nowrap border-b-2 ${activeMonthIndex === index ? 'border-cyan-500 text-cyan-600 dark:border-cyan-400 dark:text-cyan-400' : 'border-transparent text-gray-700 dark:text-gray-400 hover:text-cyan-700 dark:hover:text-cyan-400 hover:bg-cyan-900/20'}`}>&gt; {month.monthName || `Month ${month.id}`}</button>))}</div> </div>
+                    
+                    <div className="w-full max-w-7xl grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4 mb-4 text-center z-10"> {['MONTH P&L', 'PROFIT DAYS', 'LOSS DAYS', 'WINNING TRADES', 'LOSING TRADES', 'MONTH START'].map((title, i) => (<div key={title} className="bg-white/50 dark:bg-black/70 backdrop-blur-sm p-3 sm:p-4 border border-fuchsia-700/30 dark:border-fuchsia-500/50 shadow-[0_0_15px_rgba(255,0,255,0.3)]"><h4 className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h4><p className={`text-base sm:text-xl font-bold ${i === 0 ? (analysis.pnl >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400') : i === 1 || i === 3 ? 'text-green-600 dark:text-green-400' : i === 2 || i === 4 ? 'text-red-600 dark:text-red-400' : 'text-black dark:text-gray-200'}`}>{i === 0 ? `₹${formatNumber(analysis.pnl, true)}` : i === 1 ? analysis.profitDays : i === 2 ? analysis.lossDays : i === 3 ? analysis.winningTrades : i === 4 ? analysis.losingTrades : '₹' + formatNumber(Math.round(startCapitalForMonth), false) }</p></div>))} </div>
+
+                    <div className="w-full max-w-7xl perspective-container z-10">
+                        <div className="space-y-6">
+                            {displayedDays.map((row) => { const originalIndex = currentMonthDays.findIndex(day => day.date === row.date); const isToday = row.date === todayString; const pnlValue = Number(row.actual) || 0; const isProfit = row.pnlSign === '+' && pnlValue > 0; const isLoss = row.pnlSign === '-' && pnlValue > 0; return ( <div key={row.date} className={`day-container p-4 border transition-all duration-300 transform-style-3d hover:scale-[1.02] ${isProfit ? 'hover:!bg-green-400/20 dark:hover:!bg-green-900/50' : isLoss ? 'hover:!bg-red-400/20 dark:hover:!bg-red-900/50' : 'hover:!bg-gray-400/20 dark:hover:!bg-gray-800/40'} ${isToday ? 'today-highlight border-gray-500/80' : 'border-cyan-700/20 dark:border-cyan-500/30'} ${isProfit ? "bg-green-200/30 dark:bg-green-800/30 backdrop-blur-md" : isLoss ? "bg-red-200/30 dark:bg-red-800/30 backdrop-blur-md" : "bg-white/50 dark:bg-black/70 backdrop-blur-md" }`} onMouseDown={handleMouseDown}><div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-9 gap-4 items-center text-center"><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">DAY</span><span className="font-black text-lg">{row.day}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">DATE</span><span className="font-bold text-xs sm:text-sm">{new Date(row.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span></div><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">CAPITAL</span><span className="font-mono font-bold text-sm">₹{formatNumber(row.capital, false)}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">TARGET %</span><span className={`font-mono font-bold text-sm ${row.dailyRate > 0 ? 'text-cyan-700 dark:text-cyan-400' : 'text-gray-500'}`}>{(row.dailyRate * 100).toFixed(2)}%</span></div><div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">PROFIT GOAL</span><span className="font-mono text-yellow-600 dark:text-yellow-400 font-bold text-sm">₹{formatNumber(row.profit, false)}</span></div> <div className="flex flex-col"><span className="text-xs text-gray-600 dark:text-gray-400">TARGET AMT</span><span className="font-mono font-bold text-sm">₹{formatNumber(row.target, false)}</span></div><div className="flex flex-col items-center"><span className="text-xs text-gray-600 dark:text-gray-400 mb-1">WIN</span><input type="number" placeholder="W" value={row.winningTrades} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'winningTrades', e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-1.5 w-16 sm:w-20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/></div><div className="flex flex-col items-center"><span className="text-xs text-gray-600 dark:text-gray-400 mb-1">LOSS</span><input type="number" placeholder="L" value={row.losingTrades} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'losingTrades', e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-1.5 w-16 sm:w-20 focus:outline-none focus:ring-2 focus:ring-cyan-400"/></div><div className="flex flex-col items-center col-span-2 sm:col-span-4 lg:col-span-1"><span className="text-xs text-gray-600 dark:text-gray-400 mb-1">YOUR P&L</span><div className="flex items-center w-full max-w-xs"><button onClick={() => handleDataChange(activeMonthIndex, originalIndex, 'pnlSign', '+')} className={`px-2 py-1 border ${row.pnlSign === '+' ? 'bg-green-500 text-white border-green-500' : 'bg-transparent border-gray-500'}`}>+</button><input type="number" placeholder="₹" value={row.actual} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'actual', e.target.value)} className="bg-white/50 dark:bg-black/50 border-y border-cyan-700/30 dark:border-cyan-500/50 text-center p-1.5 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400" /><button onClick={() => handleDataChange(activeMonthIndex, originalIndex, 'pnlSign', '-')} className={`px-2 py-1 border ${row.pnlSign === '-' ? 'bg-red-500 text-white border-red-500' : 'bg-transparent border-gray-500'}`}>-</button></div></div></div><div className="mt-4 pt-4 border-t border-cyan-700/20 dark:border-cyan-500/30"><div className="flex flex-col md:flex-row gap-6"><div className="flex-1 md:w-1/2"><h3 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">DAILY PROTOCOLS</h3><div className="space-y-2 text-left">{row.rules.map((rule, ruleIndex) => (<label key={ruleIndex} className="flex items-center text-xs sm:text-sm cursor-pointer group"><input type="checkbox" checked={rule.checked} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'rules', row.rules.map((r,idx) => idx === ruleIndex ? {...r, checked: e.target.checked} : r))} className="h-4 w-4 rounded-none border-2 border-fuchsia-700/50 dark:border-fuchsia-500/50 text-fuchsia-500 focus:ring-fuchsia-500 bg-transparent" /><span className="ml-3 text-gray-700 dark:text-gray-300 group-hover:text-fuchsia-600 dark:group-hover:text-fuchsia-400 transition-colors">{rule.text}</span></label>))}</div></div><div className="flex-1 md:w-1/2"><h3 className="font-bold mb-2 text-left text-fuchsia-600 dark:text-fuchsia-400">EXECUTION LOG</h3><textarea value={row.logic} onChange={(e) => handleDataChange(activeMonthIndex, originalIndex, 'logic', e.target.value)} placeholder={`// LOG FOR DAY ${row.day}...`} className="w-full h-48 md:h-full min-h-[200px] p-2 bg-white/30 dark:bg-black/50 border border-fuchsia-700/30 dark:border-fuchsia-500/50 text-green-700 dark:text-green-400 rounded-none focus:outline-none focus:ring-2 focus:ring-fuchsia-500"></textarea></div></div></div></div> ) })}
+                        </div>
+
+                         {totalPages > 1 && ( <div className="mt-6 flex justify-between items-center w-full max-w-xl mx-auto z-10"> <button onClick={goToPrevPage} disabled={currentPage === 1} className="px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">&lt; Previous {DAYS_PER_PAGE} Days</button> <span className="font-bold text-sm text-gray-700 dark:text-gray-300">Days {startIndex + 1}-{Math.min(endIndex, currentMonthDays.length)}</span> <button onClick={goToNextPage} disabled={currentPage === totalPages} className="px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white disabled:opacity-50 disabled:cursor-not-allowed">Next {DAYS_PER_PAGE} Days &gt;</button> </div> )}
                     </div>
                     
-                    <div className="p-4 flex-1 overflow-y-auto">
-                        <div className="mb-4">
-                            <label className="text-xs font-bold text-gray-400 dark:text-gray-500 block mb-1">LOT SIZE</label>
-                            <div className="flex items-center border dark:border-gray-600 rounded-xl overflow-hidden">
-                                <button onClick={()=>setQty(Math.max(0.01, parseFloat((qty-0.01).toFixed(2))))} className="px-4 py-3 bg-gray-100 dark:bg-gray-700 dark:text-white font-bold hover:bg-gray-200">-</button>
-                                <input type="number" value={qty} onChange={e=>setQty(parseFloat(e.target.value))} className="flex-1 text-center bg-white dark:bg-gray-800 dark:text-white outline-none font-mono text-lg" step="0.01"/>
-                                <button onClick={()=>setQty(parseFloat((qty+0.01).toFixed(2)))} className="px-4 py-3 bg-gray-100 dark:bg-gray-700 dark:text-white font-bold hover:bg-gray-200">+</button>
-                            </div>
-                        </div>
-
-                        <div className={`p-3 rounded-xl mb-4 border ${margin > equity ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-100 dark:bg-gray-700 dark:border-gray-600'}`}>
-                            <div className="flex justify-between text-xs">
-                                <span className="text-gray-500 dark:text-gray-400">Required Margin</span>
-                                <span className={`font-mono font-bold ${margin > equity ? 'text-red-600' : 'text-blue-700 dark:text-blue-400'}`}>{fmt(margin)}</span>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <button onClick={()=>handleExec('SELL')} disabled={loading} className="bg-red-500 hover:bg-red-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-red-100 dark:shadow-none active:scale-95 transition-transform disabled:opacity-50">
-                                {loading ? <span className="spinner"></span> : 'SELL'}
-                            </button>
-                            <button onClick={()=>handleExec('BUY')} disabled={loading} className="bg-green-500 hover:bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-100 dark:shadow-none active:scale-95 transition-transform disabled:opacity-50">
-                                {loading ? <span className="spinner"></span> : 'BUY'}
-                            </button>
-                        </div>
+                    <div className="w-full max-w-7xl mt-6 flex flex-wrap justify-center gap-4 z-10"> 
+                        <button onClick={handleAddNewMonth} className="bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base">ADD 1 MONTH ({TRADING_DAYS_PER_MONTH} DAYS)</button>
+                        <button onClick={openResetPopup} className="bg-red-600/80 hover:bg-red-500/80 border border-red-400 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-md transition-all text-sm sm:text-base">PURGE & RESET</button>
                     </div>
+
+                    <button onClick={handleAnalyzeWithAI} className="fab bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 py-2 rounded-full font-semibold shadow-lg transition-all text-sm flex items-center gap-2" title="Analyze with AI">Analyze with AI ✨</button>
                 </div>
             );
-        });
+        }
 
-        // --- COMPONENT: POSITIONS TABLE ---
-        const PositionsTable = memo(({ positions, price, symbol, onClose }) => (
-            <div className="h-full bg-white dark:bg-gray-800 flex flex-col">
-                <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0">
-                    <span className="text-xs font-bold text-gray-500 uppercase">Open Positions ({positions.length})</span>
-                </div>
-                <div className="flex-1 overflow-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="text-xs text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700">
-                            <tr>
-                                <th className="px-4 py-2">Symbol</th>
-                                <th className="px-4 py-2">Side</th>
-                                <th className="px-4 py-2">Entry</th>
-                                <th className="px-4 py-2">Current</th>
-                                <th className="px-4 py-2">P&L (INR)</th>
-                                <th className="px-4 py-2 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                            {positions.map(p => {
-                                const curr = p.symbol===symbol ? price : p.entry;
-                                const pnl = (p.type==='BUY' ? curr-p.entry : p.entry-curr) * p.qty * USD_INR;
-                                return (
-                                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                        <td className="px-4 py-3 font-bold text-gray-700 dark:text-gray-200">{p.symbol}</td>
-                                        <td className={`px-4 py-3 font-bold text-xs ${p.type==='BUY'?'text-green-600':'text-red-600'}`}>{p.type}</td>
-                                        <td className="px-4 py-3 font-mono text-gray-500 text-xs">{p.entry.toFixed(2)}</td>
-                                        <td className="px-4 py-3 font-mono text-gray-500 text-xs">{curr.toFixed(2)}</td>
-                                        <td className={`px-4 py-3 font-mono font-bold ${pnl>=0?'text-green-600':'text-red-600'}`}>{pnl>=0?'+':''}{fmt(pnl)}</td>
-                                        <td className="px-4 py-3 text-right">
-                                            <button onClick={()=>onClose(p.id)} className="text-xs border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded text-gray-500 dark:text-gray-300">Close</button>
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-                    {positions.length === 0 && <div className="p-10 text-center text-gray-400 text-sm">No active trades</div>}
-                </div>
-            </div>
-        ));
+        // --- Authentication Wrapper ---
+        function AuthWrapper() { const [user, setUser] = useState(() => sessionStorage.getItem("devTraderUser")); const handleLogin = (username) => { if(username.trim()){ sessionStorage.setItem("devTraderUser", username.trim()); setUser(username.trim()); } }; const handleLogout = () => { sessionStorage.removeItem("devTraderUser"); setUser(null); }; if (!user) { return <LoginScreen onLogin={handleLogin} />; } return <App user={user} onLogout={handleLogout} />; }
 
-        // --- MAIN APP LOGIC ---
-        const App = () => {
-            const addToast = React.useContext(ToastContext);
-            
-            // View State
-            const [view, setView] = useState('TERMINAL');
-            const [mobileTab, setMobileTab] = useState('CHART');
-            const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-            
-            // Data State
-            const [symbol, setSymbol] = useState('BTCUSD');
-            const [qty, setQty] = useState(0.01);
-            const [positions, setPositions] = useState(() => JSON.parse(localStorage.getItem('pos')) || []);
-            const [journal, setJournal] = useState(() => JSON.parse(localStorage.getItem('journal')) || null);
-            const [activeMonth, setActiveMonth] = useState(0);
+        // --- Login Screen Component ---
+        function LoginScreen({ onLogin }) { const [password, setPassword] = useState(""); const [error, setError] = useState(''); const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "dark"); useEffect(() => { document.documentElement.className = theme; }, [theme]); const handleSubmit = (e) => { e.preventDefault(); setError(''); if (password === '1111') { onLogin('devtrader'); } else { setError("Incorrect Password. Access Denied."); } }; return ( <div className={`min-h-screen flex items-center justify-center transition-colors duration-500 ${theme === 'dark' ? 'bg-dark-cyber scanlines' : 'bg-white'}`}><div className="relative z-10 w-full max-w-sm p-8 bg-white/50 dark:bg-black/70 backdrop-blur-xl border border-cyan-700/30 dark:border-cyan-500/50 shadow-[0_0_20px_rgba(0,255,255,0.4)]"><div className="flex flex-col items-center mb-6"><Logo size="64" /><p className="font-bold text-lg mt-2 text-cyan-600 dark:text-cyan-400">DevTrader</p></div><form onSubmit={handleSubmit}><label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Enter Passcode</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-white/50 dark:bg-black/50 border border-cyan-700/30 dark:border-cyan-500/50 text-center p-2 w-full focus:outline-none focus:ring-2 focus:ring-cyan-400 mb-4" placeholder="••••"/>{error && <p className="text-red-500 text-xs text-center mb-4">{error}</p>}<button type="submit" className="w-full bg-cyan-600/80 hover:bg-cyan-500/80 border border-cyan-400 backdrop-blur-sm text-black dark:text-white px-6 py-2 font-bold shadow-[0_0_10px_rgba(0,255,255,0.5)] transition-all">Enter</button></form></div></div> ); }
 
-            const price = useMarket(symbol);
-
-            // Theme Init
-            useEffect(() => { document.documentElement.className = theme; localStorage.setItem('theme', theme); }, [theme]);
-            
-            // Persistence
-            useEffect(() => { localStorage.setItem('pos', JSON.stringify(positions)); }, [positions]);
-            useEffect(() => { if(journal) localStorage.setItem('journal', JSON.stringify(journal)); }, [journal]);
-
-            // Setup Logic (Wizard)
-            const handleSetup = (s, t, d) => {
-                let months = [], dt = new Date(), c = 0;
-                while(c < d) {
-                    const mIdx = Math.floor(c/22);
-                    if(!months[mIdx]) months[mIdx] = { id: mIdx, name: `Month ${mIdx+1}`, days: [] };
-                    months[mIdx].days.push({ day: c+1, date: dt.toISOString().split('T')[0], start: 0, target: 0, actual: 0, rules: [] });
-                    dt.setDate(dt.getDate()+1); while(dt.getDay()===0||dt.getDay()===6) dt.setDate(dt.getDate()+1);
-                    c++;
-                }
-                let bal = s; const rate = Math.pow(t/s, 1/d) - 1;
-                months.forEach(m => m.days.forEach(d => { d.start=Math.round(bal); d.target=Math.round(bal*rate); bal+=d.target; }));
-                setJournal({ start: s, target: t, days: d, months });
-            };
-
-            // Math
-            const balance = useMemo(() => {
-                if(!journal) return 0;
-                let b = journal.start;
-                journal.months.forEach(m => m.days.forEach(d => b += Number(d.actual)));
-                return b;
-            }, [journal]);
-
-            const equity = useMemo(() => {
-                const float = positions.reduce((acc, p) => {
-                    const curr = p.symbol===symbol ? price : p.entry;
-                    const diff = p.type==='BUY' ? curr-p.entry : p.entry-curr;
-                    return acc + (diff * p.qty * USD_INR);
-                }, 0);
-                return balance + float;
-            }, [balance, positions, price, symbol]);
-
-            // Actions
-            const handleExecute = useCallback((type) => {
-                if(!price) { addToast("Waiting for price...", "error"); return; }
-                const margin = (price * qty * USD_INR) / LEVERAGE;
-                if(margin > equity) { addToast("Insufficient Margin!", "error"); return; }
-                
-                setPositions(prev => {
-                    const idx = prev.findIndex(p => p.symbol === symbol && p.type === type);
-                    if (idx > -1) {
-                        const old = prev[idx];
-                        const nQty = parseFloat((old.qty + qty).toFixed(2));
-                        const nEnt = ((old.entry * old.qty) + (price * qty)) / nQty;
-                        const upd = [...prev];
-                        upd[idx] = { ...old, qty: nQty, entry: nEnt };
-                        return upd;
-                    }
-                    return [...prev, { id: genId(), symbol, type, qty, entry: price }];
-                });
-                
-                addToast(`${type} Order Filled @ ${price.toFixed(2)}`);
-                if(window.innerWidth < 1024) setMobileTab('POSITIONS');
-            }, [price, qty, equity, symbol]);
-
-            const handleClose = useCallback((id) => {
-                setPositions(prev => {
-                    const pos = prev.find(p => p.id === id);
-                    if(!pos) return prev;
-                    const exit = pos.symbol === symbol ? price : pos.entry;
-                    const pnl = Math.round((pos.type==='BUY'?exit-pos.entry:pos.entry-exit) * pos.qty * USD_INR);
-                    
-                    setJournal(j => {
-                        const t = getToday();
-                        const nj = {...j};
-                        let updated = false;
-                        nj.months.forEach(m => m.days.forEach(d => {
-                            if(d.date === t) { d.actual = Number(d.actual) + pnl; updated = true; }
-                        }));
-                        return updated ? nj : j;
-                    });
-                    addToast(`Trade Closed. P&L: ${fmt(pnl)}`, pnl >= 0 ? 'success' : 'error');
-                    return prev.filter(p => p.id !== id);
-                });
-            }, [price, symbol]);
-
-            if(!journal) return <SetupWizard onComplete={handleSetup} />;
-
-            return (
-                <div className="app-shell bg-gray-50 dark:bg-gray-900">
-                    {/* NAV */}
-                    <nav className="area-nav bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center px-4 z-20">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">DT</div>
-                            <h1 className="font-bold text-gray-800 dark:text-white">DevTrader <span className="text-xs text-gray-400">PRO</span></h1>
-                        </div>
-                        <div className="hidden lg:flex gap-2 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-                            <button onClick={()=>setView('TERMINAL')} className={`px-4 py-1 rounded-md text-xs font-bold ${view==='TERMINAL'?'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300':'text-gray-500 dark:text-gray-400'}`}>TERMINAL</button>
-                            <button onClick={()=>setView('JOURNAL')} className={`px-4 py-1 rounded-md text-xs font-bold ${view==='JOURNAL'?'bg-white dark:bg-gray-600 shadow text-blue-600 dark:text-blue-300':'text-gray-500 dark:text-gray-400'}`}>JOURNAL</button>
-                        </div>
-                        <div className="flex items-center gap-3">
-                             <button onClick={()=>setTheme(theme==='dark'?'light':'dark')} className="text-xl">{theme==='dark'?'☀️':'🌙'}</button>
-                             <div className="text-right">
-                                <div className="text-[10px] text-gray-400 font-bold uppercase">Equity</div>
-                                <div className="font-mono font-bold text-blue-600 dark:text-blue-400">{fmt(equity)}</div>
-                            </div>
-                        </div>
-                    </nav>
-
-                    {/* SIDEBAR */}
-                    <div className="area-side bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
-                        <div className="p-3 font-bold text-xs text-gray-400 sticky top-0 bg-white dark:bg-gray-800 z-10">WATCHLIST</div>
-                        {WATCHLIST.map(s => (
-                            <div key={s} onClick={()=>setSymbol(s)} className={`px-4 py-3 cursor-pointer flex justify-between border-b border-gray-50 dark:border-gray-700/50 ${symbol===s?'bg-blue-50 dark:bg-gray-700 border-l-4 border-blue-500':'hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
-                                <span className="font-bold text-sm text-gray-700 dark:text-gray-200">{s}</span>
-                                {symbol===s && <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 animate-pulse">${price.toFixed(2)}</span>}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* MAIN AREA */}
-                    <div className="area-main bg-white dark:bg-gray-900 relative">
-                         {view === 'TERMINAL' ? (
-                            window.innerWidth >= 1024 ? <TradingChart symbol={symbol} theme={theme} /> :
-                            (mobileTab === 'CHART' ? <TradingChart symbol={symbol} theme={theme} /> : 
-                             mobileTab === 'TRADE' ? <OrderPanel symbol={symbol} price={price} qty={qty} setQty={setQty} onExecute={handleExecute} equity={equity} /> :
-                             <PositionsTable positions={positions} price={price} symbol={symbol} onClose={handleClose} />)
-                        ) : (
-                            <JournalView journal={journal} activeMonth={activeMonth} setActiveMonth={setActiveMonth} />
-                        )}
-                    </div>
-
-                    {/* ORDER PANEL */}
-                    <div className="area-panel">
-                        {view === 'TERMINAL' && <OrderPanel symbol={symbol} price={price} qty={qty} setQty={setQty} onExecute={handleExecute} equity={equity} />}
-                    </div>
-
-                    {/* BOTTOM PANEL */}
-                    <div className="area-bot border-t border-gray-200 dark:border-gray-700">
-                         {view === 'TERMINAL' && <PositionsTable positions={positions} price={price} symbol={symbol} onClose={handleClose} />}
-                    </div>
-
-                    {/* MOBILE TABS */}
-                    {view === 'TERMINAL' && (
-                        <div className="lg:hidden fixed bottom-0 w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around py-3 z-50 pb-6">
-                            <button onClick={()=>setMobileTab('CHART')} className={`flex flex-col items-center ${mobileTab==='CHART'?'text-blue-600':'text-gray-400'}`}><span className="text-lg">📈</span><span className="text-[10px]">Chart</span></button>
-                            <button onClick={()=>setMobileTab('TRADE')} className={`flex flex-col items-center ${mobileTab==='TRADE'?'text-blue-600':'text-gray-400'}`}><div className="bg-blue-600 rounded-full p-3 -mt-8 shadow-xl"><span className="text-white text-xl">⚡</span></div></button>
-                            <button onClick={()=>setMobileTab('POSITIONS')} className={`flex flex-col items-center ${mobileTab==='POSITIONS'?'text-blue-600':'text-gray-400'}`}><span className="text-lg relative">📋 {positions.length>0 && <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>}</span><span className="text-[10px]">Pos</span></button>
-                            <button onClick={()=>setView('JOURNAL')} className="flex flex-col items-center text-gray-400"><span className="text-lg">📅</span><span className="text-[10px]">Log</span></button>
-                        </div>
-                    )}
-                    {view === 'JOURNAL' && (
-                        <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-gray-800 border-t p-4 z-50 pb-8">
-                            <button onClick={()=>setView('TERMINAL')} className="w-full bg-gray-900 dark:bg-gray-700 text-white py-3 rounded-xl font-bold shadow-lg">Back to Terminal</button>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // --- HELPERS ---
-        const SetupWizard = ({ onComplete }) => {
-            const [s, setS] = useState(50000); const [t, setT] = useState(1000000); const [d, setD] = useState(66);
-            return (
-                <div className="fixed inset-0 bg-white flex items-center justify-center p-6">
-                    <div className="w-full max-w-md">
-                        <h1 className="text-3xl font-bold text-blue-600 mb-6">Setup Challenge</h1>
-                        <div className="space-y-4">
-                            <div><label className="block text-xs font-bold text-gray-400 mb-1">START CAPITAL (INR)</label><input type="number" value={s} onChange={e=>setS(parseFloat(e.target.value))} className="w-full p-3 border rounded-xl text-lg outline-none focus:border-blue-500" /></div>
-                            <div><label className="block text-xs font-bold text-gray-400 mb-1">TARGET (INR)</label><input type="number" value={t} onChange={e=>setT(parseFloat(e.target.value))} className="w-full p-3 border rounded-xl text-lg outline-none focus:border-blue-500" /></div>
-                            <div><label className="block text-xs font-bold text-gray-400 mb-1">DAYS</label><input type="number" value={d} onChange={e=>setD(parseFloat(e.target.value))} className="w-full p-3 border rounded-xl text-lg outline-none focus:border-blue-500" /></div>
-                            <button onClick={()=>onComplete(s,t,d)} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg mt-4">START</button>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const JournalView = ({ journal, activeMonth, setActiveMonth }) => (
-            <div className="h-full overflow-y-auto p-4 pb-24 bg-gray-50 dark:bg-gray-900">
-                <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar">
-                    {journal.months.map((m,i) => (
-                        <button key={i} onClick={()=>setActiveMonth(i)} className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap shadow-sm ${activeMonth===i?'bg-blue-600 text-white':'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-300'}`}>{m.name}</button>
-                    ))}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {journal.months[activeMonth].days.map((day, i) => (
-                        <div key={i} className={`bg-white dark:bg-gray-800 p-4 rounded-xl border ${day.date===getToday()?'border-blue-500 shadow-md':'border-gray-200 dark:border-gray-700'}`}>
-                            <div className="flex justify-between mb-2">
-                                <span className="font-bold text-gray-700 dark:text-gray-200">Day {day.day}</span>
-                                <span className="text-xs text-gray-400">{day.date}</span>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-500 mb-2">
-                                <span>Tgt: <span className="text-blue-500">{fmt(day.target)}</span></span>
-                                <span>Act: <span className={day.actual>=0?'text-green-500':'text-red-500'}>{fmt(day.actual)}</span></span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(
-            <ToastProvider>
-                <App />
-            </ToastProvider>
-        );
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<AuthWrapper />);
     </script>
 </body>
 </html>

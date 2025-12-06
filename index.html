@@ -8,19 +8,6 @@
     <link rel="icon" href="data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3e%3crect width='100' height='100' rx='20' fill='%230f172a'/%3e%3cpath d='M50 20 L80 80 L20 80' fill='%2310b981'/%3e%3c/svg%3e">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
-
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -36,9 +23,21 @@
         }
     </script>
 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
+
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
         body { background-color: #0b0e11; color: #b7bdc6; overflow: hidden; }
-        /* Custom Scrollbar to look like Binance/TradingView */
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #0b0e11; }
         ::-webkit-scrollbar-thumb { background: #2a2e39; border-radius: 2px; }
@@ -49,14 +48,11 @@
         .bg-up { background-color: #0ecb81; color: black; }
         .bg-down { background-color: #f6465d; color: white; }
         
-        .panel-border { border: 1px solid #2a2e39; }
-        input:focus { outline: none; border-color: #f0b90b; }
-        
         /* Layout Grid */
         .app-grid {
             display: grid;
             grid-template-columns: 280px 1fr 320px;
-            grid-template-rows: 50px 1fr 250px;
+            grid-template-rows: 60px 1fr 300px;
             height: 100vh;
             width: 100vw;
         }
@@ -67,11 +63,10 @@
         .bottom-panel { grid-column: 2 / -1; grid-row: 3; }
 
         @media (max-width: 1024px) {
-            .app-grid {
-                display: flex; flex-direction: column; height: auto; overflow-y: auto;
-            }
-            .watchlist, .chart-area, .order-panel, .bottom-panel { width: 100%; height: auto; }
+            .app-grid { display: flex; flex-direction: column; height: auto; overflow-y: auto; }
+            .watchlist, .chart-area, .order-panel, .bottom-panel { width: 100%; height: auto; min-height: 300px; }
             .chart-area { height: 400px; }
+            body { overflow: auto; }
         }
     </style>
 </head>
@@ -80,8 +75,9 @@
 
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef } = React;
-        // Fix: Access Recharts from window object to prevent ReferenceError
-        const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid } = window.Recharts;
+        
+        // Safe access to Recharts
+        const { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } = window.Recharts || {};
 
         // --------------------------------------------------------
         // 🔥 CONFIGURATION
@@ -100,23 +96,14 @@
         const GEMINI_API_KEY = "AIzaSyCL1goQPGdTFp_IizpTteU9ZTvcTQG3kzM";
 
         // Init Firebase
-        try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); } catch (e) {}
+        try { if (!firebase.apps.length) firebase.initializeApp(firebaseConfig); } catch (e) { console.error(e); }
         const auth = firebase.auth();
         const db = firebase.database();
 
-        // --- SIMULATED LIVE DATA ---
-        const INITIAL_PAIRS = [
-            { symbol: "BTC/USDT", price: 64230.50, change: 1.2 },
-            { symbol: "ETH/USDT", price: 3450.20, change: -0.5 },
-            { symbol: "EUR/USD", price: 1.0850, change: 0.1 },
-            { symbol: "XAU/USD", price: 2035.10, change: 0.8 },
-            { symbol: "GBP/USD", price: 1.2640, change: -0.2 },
-        ];
-
         // --- COMPONENTS ---
 
-        // 1. Header / Navbar
-        const Header = ({ user, onLogout, balance, equity }) => (
+        // 1. Header
+        const Header = ({ user, onLogout }) => (
             <header className="header bg-bg-panel border-b border-gray-800 flex justify-between items-center px-4 z-50">
                 <div className="flex items-center gap-4">
                     <div className="text-[#f0b90b] font-black text-xl tracking-tighter">BINANCE<span className="text-white">PRO</span></div>
@@ -125,32 +112,28 @@
                         <div>ETH/USDT <span className="text-down">3,450.20</span></div>
                     </div>
                 </div>
-                <div className="flex items-center gap-6 text-xs font-medium">
-                    <div className="hidden md:block">
-                        <span className="text-gray-500 mr-2">Balance:</span>
-                        <span className="text-white font-mono">${balance.toLocaleString()}</span>
-                    </div>
-                    <div className="hidden md:block">
-                        <span className="text-gray-500 mr-2">Equity:</span>
-                        <span className="text-white font-mono">${equity.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-gray-400">{user.email.split('@')[0]}</span>
-                        <button onClick={onLogout} className="bg-gray-800 hover:bg-gray-700 px-3 py-1 rounded text-gray-300">Log Out</button>
-                    </div>
+                <div className="flex items-center gap-3 text-xs font-medium">
+                    <span className="text-gray-400">{user.email}</span>
+                    <button onClick={onLogout} className="bg-gray-800 hover:bg-gray-700 px-3 py-1 rounded text-gray-300">Log Out</button>
                 </div>
             </header>
         );
 
-        // 2. Watchlist (Simulated Live Feed)
+        // 2. Watchlist
         const Watchlist = ({ onSelectSymbol }) => {
-            const [pairs, setPairs] = useState(INITIAL_PAIRS);
+            const [pairs, setPairs] = useState([
+                { symbol: "BTC/USDT", price: 64230.50, change: 1.2 },
+                { symbol: "ETH/USDT", price: 3450.20, change: -0.5 },
+                { symbol: "EUR/USD", price: 1.0850, change: 0.1 },
+                { symbol: "XAU/USD", price: 2035.10, change: 0.8 },
+                { symbol: "GBP/USD", price: 1.2640, change: -0.2 },
+            ]);
 
             useEffect(() => {
                 const interval = setInterval(() => {
                     setPairs(prev => prev.map(p => ({
                         ...p,
-                        price: p.price * (1 + (Math.random() * 0.002 - 0.001)), // Random tick movement
+                        price: p.price * (1 + (Math.random() * 0.002 - 0.001)),
                         change: p.change + (Math.random() * 0.1 - 0.05)
                     })));
                 }, 2000);
@@ -184,13 +167,12 @@
             );
         };
 
-        // 3. TradingView Chart Integration
+        // 3. Chart
         const ChartArea = ({ symbol }) => {
             const container = useRef();
-            const cleanSymbol = symbol.replace('/', ''); // EUR/USD -> EURUSD
+            const cleanSymbol = symbol.replace('/', ''); 
 
             useEffect(() => {
-                // Creating the script dynamically to ensure it loads cleanly every time symbol changes
                 if(container.current) {
                     container.current.innerHTML = "";
                     const script = document.createElement("script");
@@ -217,18 +199,15 @@
                 }
             }, [symbol]);
 
-            return (
-                <div className="chart-area bg-bg-main relative flex flex-col">
-                    <div className="h-full w-full" ref={container}></div>
-                </div>
-            );
+            return <div className="chart-area bg-bg-main relative" ref={container}></div>;
         };
 
-        // 4. Order Entry Panel
+        // 4. Order Panel
         const OrderPanel = ({ symbol, onExecuteTrade }) => {
             const [side, setSide] = useState('buy');
             const [lots, setLots] = useState(1.0);
             const [notes, setNotes] = useState("");
+            const [pnl, setPnl] = useState("");
 
             return (
                 <div className="order-panel bg-bg-panel border-l border-gray-800 p-4 flex flex-col">
@@ -248,18 +227,18 @@
                             <label className="text-xs text-gray-500">Amount (Lots)</label>
                             <input type="number" value={lots} onChange={e=>setLots(e.target.value)} className="w-full bg-bg-input border border-gray-700 rounded p-2 text-sm text-white font-mono" />
                         </div>
+                        <div>
+                            <label className="text-xs text-gray-500">Actual P&L (For Journal)</label>
+                            <input type="number" value={pnl} onChange={e=>setPnl(e.target.value)} placeholder="0.00" className="w-full bg-bg-input border border-gray-700 rounded p-2 text-sm text-white font-mono" />
+                        </div>
                          <div>
-                            <label className="text-xs text-gray-500">Setup Notes (Journal)</label>
+                            <label className="text-xs text-gray-500">Notes</label>
                             <textarea value={notes} onChange={e=>setNotes(e.target.value)} className="w-full bg-bg-input border border-gray-700 rounded p-2 text-xs text-white h-20 resize-none" placeholder="Strategy, emotion..."></textarea>
                         </div>
                     </div>
 
                     <div className="mt-auto">
-                         <div className="flex justify-between text-xs text-gray-400 mb-2">
-                            <span>Margin Req:</span>
-                            <span className="text-white">{(lots * 500).toFixed(2)} USD</span>
-                         </div>
-                        <button onClick={() => onExecuteTrade({ symbol, type: side.toUpperCase(), lots, notes, openTime: new Date().toISOString() })} className={`w-full py-3 rounded font-bold text-sm uppercase ${side === 'buy' ? 'bg-up text-black' : 'bg-down text-white'}`}>
+                        <button onClick={() => onExecuteTrade({ symbol, type: side.toUpperCase(), lots, notes, pnl, openTime: new Date().toISOString() })} className={`w-full py-3 rounded font-bold text-sm uppercase ${side === 'buy' ? 'bg-up text-black' : 'bg-down text-white'}`}>
                             {side} {symbol}
                         </button>
                     </div>
@@ -267,22 +246,29 @@
             );
         };
 
-        // 5. Bottom Panel (Tabs: Positions, History, AI)
-        const BottomPanel = ({ positions, history, closePosition, user }) => {
-            const [activeTab, setActiveTab] = useState('positions');
+        // 5. Bottom Panel
+        const BottomPanel = ({ history, closePosition }) => {
+            const [activeTab, setActiveTab] = useState('journal');
             const [aiPrompt, setAiPrompt] = useState("");
             const [aiResponse, setAiResponse] = useState("");
             const [aiLoading, setAiLoading] = useState(false);
+            const [balance, setBalance] = useState(50000);
+
+            const equityCurve = useMemo(() => {
+                let current = 50000;
+                return [{name: 'Start', val: current}, ...history.map((t, i) => {
+                    current += Number(t.pnl || 0);
+                    return { name: i, val: current };
+                })];
+            }, [history]);
 
             const askAI = async () => {
                 if(!aiPrompt) return;
                 setAiLoading(true);
                 try {
                     const api = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`;
-                    // Feed journal history as context
                     const context = JSON.stringify(history.slice(-5)); 
-                    const prompt = `You are a professional trading coach. Here is my recent trade history: ${context}. User Question: ${aiPrompt}`;
-                    
+                    const prompt = `Context: Recent trades ${context}. Question: ${aiPrompt}`;
                     const res = await fetch(api, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
                     const data = await res.json();
                     setAiResponse(data.candidates[0].content.parts[0].text);
@@ -293,70 +279,62 @@
             return (
                 <div className="bottom-panel bg-bg-panel border-t border-gray-800 flex flex-col h-full">
                     <div className="flex border-b border-gray-800">
-                        {['positions', 'history', 'analyst'].map(tab => (
+                        {['journal', 'analytics', 'ai_assistant'].map(tab => (
                             <button 
                                 key={tab} 
                                 onClick={() => setActiveTab(tab)} 
                                 className={`px-6 py-2 text-xs font-bold uppercase border-t-2 ${activeTab === tab ? 'border-[#f0b90b] text-white bg-gray-800' : 'border-transparent text-gray-500 hover:text-white'}`}
                             >
-                                {tab === 'positions' ? `Open Positions (${positions.length})` : tab}
+                                {tab.replace('_', ' ')}
                             </button>
                         ))}
                     </div>
 
-                    <div className="flex-1 overflow-auto p-0">
-                        {/* POSITIONS TABLE */}
-                        {activeTab === 'positions' && (
-                            <table className="w-full text-xs text-left">
+                    <div className="flex-1 overflow-auto p-0 h-full relative">
+                        
+                        {activeTab === 'journal' && (
+                            <table className="w-full text-xs text-left h-full">
                                 <thead className="text-gray-500 bg-gray-900 sticky top-0">
-                                    <tr><th className="p-2">Time</th><th className="p-2">Symbol</th><th className="p-2">Type</th><th className="p-2">Lots</th><th className="p-2">Close</th></tr>
+                                    <tr><th className="p-2">Date</th><th className="p-2">Symbol</th><th className="p-2">Type</th><th className="p-2">Lots</th><th className="p-2">P&L</th><th className="p-2">Notes</th></tr>
                                 </thead>
                                 <tbody>
-                                    {positions.map((p, i) => (
+                                    {history.slice().reverse().map((t, i) => (
                                         <tr key={i} className="border-b border-gray-800 hover:bg-gray-800">
-                                            <td className="p-2 text-gray-400">{new Date(p.openTime).toLocaleTimeString()}</td>
-                                            <td className="p-2 font-bold text-white">{p.symbol}</td>
-                                            <td className={`p-2 font-bold ${p.type === 'BUY' ? 'text-up' : 'text-down'}`}>{p.type}</td>
-                                            <td className="p-2 text-white">{p.lots}</td>
-                                            <td className="p-2"><button onClick={() => closePosition(p)} className="bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded text-white">Close</button></td>
+                                            <td className="p-2 text-gray-400">{new Date(t.openTime).toLocaleString()}</td>
+                                            <td className="p-2 font-bold text-white">{t.symbol}</td>
+                                            <td className={`p-2 ${t.type === 'BUY' ? 'text-up' : 'text-down'}`}>{t.type}</td>
+                                            <td className="p-2 text-white">{t.lots}</td>
+                                            <td className={`p-2 font-mono font-bold ${Number(t.pnl) >= 0 ? 'text-up' : 'text-down'}`}>{t.pnl}</td>
+                                            <td className="p-2 text-gray-400 italic truncate max-w-xs">{t.notes}</td>
                                         </tr>
                                     ))}
-                                    {positions.length === 0 && <tr><td colSpan="5" className="p-4 text-center text-gray-600">No open positions</td></tr>}
                                 </tbody>
                             </table>
                         )}
 
-                        {/* HISTORY TABLE (JOURNAL) */}
-                        {activeTab === 'history' && (
-                            <div className="h-full flex flex-col">
-                                <table className="w-full text-xs text-left">
-                                    <thead className="text-gray-500 bg-gray-900 sticky top-0">
-                                        <tr><th className="p-2">Date</th><th className="p-2">Symbol</th><th className="p-2">Type</th><th className="p-2">P&L</th><th className="p-2">Notes</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        {history.slice().reverse().map((t, i) => (
-                                            <tr key={i} className="border-b border-gray-800 hover:bg-gray-800">
-                                                <td className="p-2 text-gray-400">{new Date(t.closeTime || t.date).toLocaleDateString()}</td>
-                                                <td className="p-2 font-bold text-white">{t.symbol}</td>
-                                                <td className={`p-2 ${t.type === 'BUY' ? 'text-up' : 'text-down'}`}>{t.type}</td>
-                                                <td className={`p-2 font-mono font-bold ${t.pnl >= 0 ? 'text-up' : 'text-down'}`}>{t.pnl > 0 ? '+' : ''}{t.pnl}</td>
-                                                <td className="p-2 text-gray-400 italic truncate max-w-xs">{t.notes}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                        {activeTab === 'analytics' && LineChart && (
+                             <div className="w-full h-full p-4">
+                                <h4 className="text-xs text-gray-500 mb-2">Equity Curve</h4>
+                                <ResponsiveContainer width="100%" height="90%">
+                                    <LineChart data={equityCurve}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#2a2e39" />
+                                        <XAxis dataKey="name" hide />
+                                        <YAxis domain={['auto', 'auto']} stroke="#474d57" fontSize={10} />
+                                        <Tooltip contentStyle={{backgroundColor: '#15191e', border: '1px solid #2a2e39'}} />
+                                        <Line type="monotone" dataKey="val" stroke="#f0b90b" dot={false} />
+                                    </LineChart>
+                                </ResponsiveContainer>
                             </div>
                         )}
 
-                        {/* AI ANALYST */}
-                        {activeTab === 'analyst' && (
+                        {activeTab === 'ai_assistant' && (
                             <div className="p-4 flex flex-col h-full">
-                                <div className="flex-1 overflow-y-auto mb-4 bg-gray-900 rounded p-4 text-sm text-gray-300 font-mono whitespace-pre-wrap">
-                                    {aiResponse || "Ask me to analyze your trading journal history or market conditions..."}
+                                <div className="flex-1 overflow-y-auto mb-4 bg-gray-900 rounded p-4 text-sm text-gray-300 font-mono whitespace-pre-wrap border border-gray-800">
+                                    {aiResponse || "I am your AI Trade Assistant. Ask me to analyze your journal..."}
                                 </div>
                                 <div className="flex gap-2">
-                                    <input value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} className="flex-1 bg-bg-input border border-gray-700 rounded p-2 text-white text-sm" placeholder="E.g., 'Analyze my last 5 trades for mistakes'" />
-                                    <button onClick={askAI} disabled={aiLoading} className="bg-[#f0b90b] text-black font-bold px-4 rounded hover:bg-yellow-500">{aiLoading ? '...' : 'Analyze'}</button>
+                                    <input value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} className="flex-1 bg-bg-input border border-gray-700 rounded p-2 text-white text-sm" placeholder="Ask AI..." />
+                                    <button onClick={askAI} disabled={aiLoading} className="bg-[#f0b90b] text-black font-bold px-4 rounded hover:bg-yellow-500">{aiLoading ? '...' : 'Send'}</button>
                                 </div>
                             </div>
                         )}
@@ -365,66 +343,29 @@
             );
         };
 
-        // --- MAIN LAYOUT ---
+        // --- APP LOGIC ---
         const TradingTerminal = ({ user, onLogout }) => {
             const [selectedSymbol, setSelectedSymbol] = useState('BTC/USDT');
-            const [positions, setPositions] = useState([]);
             const [history, setHistory] = useState([]);
-            const [balance, setBalance] = useState(50000); // Default Simulated Balance
 
-            // Load Data from Firebase
+            // Load Data
             useEffect(() => {
-                db.ref(`users/${user.uid}/data`).on('value', snap => {
+                db.ref(`users/${user.uid}/journal`).on('value', snap => {
                     const val = snap.val();
-                    if(val) {
-                        if(val.positions) setPositions(val.positions);
-                        if(val.history) setHistory(val.history);
-                        if(val.balance) setBalance(val.balance);
-                    }
+                    if(val) setHistory(val || []);
                 });
             }, [user]);
 
-            const saveToFirebase = (newPos, newHist, newBal) => {
-                db.ref(`users/${user.uid}/data`).set({
-                    positions: newPos,
-                    history: newHist,
-                    balance: newBal
-                });
-            };
-
-            // Execute Trade (Adds to Open Positions)
-            const handleExecute = (order) => {
-                const newPositions = [...positions, order];
-                setPositions(newPositions);
-                saveToFirebase(newPositions, history, balance);
-            };
-
-            // Close Position (Moves to History with P&L simulation)
-            const handleClose = (position) => {
-                // Simulate P&L for demo purposes (Random between -100 and +200)
-                const simulatedPnL = (Math.random() * 300 - 100).toFixed(2);
-                
-                const closedTrade = {
-                    ...position,
-                    closeTime: new Date().toISOString(),
-                    pnl: simulatedPnL
-                };
-
-                const newHistory = [...history, closedTrade];
-                const newPositions = positions.filter(p => p !== position);
-                const newBalance = balance + Number(simulatedPnL);
-
+            const handleExecute = (trade) => {
+                const newHistory = [...history, trade];
                 setHistory(newHistory);
-                setPositions(newPositions);
-                setBalance(newBalance);
-                
-                saveToFirebase(newPositions, newHistory, newBalance);
+                db.ref(`users/${user.uid}/journal`).set(newHistory);
             };
 
             return (
                 <div className="app-grid">
                     <div className="header">
-                        <Header user={user} onLogout={onLogout} balance={balance} equity={balance} />
+                        <Header user={user} onLogout={onLogout} />
                     </div>
                     
                     <div className="watchlist">
@@ -440,7 +381,7 @@
                     </div>
                     
                     <div className="bottom-panel">
-                        <BottomPanel positions={positions} history={history} closePosition={handleClose} user={user} />
+                        <BottomPanel history={history} user={user} />
                     </div>
                 </div>
             );
@@ -450,7 +391,6 @@
         const AuthScreen = ({ onLogin }) => {
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
-            
             return (
                 <div className="min-h-screen flex items-center justify-center bg-bg-main">
                     <div className="bg-bg-panel p-8 rounded-lg shadow-lg w-96 border border-gray-800">
@@ -471,12 +411,11 @@
 
             const handleLogin = (e, p) => {
                 auth.signInWithEmailAndPassword(e, p).catch(err => {
-                    // Auto-create account if login fails (for demo ease)
                     auth.createUserWithEmailAndPassword(e, p).catch(regErr => alert(regErr.message));
                 });
             };
 
-            if(loading) return <div className="h-screen bg-bg-main flex items-center justify-center text-gray-500">Loading Exchange...</div>;
+            if(loading) return <div className="h-screen bg-bg-main flex items-center justify-center text-gray-500">Connecting to Exchange...</div>;
 
             return user ? <TradingTerminal user={user} onLogout={() => auth.signOut()} /> : <AuthScreen onLogin={handleLogin} />;
         };
